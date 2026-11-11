@@ -285,7 +285,8 @@ button.check[aria-pressed=true]{border-color:var(--ok)}
 .aufix .now::before{content:"✓ "}
 .bonus-h{color:var(--c-wheel)}
 .bwrap{position:relative;width:100%;max-width:540px;aspect-ratio:1/.92}
-.bcard{position:absolute;width:31%;height:47.5%;padding:0;border:0;background:none;perspective:900px;cursor:pointer;transition:left .7s ease-in-out,top .7s ease-in-out;touch-action:manipulation}
+.bcard{position:absolute;width:31%;height:47.5%;padding:0;border:0;background:none;perspective:900px;cursor:pointer;transition:left .7s ease-in-out,top .7s ease-in-out,transform .2s;touch-action:manipulation}
+.bcard.moving{z-index:2;transform:scale(1.07)}
 .bcard:disabled{cursor:default}
 .bcard .in{position:absolute;inset:0;transition:transform .55s;transform-style:preserve-3d}
 .bcard.down .in{transform:rotateY(180deg)}
@@ -313,7 +314,7 @@ button.check[aria-pressed=true]{border-color:var(--ok)}
 .itbl td small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
 .itbl tr.good td:nth-child(3) b{color:var(--ok)}
 .itbl tr.bad td:nth-child(3) b{color:var(--no)}
-@media (prefers-reduced-motion:reduce){.bcard,.bcard .in,.tbar i{transition:none}}
+@media (prefers-reduced-motion:reduce){.bcard .in,.tbar i{transition:none}.bcard{transition:left .45s ease-in-out,top .45s ease-in-out}}
 
 /* bingo layouts and self-marking */
 .play1{max-width:760px;margin:0 auto}
@@ -1508,15 +1509,17 @@ function qzBonusAfter(run){
       setTimeout(function(){ if(!alive()) return; b.stage = "shuffle"; saveRun(); render(); }, reduce ? 80 : 650);
     }, reduce ? 2500 : 3800);
   } else if(b.stage === "shuffle"){
-    var swaps = reduce ? 1 : 6, n = 0;
-    (function step(){
+    var swaps = 7, n = 0, gap = reduce ? 520 : 760;
+    function step(){
       if(!alive()) return;
-      if(n++ >= swaps){ b.stage = "pick"; saveRun(); render(); return; }
+      document.querySelectorAll(".bcard.moving").forEach(function(e){ e.classList.remove("moving"); });
+      if(n++ >= swaps){ setTimeout(function(){ if(!alive()) return; b.stage = "pick"; saveRun(); render(); }, 150); return; }
       var i = Math.floor(Math.random() * 6), j = (i + 1 + Math.floor(Math.random() * 5)) % 6, ki = b.pos.indexOf(i), kj = b.pos.indexOf(j);
       b.pos[ki] = j; b.pos[kj] = i;
-      [ki, kj].forEach(function(k){ var e = $("bc" + k); if(e) bSet(e, b.pos[k]); });
-      setTimeout(step, reduce ? 40 : 800);
-    })();
+      [ki, kj].forEach(function(k){ var e = $("bc" + k); if(e){ e.classList.add("moving"); bSet(e, b.pos[k]); } });
+      setTimeout(step, gap);
+    }
+    setTimeout(step, 350);
   } else if(b.stage === "reveal" && !b.revealed){
     setTimeout(function(){
       if(!alive()) return;
