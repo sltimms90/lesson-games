@@ -13,7 +13,7 @@
   --bg:#EEF2F8; --surface:#FFFFFF; --ink:#1C2445; --muted:#59627F; --line:#D3DAE8;
   --soft:#E4EAF6; --ball:#2F6FDB; --ok:#1F8A57; --no:#D33B31; --amber:#B7791F;
   --c-bingo:#2F6FDB; --c-hangman:#D9483B; --c-anagrams:#1F8A57; --c-wheel:#7A4FD1;
-  --c-slot:#EFA92E; --c-quiz:#0E8C9B; --c-taboo:#C2397A; --c-auction:#9A5B2E; --c-spelling:#5E7A12; --c-cards:#B5562B; --c-typeit:#3B5BA8; --c-match:#2E7D6B; --c-whack:#8A5A2B; --c-cross:#5A4FB0;
+  --c-slot:#EFA92E; --c-quiz:#0E8C9B; --c-taboo:#C2397A; --c-auction:#9A5B2E; --c-spelling:#5E7A12; --c-cards:#B5562B; --c-typeit:#3B5BA8; --c-match:#2E7D6B; --c-whack:#8A5A2B; --c-cross:#5A4FB0; --c-snakes:#1E8A5A; --c-hilo:#2B4FA8; --c-build:#B8860B; --c-spot:#C2304F; --c-odd:#A04478; --c-dice:#D2691E; --c-phon:#2A6F97;
   --stamp:rgba(47,111,219,.20);
   color-scheme:light;
 }
@@ -22,7 +22,7 @@
     --bg:#11172A; --surface:#1B2340; --ink:#EDF0FA; --muted:#A5AECB; --line:#323C5E;
     --soft:#242E50; --ball:#5B8EF0; --ok:#45BC85; --no:#F06A61; --amber:#E7B04A;
     --c-bingo:#5B8EF0; --c-hangman:#F06A61; --c-anagrams:#45BC85; --c-wheel:#A483F0;
-    --c-slot:#F2B94F; --c-quiz:#3DBFCD; --c-taboo:#E66BA6; --c-auction:#D08B55; --c-spelling:#A6C24A; --c-cards:#E8875A; --c-typeit:#7F9CF0; --c-match:#4FC2A6; --c-whack:#D39A5E; --c-cross:#A79CF2;
+    --c-slot:#F2B94F; --c-quiz:#3DBFCD; --c-taboo:#E66BA6; --c-auction:#D08B55; --c-spelling:#A6C24A; --c-cards:#E8875A; --c-typeit:#7F9CF0; --c-match:#4FC2A6; --c-whack:#D39A5E; --c-cross:#A79CF2; --c-snakes:#5FCB8E; --c-hilo:#7F9CF0; --c-build:#E0B44A; --c-spot:#F0708A; --c-odd:#D47FB0; --c-dice:#F0A060; --c-phon:#6FAFD8;
     --stamp:rgba(91,142,240,.30);
     color-scheme:dark;
   }
@@ -31,7 +31,7 @@
   --bg:#11172A; --surface:#1B2340; --ink:#EDF0FA; --muted:#A5AECB; --line:#323C5E;
   --soft:#242E50; --ball:#5B8EF0; --ok:#45BC85; --no:#F06A61; --amber:#E7B04A;
   --c-bingo:#5B8EF0; --c-hangman:#F06A61; --c-anagrams:#45BC85; --c-wheel:#A483F0;
-  --c-slot:#F2B94F; --c-quiz:#3DBFCD; --c-taboo:#E66BA6; --c-auction:#D08B55; --c-spelling:#A6C24A; --c-cards:#E8875A; --c-typeit:#7F9CF0; --c-match:#4FC2A6; --c-whack:#D39A5E; --c-cross:#A79CF2;
+  --c-slot:#F2B94F; --c-quiz:#3DBFCD; --c-taboo:#E66BA6; --c-auction:#D08B55; --c-spelling:#A6C24A; --c-cards:#E8875A; --c-typeit:#7F9CF0; --c-match:#4FC2A6; --c-whack:#D39A5E; --c-cross:#A79CF2; --c-snakes:#5FCB8E; --c-hilo:#7F9CF0; --c-build:#E0B44A; --c-spot:#F0708A; --c-odd:#D47FB0; --c-dice:#F0A060; --c-phon:#6FAFD8;
   --stamp:rgba(91,142,240,.30);
   color-scheme:dark;
 }
@@ -53,6 +53,7 @@ button{font:inherit;color:inherit}
 .btn.no{background:var(--no);color:#fff}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
 .btn.sm{min-height:44px;padding:8px 14px;font-size:17px}
+.btn.ic{min-width:44px;padding:8px 10px;font-size:21px;line-height:1;justify-content:center}
 .btn.danger{background:transparent;color:var(--no);border-color:var(--no)}
 .btn:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.tile:focus-visible,.key:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -508,6 +509,131 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
   .pcwl{columns:2;column-gap:10mm;font-size:11pt;line-height:1.5}
   .pcwl h3{font-size:12pt;margin:0 0 1mm}
 }
+
+/* snakes & ladders */
+.sn-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.sn-board{position:relative;width:min(94vw,calc(72vh * var(--ar)),900px);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.sn-board img{display:block;width:100%;height:auto;border-radius:10px;pointer-events:none}
+.sn-board.pickable{cursor:crosshair;outline:4px dashed var(--c-cross);outline-offset:3px;border-radius:10px}
+.sn-tok{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1;border-radius:50%;transition:left .16s linear,top .16s linear,opacity .2s;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))}
+.sn-tok.slide{transition:left .65s ease-in-out,top .65s ease-in-out}
+.sn-tok.off{opacity:0}
+.sn-tok img,.sn-tok span{width:100%;height:100%;border-radius:50%;object-fit:cover;display:grid;place-items:center;border:3px solid #fff;font:800 clamp(12px,2vw,22px)/1 "Baloo 2",sans-serif;color:#fff}
+.sn-tok.now img,.sn-tok.now span{border-color:#ffd23f;box-shadow:0 0 0 3px #1b1b1b}
+.sn-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.sn-chip{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;border:2px solid var(--line);background:var(--surface);font:700 16px/1 "Atkinson Hyperlegible",sans-serif;color:var(--ink);cursor:pointer}
+.sn-chip.now{border-color:var(--c-cross);box-shadow:0 0 0 2px var(--c-cross)}
+.sn-chip.fix{outline:3px dashed var(--amber)}
+.sn-chip .th{width:34px;height:34px;border-radius:50%;overflow:hidden;display:grid;place-items:center;color:#fff;font:800 16px "Baloo 2",sans-serif}
+.sn-chip .th img{width:100%;height:100%;object-fit:cover}
+.sn-dice{display:flex;gap:14px;justify-content:center;min-height:72px;position:relative}
+.sn-dot{position:absolute;right:-14px;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.35}
+.die{width:64px;height:64px;border-radius:14px;background:#fff;border:3px solid #1b1b1b;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:8px;gap:3px;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.die i{border-radius:50%} .die i.on{background:#1b1b1b}
+.die.spin{animation:dieshake .14s infinite}
+@keyframes dieshake{0%{transform:rotate(-12deg) translateY(-3px)}50%{transform:rotate(10deg) translateY(2px)}100%{transform:rotate(-12deg) translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.die.spin{animation:none}.sn-tok{transition:none}}
+.sn-prev{position:relative;width:100%;max-width:560px;margin-top:8px}
+.sn-prev img{display:block;width:100%;border-radius:8px}
+.sn-prev .num{position:absolute;transform:translate(-50%,-50%);font:700 11px/1 "Atkinson Hyperlegible",sans-serif;background:rgba(255,255,255,.85);color:#000;border-radius:4px;padding:1px 3px}
+.sn-prev svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.sn-players .row{align-items:center;margin:6px 0}
+.sn-players .th{width:44px;height:44px;border-radius:50%;overflow:hidden;display:grid;place-items:center;color:#fff;font:800 18px "Baloo 2",sans-serif;flex:none}
+.sn-players .th img{width:100%;height:100%;object-fit:cover}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+.lpts{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;background:var(--soft);font:800 clamp(22px,3.4vw,30px)/1 "Baloo 2",sans-serif;color:var(--ink);margin:4px 0 8px}
+.lpts small{font:700 14px/1 "Atkinson Hyperlegible",sans-serif;color:var(--muted)}
+.bar .lp{font:800 17px/1 "Baloo 2",sans-serif;white-space:nowrap;padding:4px 10px;border-radius:999px;background:var(--soft)}
+
+/* higher or lower */
+.hl-row{display:flex;gap:clamp(12px,3vw,28px);justify-content:center;align-items:center;flex-wrap:wrap}
+.hl-chain{display:flex;align-items:center}
+.hl-mini{width:clamp(54px,8vw,74px);margin-right:-18px}
+.hl-mini .hlc{width:100%}
+.hl-mini .hlc .cn{font-size:clamp(12px,1.8vw,16px)} .hl-mini .hlc .ctr{font-size:clamp(26px,4vw,38px)} .hl-mini .hlc .ctr.court{font-size:clamp(22px,3.4vw,32px)}
+.hl-chain + .hlc{margin-left:26px}
+.hl-arrow{font:800 clamp(28px,5vw,44px)/1 "Baloo 2",sans-serif;color:var(--muted)}
+.hlc{width:clamp(120px,22vw,190px);aspect-ratio:5/7;perspective:900px;position:relative}
+.hlc .in{position:absolute;inset:0;transition:transform .6s;transform-style:preserve-3d}
+.hlc.down .in{transform:rotateY(180deg)}
+.hlc .f,.hlc .b{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.hlc .f{background:#fff;border:2px solid #222;color:#141414;box-shadow:0 6px 14px rgba(0,0,0,.25)}
+.hlc .f.red{color:#C8102E}
+.hlc .b{transform:rotateY(180deg);background:repeating-linear-gradient(45deg,#2B4FA8 0 9px,#3D63C4 9px 18px);border:7px solid #fff;box-shadow:0 0 0 2px #222,0 6px 14px rgba(0,0,0,.25)}
+.hlc .cn{position:absolute;font:800 clamp(18px,3vw,28px)/.95 Georgia,"Times New Roman",serif;text-align:center}
+.hlc .cn i{display:block;font-style:normal;font-size:.85em}
+.hlc .tl{top:8px;left:9px} .hlc .br{bottom:8px;right:9px;transform:rotate(180deg)}
+.hlc .ctr{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font:400 clamp(54px,10vw,96px)/1 Georgia,serif}
+.hlc .ctr.court{font:700 clamp(46px,8vw,78px)/1 Georgia,serif}
+.hlc .ctr.court span{display:block;font-size:.55em;margin-top:4px}
+.hlc .ctr.court b{display:block;width:62%;margin:0 auto;border:3px double currentColor;border-radius:10px;padding:8px 0}
+.hl-calls{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.hl-left{font:600 15px/1 "Atkinson Hyperlegible",sans-serif;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.hlc .in{transition:none}}
+
+/* landscape tablet: hangman and snakes & ladders fit on one screen */
+.hm-side,.hm-main,.sn-side{display:contents}
+.hm-side>*{order:3} .hm-main>*{order:4} .hm-main>.score{order:1} .hm-main>.progress{order:2}
+.sn-wrap>.sn-board{order:3} .sn-side>*{order:4} .sn-side>.sn-bar{order:1} .sn-side>.sn-bar+*{order:2}
+@media (orientation:landscape) and (min-width:700px) and (max-height:1000px){
+  .stage{padding-top:12px;padding-bottom:16px}
+  .lasttime{margin-bottom:2px}
+  .hm{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;justify-items:center;gap:12px 36px}
+  .hm-side{display:flex;justify-content:center;align-items:center;max-width:230px}
+  .hm-main{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
+  .hm .score .n{font-size:40px}
+  .hm .hmlives,.hm .balloons{min-height:0}
+  .hm .gallows{width:min(26vw,48vh,230px)}
+  .hm .slot{height:clamp(44px,9vh,70px);font-size:clamp(32px,7vh,54px)}
+  .hm .keys{grid-template-columns:repeat(13,minmax(0,1fr));max-width:860px;gap:6px}
+  .hm .key{min-height:clamp(44px,7.5vh,58px);font-size:24px}
+  .sn-wrap{flex-direction:row;align-items:center;justify-content:center;gap:24px}
+  .sn-board{flex:none;width:min(calc((100vh - 120px) * var(--ar)),calc(100vw - 340px),1100px);width:min(calc((100dvh - 120px) * var(--ar)),calc(100vw - 340px),1100px)}
+  .sn-side{display:flex;flex-direction:column;align-items:center;gap:14px;width:260px;flex:none}
+  .sn-side .sn-bar{flex-direction:column;align-items:stretch}
+}
+
+/* sentence builder · spot the error · odd one out · story dice · phonics sort */
+.score .n.bd{color:var(--c-build)} .score .n.se{color:var(--c-spot)} .score .n.od{color:var(--c-odd)} .score .n.sd{color:var(--c-dice)} .score .n.ph{color:var(--c-phon)}
+.bd-hint{font:700 clamp(18px,2.6vw,22px)/1.3 "Atkinson Hyperlegible",sans-serif;color:var(--muted)}
+.bd-line{min-height:72px;width:min(96vw,900px);display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;padding:10px;border-radius:16px;border:3px dashed var(--line);background:var(--surface)}
+.bd-line.done{border-style:solid;border-color:var(--c-build);font:800 clamp(24px,4vw,36px)/1.25 "Baloo 2",sans-serif;padding:14px 18px}
+.bd-pool{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:min(96vw,900px)}
+.bd-tile{border:0;border-radius:12px;background:var(--c-build);color:#fff;font:800 clamp(20px,3.4vw,30px)/1.1 "Baloo 2",sans-serif;padding:10px 16px;min-height:54px;cursor:pointer;touch-action:manipulation;box-shadow:inset 0 -5px 0 rgba(0,0,0,.18)}
+.bd-tile.placed{background:var(--surface);color:var(--ink);border:3px solid var(--c-build);box-shadow:none}
+.bd-tile.placed.ok{border-color:var(--ok);color:var(--ok)} .bd-tile.placed.no{border-color:var(--no);color:var(--no)}
+.bd-tile.gone{visibility:hidden}
+.se-sent{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
+.se-w{border:3px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:800 clamp(22px,3.8vw,34px)/1.15 "Baloo 2",sans-serif;padding:8px 14px;min-height:54px;cursor:pointer;touch-action:manipulation}
+span.se-w{cursor:default}
+.se-w.no{border-color:var(--no);color:var(--no);text-decoration:line-through}
+.se-w.hit{border-color:var(--c-spot);background:var(--c-spot);color:#fff}
+.se-key{font-size:17px;max-width:560px} .se-key summary{cursor:pointer}
+.se-fix{font:700 clamp(20px,3vw,26px)/1.3 "Atkinson Hyperlegible",sans-serif;color:var(--ok);max-width:40ch}
+.od-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,40vw),1fr));gap:14px;width:min(96vw,860px)}
+.od-tile{border:0;border-radius:18px;background:var(--c-odd);color:#fff;font:800 clamp(24px,4vw,38px)/1.1 "Baloo 2",sans-serif;padding:18px 12px;min-height:clamp(84px,16vh,130px);display:grid;place-items:center;cursor:pointer;touch-action:manipulation;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18);overflow-wrap:anywhere}
+span.od-tile{cursor:default}
+.od-tile.no{background:transparent;color:var(--no);border:3px dashed var(--no);box-shadow:none;text-decoration:line-through}
+.od-tile.yes{background:var(--ok)} .od-tile.dim{opacity:.4}
+.sd-row{display:flex;flex-wrap:wrap;gap:clamp(10px,2vw,20px);justify-content:center}
+.sd-die{width:clamp(120px,18vw,170px);aspect-ratio:1;border-radius:22px;background:#fff;color:#1b1b1b;border:4px solid var(--c-dice);box-shadow:0 6px 0 var(--c-dice);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:10px;font:800 clamp(22px,3.4vw,32px)/1.05 "Baloo 2",sans-serif;cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere;text-align:center}
+.sd-die small{font:700 14px/1 "Atkinson Hyperlegible",sans-serif;color:#555;text-transform:uppercase;letter-spacing:.05em}
+.sd-die.roll{animation:sdroll .55s ease-out}
+@keyframes sdroll{0%{transform:rotate(-200deg) scale(.4);opacity:0}70%{transform:rotate(12deg) scale(1.05);opacity:1}100%{transform:none}}
+.ph-flash{min-height:30px;font:700 20px/1.3 "Atkinson Hyperlegible",sans-serif} .ph-flash.ok{color:var(--ok)}
+.ph-card{position:relative;width:min(92vw,520px);min-height:clamp(120px,22vh,190px);border-radius:22px;border:4px solid var(--c-phon);background:var(--surface);display:grid;place-items:center;padding:18px 60px;font:800 clamp(40px,8vw,72px)/1.1 "Baloo 2",sans-serif;color:var(--ink)}
+.ph-say{position:absolute;right:10px;top:10px;font-size:22px}
+.ph-bins{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:12px;width:min(96vw,1000px)}
+.ph-bin{min-height:clamp(84px,16vh,130px);border-radius:18px;border:4px dashed var(--c-phon);background:var(--soft);color:var(--ink);font:800 clamp(22px,3.6vw,34px)/1.1 "Baloo 2",sans-serif;cursor:pointer;touch-action:manipulation;padding:8px;overflow-wrap:anywhere}
+.ph-bin.yes{border-style:solid;border-color:var(--ok);background:var(--ok);color:#fff} .ph-bin.no{border-style:solid;border-color:var(--no);color:var(--no)}
+.ph-bin:disabled{cursor:default}
+@media (prefers-reduced-motion:reduce){.sd-die.roll{animation:none}}
+@media (orientation:landscape) and (min-width:700px) and (max-height:1000px){
+  .bd-line,.se-sent,.od-grid,.ph-card{margin:0}
+  .ph-card{min-height:clamp(96px,18vh,150px)}
+}
 </style>
 </head>
 <body>
@@ -532,8 +658,8 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 "use strict";
 var STUDENT_PAGE = /^#s=/.test(location.hash) || /github\.io$/.test(location.hostname);
 var LKEY = STUDENT_PAGE ? "lessonGames.student.v1" : "lessonGames.ui.v2";
-var APP_V = 20261110, SMODE = null;
-var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling"];
+var APP_V = 20261112, SMODE = null;
+var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling", "build", "spot", "odd", "phon"];
 var SLINK_BASE = "https://sltimms90.github.io/lesson-games/";
 function loadLocal(k){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
 function saveLocal(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -543,7 +669,7 @@ function saveUI(){ saveLocal(LKEY, UI); }
 
 var PACKS = [], RESULTS = [], STORE = null, STATUS = "connecting", SLOW = false, LOADED = { packs:false, results:false };
 var UNDO = [];
-var STUDENTS = {};
+var STUDENTS = {}, BOARDS = {};
 
 /* ---------- looks ---------- */
 var LOOKS = [
@@ -627,14 +753,17 @@ function dbStore(db){
     saveResult: function(r){ return q("results/" + r.id, function(){ return db.doc("results/" + r.id).set(clone(r)); }); },
     deleteResult: function(id){ return q("results/" + id, function(){ return db.doc("results/" + id).delete(); }); },
     watchStudents: function(cb, err){ return db.collection("students").limit(200).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
-    saveStudent: function(o){ return q("students/" + o.id, function(){ return db.doc("students/" + o.id).set(clone(o)); }); }
+    saveStudent: function(o){ return q("students/" + o.id, function(){ return db.doc("students/" + o.id).set(clone(o)); }); },
+    watchBoards: function(cb, err){ return db.collection("boards").limit(50).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
+    saveBoard: function(o){ return q("boards/" + o.id, function(){ return db.doc("boards/" + o.id).set(clone(o)); }); }
   };
 }
 function localStore(){
   var KEY = "lessonGames.data.v2";
   var data = loadLocal(KEY) || { packs:{}, results:{} };
   if(!data.students) data.students = {};
-  var L = { packs:[], results:[], students:[] };
+  if(!data.boards) data.boards = {};
+  var L = { packs:[], results:[], students:[], boards:[] };
   function emit(){
     saveLocal(KEY, data);
     var p = Object.keys(data.packs).map(function(k){ return clone(data.packs[k]); }).sort(function(a,b){ return String(b.updatedAt).localeCompare(String(a.updatedAt)); });
@@ -642,6 +771,8 @@ function localStore(){
     L.packs.forEach(function(f){ f(p, false); }); L.results.forEach(function(f){ f(r, false); });
     var st = Object.keys(data.students).map(function(k){ return clone(data.students[k]); });
     L.students.forEach(function(f){ f(st, false); });
+    var bd = Object.keys(data.boards).map(function(k){ return clone(data.boards[k]); });
+    L.boards.forEach(function(f){ f(bd, false); });
   }
   return {
     kind: "local",
@@ -652,7 +783,9 @@ function localStore(){
     saveResult: function(r){ data.results[r.id] = clone(r); emit(); return Promise.resolve(); },
     deleteResult: function(id){ delete data.results[id]; emit(); return Promise.resolve(); },
     watchStudents: function(cb){ L.students.push(cb); setTimeout(emit, 0); return function(){}; },
-    saveStudent: function(o){ data.students[o.id] = clone(o); emit(); return Promise.resolve(); }
+    saveStudent: function(o){ data.students[o.id] = clone(o); emit(); return Promise.resolve(); },
+    watchBoards: function(cb){ L.boards.push(cb); setTimeout(emit, 0); return function(){}; },
+    saveBoard: function(o){ data.boards[o.id] = clone(o); emit(); return Promise.resolve(); }
   };
 }
 
@@ -666,6 +799,7 @@ async function connect(){
   STORE.watchPacks(function(list, cache){ PACKS = list; LOADED.packs = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
   STORE.watchResults(function(list, cache){ RESULTS = list; LOADED.results = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
   STORE.watchStudents(function(list){ STUDENTS = {}; list.forEach(function(o){ STUDENTS[o.id] = o; }); refresh(); }, function(){});
+  STORE.watchBoards(function(list){ BOARDS = {}; list.forEach(function(o){ BOARDS[o.id] = o; }); refresh(); }, function(){});
   refresh();
 }
 var LIVE_VIEWS = ["home", "pack", "student", "done"];
@@ -1079,9 +1213,9 @@ TYPES.hangman = {
     else bottom = '<div class="verdict ' + (s.status === "won" ? "ok" : "no") + '">' + (s.status === "won" ? "Solved!" + (s.points != null ? " +" + ((s.log[s.log.length - 1] || {}).pts || 0) : "") : "Not this time") + '</div><button class="btn big-btn" data-a="hm-next">' + (s.i < s.words.length - 1 ? "Next word" : "Finish") + '</button>';
     var pts = s.points == null ? null : (s.status === "playing" ? hmWordPts(s, true) : (s.log[s.log.length - 1] || {}).pts || 0);
     var board = s.points == null ? "" : '<div class="score"><span><span class="n">' + (s.total || 0) + '</span><small>points</small></span><span><span class="n">' + pts + '</span><small>' + (s.status === "playing" ? "this word" : "won") + '</small></span></div>';
-    return '<section class="center">' + board + '<div class="progress">' + (s.ch ? "Challenge · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' + lives +
+    return '<section class="center hm"><div class="hm-side">' + lives + '</div><div class="hm-main">' + board + '<div class="progress">' + (s.ch ? "Challenge · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' +
       '<div class="word" aria-live="polite">' + slots + '</div>' + clue +
-      '<div class="wrong">' + (s.wrong.length ? 'Wrong: <b>' + s.wrong.join(" ") + '</b>' : '&nbsp;') + '</div>' + bottom + '</section>';
+      '<div class="wrong">' + (s.wrong.length ? 'Wrong: <b>' + s.wrong.join(" ") + '</b>' : '&nbsp;') + '</div>' + bottom + '</div></section>';
   },
   act: function(run, a, el){
     var s = run.st, w = s.words[s.i];
@@ -2725,6 +2859,908 @@ TYPES.cross = {
   }
 };
 
+/* ------------------------------ SNAKES & LADDERS ------------------------------ */
+/* Boards live in their own collection (boards/<id>: name, img as a data URL, grid and jumps),
+   so one board serves every student. Tokens live on students/<slug>.token. */
+var SN_COLORS = ["#C8323B", "#2F6FDB", "#1E8A5A", "#B07A12", "#7A4FB0", "#C2572B"];
+function snGrid(b){ return { rows:+b.rows || 10, cols:+b.cols || 10, l:+b.l || 0, r:+b.r || 0, t:+b.t || 0, bm:+b.b || 0, zig: b.zig !== false, start: b.start === "br" ? "br" : "bl" }; }
+function snCount(g){ return g.rows * g.cols; }
+function snPos(g, n){
+  var row = Math.floor((n - 1) / g.cols), col = (n - 1) % g.cols;
+  if(g.zig && row % 2 === 1) col = g.cols - 1 - col;
+  if(g.start === "br") col = g.cols - 1 - col;
+  var cw = (100 - g.l - g.r) / g.cols, ch = (100 - g.t - g.bm) / g.rows;
+  return { x: g.l + (col + .5) * cw, y: 100 - g.bm - (row + .5) * ch, cw:cw, ch:ch };
+}
+function snCellAt(g, xp, yp){
+  var cw = (100 - g.l - g.r) / g.cols, ch = (100 - g.t - g.bm) / g.rows;
+  var col = Math.floor((xp - g.l) / cw), row = Math.floor((100 - g.bm - yp) / ch);
+  if(col < 0 || col >= g.cols || row < 0 || row >= g.rows) return null;
+  if(g.start === "br") col = g.cols - 1 - col;
+  if(g.zig && row % 2 === 1) col = g.cols - 1 - col;
+  return row * g.cols + col + 1;
+}
+function snJumps(text){ var j = {}; String(text || "").split(/\n|;/).forEach(function(l){ var m = l.match(/(\d+)\D+(\d+)/); if(m && +m[1] !== +m[2]) j[+m[1]] = +m[2]; }); return j; }
+function snPlayers(block, pack){ var n = parseLines(block || "").map(function(x){ return x.trim(); }).filter(Boolean); if(!n.length) n = [(pack && pack.student) || "Student", "Teacher"]; return n.slice(0, 6); }
+function snToken(name, k){
+  var o = STUDENTS[slug(name)];
+  return o && o.token ? '<img src="' + o.token + '" alt="">' : '<span style="background:' + SN_COLORS[k % SN_COLORS.length] + '">' + esc((name || "?").charAt(0).toUpperCase()) + '</span>';
+}
+function snThumb(name, k){ var o = STUDENTS[slug(name)]; return '<span class="th" style="background:' + SN_COLORS[k % SN_COLORS.length] + '">' + (o && o.token ? '<img src="' + o.token + '" alt="">' : esc((name || "?").charAt(0).toUpperCase())) + '</span>'; }
+function dieFace(n, spin){
+  var on = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] }[n] || [], h = "";
+  for(var i=0;i<9;i++) h += '<i' + (on.indexOf(i) !== -1 ? ' class="on"' : "") + '></i>';
+  return '<div class="die' + (spin ? " spin" : "") + '" role="img" aria-label="' + n + '">' + h + '</div>';
+}
+function loadImgFile(file){ return new Promise(function(res, rej){ var u = URL.createObjectURL(file), im = new Image(); im.onload = function(){ res(im); }; im.onerror = function(){ rej(new Error("That file isn’t a picture I can read.")); }; im.src = u; }); }
+function imgData(im, maxSide, type, q, square){
+  var w = im.naturalWidth, h = im.naturalHeight, sx = 0, sy = 0, sw = w, sh = h;
+  if(square){ var m = Math.min(w, h); sx = (w - m) / 2; sy = (h - m) / 2; sw = sh = m; w = h = m; }
+  var k = Math.min(1, maxSide / Math.max(w, h)), c = document.createElement("canvas");
+  c.width = Math.round(w * k); c.height = Math.round(h * k);
+  var x = c.getContext("2d"); if(type === "image/jpeg"){ x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); }
+  x.drawImage(im, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  return { url: c.toDataURL(type, q), w:c.width, h:c.height };
+}
+function boardData(im){ var side = 1200, q = .82, d; for(var i=0;i<8;i++){ d = imgData(im, side, "image/jpeg", q); if(d.url.length < 230000) return d; if(q > .62) q -= .08; else side = Math.round(side * .85); } return d; }
+function snFormBoard(){
+  var id = $("snBoard") ? $("snBoard").value : "", b = BOARDS[id]; if(!b) return null;
+  function n(k, d){ var e = $(k); var v = e ? parseFloat(e.value) : NaN; return isNaN(v) ? d : v; }
+  return Object.assign({}, b, { rows: n("snRows", 10), cols: n("snCols", 10), l: n("snL", 0), r: n("snR", 0), t: n("snT", 0), b: n("snB", 0), zig: $("snZig") ? $("snZig").checked : true, start: checkedVal("snStart", "bl"), jumps: $("snJumps") ? $("snJumps").value : (b.jumps || "") });
+}
+function snPreviewHtml(b){
+  if(!b) return '<p class="muted">Choose or upload a board.</p>';
+  var g = snGrid(b), N = snCount(g), nums = "", J = snJumps(b.jumps), lines = "";
+  for(var n=1;n<=N;n++){ var p = snPos(g, n); nums += '<span class="num" style="left:' + p.x + '%;top:' + p.y + '%">' + n + '</span>'; }
+  Object.keys(J).forEach(function(a){ var p1 = snPos(g, +a), p2 = snPos(g, J[a]), up = J[a] > +a; lines += '<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + p2.x + '" y2="' + p2.y + '" stroke="' + (up ? "#1E8A5A" : "#C8323B") + '" stroke-width="1.2" stroke-linecap="round" marker-end="url(#ar' + (up ? "u" : "d") + ')"/>'; });
+  return '<div class="sn-prev"><img src="' + b.img + '" alt="Board"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><marker id="aru" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0L4,2L0,4z" fill="#1E8A5A"/></marker><marker id="ard" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0L4,2L0,4z" fill="#C8323B"/></marker></defs>' + lines + '</svg>' + nums + '</div><p class="hint">The numbers should sit on the board’s squares; green arrows are ladders, red are snakes. Nudge the edges or fix the list if anything is off.</p>';
+}
+function snPlayersHtml(){
+  var names = snPlayers($("gBlock") ? $("gBlock").value : "", getPack(UI.packId));
+  return names.map(function(nm, k){ return '<div class="row">' + snThumb(nm, k) + '<b style="min-width:7em">' + esc(nm) + '</b><label class="btn ghost sm filebtn">Picture…<input type="file" accept="image/*" data-tok="' + esc(nm) + '"></label></div>'; }).join("");
+}
+/* Lucky mode (triple-tap the dice): rolls are chosen to help the students and hold the teacher back. */
+function snIsTeacher(name){ return /^(teacher|sam|mr\.? ?sam|老師)$/i.test(String(name || "").trim()); }
+function snFav(s, k){ var anyT = s.players.some(function(p){ return snIsTeacher(p.name); }); return anyT ? !snIsTeacher(s.players[k].name) : k === 0; }
+function snLand(pos, sum, N, exact, J){ var at = pos, dir = 1; for(var i=0;i<sum;i++){ if(at + dir > N){ if(!exact) break; dir = -1; } at += dir; } return J[at] || at; }
+function snLuckyRoll(s){
+  var b = BOARDS[s.boardId] || {}, g = snGrid(b), N = snCount(g), J = snJumps(b.jumps), p = s.players[s.turn], fav = snFav(s, s.turn), ok = [], all = [];
+  for(var a=1;a<=6;a++) for(var c=1;c<=6;c++){
+    var land = snLand(p.pos, a + c, N, s.exact, {}), f = J[land] || land, win = f === N || (!s.exact && f >= N);
+    all.push([a, c]);
+    if(fav){ if(win) return [a, c]; if(f >= land) ok.push([a, c]); }
+    else if(!win && f <= land && !(a === c && Math.random() < .6)) ok.push([a, c]);
+  }
+  var pool = ok.length ? ok : all;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+TYPES.snakes = {
+  label: "Snakes & Ladders", letter: "🎲",
+  blurb: "Your own board picture with two dice. Tokens move by themselves (or you place them), climbing ladders and sliding down snakes. Each student keeps their own token picture.",
+  blockLabel: "Players",
+  blockHint: "One player per line, in turn order (up to 6). Leave it empty for the student and Teacher.",
+  placeholder: "Tank\nTeacher",
+  defaults: function(){ return { boardId:"", auto:true, exact:true, doubles:true }; },
+  optionsHtml: function(o){
+    var ids = Object.keys(BOARDS), sel = o.boardId && BOARDS[o.boardId] ? o.boardId : (ids[0] || ""), b = BOARDS[sel] || {}, g = snGrid(b);
+    return '<div class="field"><label for="snBoard">Board</label><div class="row"><select id="snBoard" style="font:inherit;font-size:17px;min-height:46px;border-radius:10px;border:2px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 10px">' +
+      (ids.length ? ids.map(function(id){ return '<option value="' + esc(id) + '"' + (id === sel ? " selected" : "") + '>' + esc(BOARDS[id].name || "Board") + '</option>'; }).join("") : '<option value="">No boards yet</option>') +
+      '</select><label class="btn ghost filebtn">Upload a board…<input type="file" id="snUp" accept="image/*"></label></div><p class="hint" id="snUpMsg"></p></div>' +
+      '<div id="snPrev">' + snPreviewHtml(BOARDS[sel]) + '</div>' +
+      '<details class="field"' + (sel ? "" : " open") + '><summary><b>Board layout</b> <span class="muted">(squares, edges, snakes and ladders)</span></summary>' +
+      '<div class="two" style="margin-top:8px"><div class="field"><label for="snRows">Rows</label><input type="number" id="snRows" min="2" max="20" value="' + g.rows + '"></div><div class="field"><label for="snCols">Columns</label><input type="number" id="snCols" min="2" max="20" value="' + g.cols + '"></div></div>' +
+      '<div class="two"><div class="field"><label for="snL">Left edge %</label><input type="number" step="0.5" id="snL" value="' + g.l + '"></div><div class="field"><label for="snR">Right edge %</label><input type="number" step="0.5" id="snR" value="' + g.r + '"></div></div>' +
+      '<div class="two"><div class="field"><label for="snT">Top edge %</label><input type="number" step="0.5" id="snT" value="' + g.t + '"></div><div class="field"><label for="snB">Bottom edge %</label><input type="number" step="0.5" id="snB" value="' + g.bm + '"></div></div>' +
+      '<div class="field"><span class="legend">Square 1 is</span><div class="choice">' + radio("snStart", "bl", "Bottom left", g.start === "bl") + radio("snStart", "br", "Bottom right", g.start === "br") + '</div><label class="check" style="margin-top:6px"><input type="checkbox" id="snZig"' + (g.zig ? " checked" : "") + '><span>Rows zig-zag (the usual layout)</span></label></div>' +
+      '<div class="field"><label for="snJumps">Snakes and ladders</label><textarea id="snJumps" rows="6" placeholder="4 14\n17 7">' + esc(b.jumps || "") + '</textarea><div class="hint">One per line: start square, then where it ends (“4 14” is a ladder, “17 7” a snake).</div></div></details>' +
+      '<div class="field"><span class="legend">Moving the tokens</span><div class="choice">' + radio("snAuto", "1", "Automatic", o.auto !== false) + radio("snAuto", "0", "I place them", o.auto === false) + '</div></div>' +
+      '<div class="field"><span class="legend">Finishing</span><div class="choice">' + radio("snExact", "1", "Land exactly on the last square (bounce back)", o.exact !== false) + radio("snExact", "0", "Reach it or go past", o.exact === false) + '</div></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="snDouble"' + (o.doubles !== false ? " checked" : "") + '><span><b>A double gives an extra roll</b><br><span class="muted">Two dice the same: the same player rolls again.</span></span></label></div>' +
+      '<div class="field sn-players"><span class="legend">Tokens</span><div id="snPlayers"></div><div class="hint">Each picture is saved with that name, so it’s there next lesson. Photos are cropped to a circle.</div></div>';
+  },
+  wireOptions: function(){
+    function prev(){ $("snPrev").innerHTML = snPreviewHtml(snFormBoard()); }
+    function players(){ $("snPlayers").innerHTML = snPlayersHtml(); }
+    ["snRows", "snCols", "snL", "snR", "snT", "snB", "snJumps", "snZig"].forEach(function(k){ var e = $(k); if(e) e.addEventListener("input", prev); });
+    document.querySelectorAll('input[name="snStart"]').forEach(function(e){ e.addEventListener("change", prev); });
+    $("snBoard").addEventListener("change", function(){ var b = BOARDS[$("snBoard").value] || {}, g = snGrid(b); $("snRows").value = g.rows; $("snCols").value = g.cols; $("snL").value = g.l; $("snR").value = g.r; $("snT").value = g.t; $("snB").value = g.bm; $("snZig").checked = g.zig; $("snJumps").value = b.jumps || ""; var r = document.querySelector('input[name="snStart"][value="' + g.start + '"]'); if(r) r.checked = true; prev(); });
+    $("snUp").addEventListener("change", function(){
+      var f = this.files && this.files[0]; if(!f) return; $("snUpMsg").textContent = "Saving the board…";
+      loadImgFile(f).then(function(im){
+        var d = boardData(im), id = "b" + shortId(), b = { id:id, name:(f.name || "Board").replace(/\.[a-z0-9]+$/i, ""), img:d.url, w:d.w, h:d.h, rows:10, cols:10, l:0, r:0, t:0, b:0, zig:true, start:"bl", jumps:"", updatedAt:nowIso() };
+        BOARDS[id] = b; return STORE.saveBoard(b).then(function(){
+          var sel = $("snBoard"); if(sel.querySelector('option[value=""]')) sel.innerHTML = "";
+          sel.insertAdjacentHTML("beforeend", '<option value="' + id + '">' + esc(b.name) + '</option>'); sel.value = id; sel.dispatchEvent(new Event("change"));
+          $("snUpMsg").textContent = "Saved. Now check the numbers line up and list the snakes and ladders.";
+          var d2 = document.querySelector("details.field"); if(d2) d2.open = true;
+        });
+      }).catch(function(e){ $("snUpMsg").textContent = e.message || "Couldn’t save that picture."; });
+    });
+    $("snPlayers").addEventListener("change", function(e){
+      var inp = e.target.closest("input[data-tok]"); if(!inp || !inp.files || !inp.files[0]) return;
+      var nm = inp.getAttribute("data-tok");
+      loadImgFile(inp.files[0]).then(function(im){ var d = imgData(im, 160, "image/png", 1, true); if(d.url.length > 200000) d = imgData(im, 160, "image/jpeg", .85, true);
+        var id = slug(nm), o = Object.assign({ id:id, name:nm }, STUDENTS[id] || {}, { token:d.url, updatedAt:nowIso() }); STUDENTS[id] = o; return STORE.saveStudent(o); })
+        .then(players).catch(function(){ toast("Couldn’t use that picture."); });
+    });
+    var t = null; $("gBlock").addEventListener("input", function(){ clearTimeout(t); t = setTimeout(players, 300); });
+    players();
+  },
+  readOptions: function(){
+    var b = snFormBoard();
+    if(b){ b.updatedAt = nowIso(); BOARDS[b.id] = b; STORE.saveBoard(b).catch(saveErr); }
+    return { boardId: b ? b.id : "", auto: checkedVal("snAuto", "1") === "1", exact: checkedVal("snExact", "1") === "1", doubles: $("snDouble") ? $("snDouble").checked : true };
+  },
+  validate: function(block, o){ if(!o || !o.boardId || !BOARDS[o.boardId]) return "Choose or upload a board."; return null; },
+  start: function(game, pack){
+    var o = game.options || {}, b = BOARDS[o.boardId] || {};
+    return { boardId:o.boardId, auto:o.auto !== false, exact:o.exact !== false, doubles:o.doubles !== false, players: snPlayers(game.block, pack).map(function(n){ return { name:n, pos:0 }; }), turn:0, phase:"roll", dice:[1,1], roll:null, fix:null, msg:"", log:[], winner:null };
+  },
+  view: function(run){
+    var s = run.st, b = BOARDS[s.boardId];
+    if(!b) return '<section class="center"><p class="notice">This game’s board isn’t loaded yet. If it doesn’t appear, edit the game and choose the board again.</p></section>';
+    var g = snGrid(b), N = snCount(g), cur = s.players[s.turn];
+    var groups = {}; s.players.forEach(function(p, k){ (groups[p.pos] = groups[p.pos] || []).push(k); });
+    var toks = s.players.map(function(p, k){
+      var at = snPos(g, Math.max(1, p.pos)), grp = groups[p.pos], gi = grp.indexOf(k), spread = grp.length > 1 ? (gi - (grp.length - 1) / 2) * at.cw * .32 : 0;
+      return '<div class="sn-tok' + (p.pos === 0 ? " off" : "") + (k === s.turn && s.phase !== "over" ? " now" : "") + '" id="snTok' + k + '" style="width:' + (at.cw * .7) + '%;left:' + (at.x + spread) + '%;top:' + at.y + '%">' + snToken(p.name, k) + '</div>';
+    }).join("");
+    var chips = s.players.map(function(p, k){ return '<button class="sn-chip' + (k === s.turn && s.phase !== "over" ? " now" : "") + (s.fix === k ? " fix" : "") + '" data-a="sn-fix" data-i="' + k + '">' + snThumb(p.name, k) + esc(p.name) + ' <span class="muted">' + (p.pos || "start") + '</span></button>'; }).join("");
+    var rolling = s.phase === "rolling", pick = s.phase === "move" || s.fix != null;
+    var msg = s.phase === "over" ? '<div class="verdict ok">' + esc(s.winner) + ' wins!</div>'
+      : s.fix != null ? '<p class="notice">Tap the square to put ' + esc(s.players[s.fix].name) + ' on (or tap their name again to cancel).</p>'
+      : s.phase === "move" ? '<p class="notice">' + esc(cur.name) + ' rolled ' + (s.roll[0] + s.roll[1]) + '. Tap the square to move to.</p>'
+      : s.msg ? '<p class="notice">' + esc(s.msg) + '</p>' : '<p class="notice">' + esc(cur.name) + '’s turn</p>';
+    var btns = s.phase === "over" ? '<button class="btn big-btn" data-a="finish">Finish</button>'
+      : '<button class="btn big-btn" data-a="sn-roll"' + (s.phase === "roll" && s.fix == null ? "" : " disabled") + '>Roll</button>';
+    return '<section class="center sn-wrap">' +
+      '<div class="sn-board' + (pick ? " pickable" : "") + '" id="snBoardEl" style="--ar:' + ((b.w || 1) / (b.h || 1)) + '"><img src="' + b.img + '" alt="Game board">' + toks + '</div>' +
+      '<div class="sn-side"><div class="sn-bar">' + chips + '</div>' + msg +
+      '<div class="sn-dice" id="snDice">' + dieFace(s.dice[0], rolling) + dieFace(s.dice[1], rolling) + (s.lucky ? '<span class="sn-dot"></span>' : "") + '</div><div class="row" style="justify-content:center">' + btns + '</div></div></section>';
+  },
+  after: function(run){
+    var s = run.st, b = BOARDS[s.boardId]; if(!b) return;
+    var g = snGrid(b), N = snCount(g), J = snJumps(b.jumps), boardEl = $("snBoardEl");
+    if(boardEl) boardEl.addEventListener("click", function(e){
+      if(!(s.phase === "move" || s.fix != null) || run.paused) return;
+      var r = boardEl.getBoundingClientRect(), n = snCellAt(g, (e.clientX - r.left) / r.width * 100, (e.clientY - r.top) / r.height * 100);
+      if(n) handle("sn-place", { getAttribute:function(k){ return k === "data-n" ? String(n) : null; } });
+    });
+    var diceEl = $("snDice"), taps = [];
+    if(diceEl) diceEl.addEventListener("click", function(){ if(s.phase === "rolling" || run.paused) return; var now = Date.now(); taps = taps.filter(function(t){ return now - t < 700; }); taps.push(now); if(taps.length >= 3){ taps = []; handle("sn-lucky", { getAttribute:function(){ return null; } }); } });
+    if(s.phase !== "rolling" || s._animating) return;
+    var key = Math.random(); s._animating = key; s.spinning = true;
+    function alive(){ return UI.view === "play" && UI.run === run && run.st === s && s._animating === key; }
+    var t0 = Date.now(), reduce = prefersReduced();
+    (function flick(){
+      if(!alive()) return;
+      var d = $("snDice");
+      if(Date.now() - t0 < (reduce ? 200 : 750)){ if(d) d.innerHTML = dieFace(1 + Math.floor(Math.random() * 6), true) + dieFace(1 + Math.floor(Math.random() * 6), true); setTimeout(flick, 90); return; }
+      s.dice = s.roll.slice(); if(d) d.innerHTML = dieFace(s.dice[0]) + dieFace(s.dice[1]);
+      var p = s.players[s.turn], sum = s.dice[0] + s.dice[1];
+      if(!s.auto){ setTimeout(function(){ if(!alive()) return; s.phase = "move"; s.spinning = false; s._animating = false; saveRun(); render(); }, 300); return; }
+      var path = [], at = p.pos, left = sum, dir = 1;
+      while(left-- > 0){ if(at + dir > N){ if(!s.exact){ break; } dir = -1; } at += dir; path.push(at); }
+      if(!path.length) path.push(p.pos);
+      var end = path[path.length - 1], jump = J[end] && s.exact !== null ? J[end] : null, tok = $("snTok" + s.turn), i = 0;
+      if(tok) tok.classList.remove("off");
+      (function hop(){
+        if(!alive()) return;
+        if(i < path.length){ var c = snPos(g, path[i++]); if(tok){ tok.style.left = c.x + "%"; tok.style.top = c.y + "%"; } setTimeout(hop, reduce ? 40 : 190); return; }
+        if(jump){ setTimeout(function(){ if(!alive()) return; var c = snPos(g, jump); if(tok){ tok.classList.add("slide"); tok.style.left = c.x + "%"; tok.style.top = c.y + "%"; } setTimeout(done, reduce ? 60 : 720); }, reduce ? 40 : 260); }
+        else done();
+      })();
+      function done(){
+        if(!alive()) return;
+        var final = jump || end;
+        s.log.push({ p:p.name, roll:s.dice.slice(), from:p.pos, to:final, land:end, jump: jump ? (jump > end ? "ladder" : "snake") : "" });
+        p.pos = final;
+        s.msg = jump ? p.name + (jump > end ? " climbed a ladder to " : " slid down a snake to ") + final + "!" : "";
+        if(final === N || (!s.exact && final >= N)){ s.phase = "over"; s.winner = p.name; }
+        else { s.phase = "roll"; if(s.doubles && s.dice[0] === s.dice[1]) s.msg = (s.msg ? s.msg + " " : "") + "Double! " + p.name + " rolls again."; else s.turn = (s.turn + 1) % s.players.length; }
+        s.spinning = false; s._animating = false; saveRun(); render();
+      }
+    })();
+  },
+  act: function(run, a, el){
+    var s = run.st;
+    if(a === "sn-lucky"){ if(s.phase === "rolling") return false; s.lucky = !s.lucky; return true; }
+    if(a === "sn-roll"){ if(s.phase !== "roll" || s.fix != null) return false; s.roll = s.lucky ? snLuckyRoll(s) : [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]; s.phase = "rolling"; s.msg = ""; return true; }
+    if(a === "sn-fix"){ if(s.phase === "rolling") return false; var k = +el.getAttribute("data-i"); s.fix = s.fix === k ? null : k; return true; }
+    if(a === "sn-place"){
+      var n = +el.getAttribute("data-n"), b = BOARDS[s.boardId], N = snCount(snGrid(b || {}));
+      if(s.fix != null){ s.players[s.fix].pos = n; s.fix = null; s.msg = ""; return true; }
+      if(s.phase !== "move") return false;
+      var p = s.players[s.turn], J = snJumps(b && b.jumps);
+      var land = p.pos + s.roll[0] + s.roll[1], jmp = J[land] === n ? (n > land ? "ladder" : "snake") : "";
+      s.log.push({ p:p.name, roll:s.roll.slice(), from:p.pos, to:n, land: jmp ? land : n, jump:jmp, placed:true });
+      p.pos = n;
+      if(n === N){ s.phase = "over"; s.winner = p.name; } else { s.phase = "roll"; if(s.doubles && s.roll[0] === s.roll[1]) s.msg = "Double! " + p.name + " rolls again."; else s.turn = (s.turn + 1) % s.players.length; }
+      return true;
+    }
+    return false;
+  },
+  key: function(run, k){ var s = run.st; if((k === " " || k === "Enter") && s.phase === "roll" && s.fix == null) return { a:"sn-roll" }; return null; },
+  summary: function(run){
+    var s = run.st, turns = {}, lad = {}, sna = {};
+    s.log.forEach(function(x){ turns[x.p] = (turns[x.p] || 0) + 1; if(x.jump === "ladder") lad[x.p] = (lad[x.p] || 0) + 1; if(x.jump === "snake") sna[x.p] = (sna[x.p] || 0) + 1; });
+    var who = s.players.map(function(p){ return p.name + ": square " + p.pos + (lad[p.name] ? ", " + lad[p.name] + " ladder" + (lad[p.name] > 1 ? "s" : "") : "") + (sna[p.name] ? ", " + sna[p.name] + " snake" + (sna[p.name] > 1 ? "s" : "") : ""); }).join(" · ");
+    return head(run, "Snakes & Ladders") + " — " + (s.winner ? s.winner + " won" : "not finished") + " after " + s.log.length + " turns · " + who;
+  },
+  score: function(run){ var s = run.st; return { total:null, max:null, text: s.winner ? s.winner + " won in " + s.log.length + " turns" : s.log.length + " turns played" }; },
+  items: function(){ return []; }
+};
+
+/* ------------------------------ HIGHER OR LOWER ------------------------------ */
+/* A reward game: a running score per player across rounds; adds nothing to lesson points. */
+var HL_SUITS = ["♠", "♥", "♦", "♣"], HL_RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+function hlRank(c, aceHigh){ var r = c % 13; return r === 0 ? (aceHigh ? 14 : 1) : r + 1; }
+function hlCardHtml(c, down, id){
+  var r = HL_RANKS[c % 13], su = HL_SUITS[Math.floor(c / 13)], red = su === "♥" || su === "♦";
+  var mid = /[JQK]/.test(r) ? '<div class="ctr court"><div><b>' + r + '<span>' + su + '</span></b></div></div>' : '<div class="ctr">' + su + '</div>';
+  var name = { A:"Ace", J:"Jack", Q:"Queen", K:"King" }[r] || r;
+  return '<div class="hlc' + (down ? " down" : "") + '"' + (id ? ' id="' + id + '"' : "") + ' role="img" aria-label="' + (down ? "Face-down card" : name + " of " + { "♠":"spades", "♥":"hearts", "♦":"diamonds", "♣":"clubs" }[su]) + '"><div class="in"><div class="f' + (red ? " red" : "") + '"><span class="cn tl">' + r + '<i>' + su + '</i></span>' + mid + '<span class="cn br">' + r + '<i>' + su + '</i></span></div><div class="b"></div></div></div>';
+}
+function hlDeck(){ var d = []; for(var i=0;i<52;i++) d.push(i); return shuffle(d); }
+TYPES.hilo = {
+  label: "Higher or Lower", letter: "♠",
+  blurb: "A playing-card reward game: guess whether the next card is higher or lower. Running scores across rounds; it doesn’t add to the lesson points.",
+  blockLabel: "Players",
+  blockHint: "One player per line, in turn order (e.g. Doris, Sam). Leave it empty for the student and Teacher.",
+  placeholder: "Doris\nSam",
+  defaults: function(){ return { turns:"run", tenN:10, ties:"again", aceHigh:false }; },
+  optionsHtml: function(o){
+    return '<div class="field"><span class="legend">Turns</span><div class="choice">' + radio("hlTurns", "run", "Keep going until wrong", o.turns !== "each" && o.turns !== "ten") + radio("hlTurns", "ten", "Best of …", o.turns === "ten") + radio("hlTurns", "each", "Take turns every card", o.turns === "each") + '</div>' +
+      '<div class="row" style="margin-top:8px;align-items:center"><label for="hlTen">Best of</label><input type="number" id="hlTen" min="3" max="26" value="' + esc(o.tenN || 10) + '" style="max-width:90px"><span class="muted">calls each, then the next player (their right answers add to their total)</span></div></div>' +
+      '<div class="field"><span class="legend">Same number</span><div class="choice">' + radio("hlTies", "again", "A tie — call again", o.ties !== "lose" && o.ties !== "push") + radio("hlTies", "lose", "Counts as wrong", o.ties === "lose") + radio("hlTies", "push", "No point either way", o.ties === "push") + '</div></div>' +
+      '<div class="field"><span class="legend">Aces are</span><div class="choice">' + radio("hlAce", "0", "Low", o.aceHigh !== true) + radio("hlAce", "1", "High", o.aceHigh === true) + '</div></div>';
+  },
+  readOptions: function(){ return { turns: checkedVal("hlTurns", "run"), tenN: Math.max(3, Math.min(26, parseInt($("hlTen").value, 10) || 10)), ties: checkedVal("hlTies", "again"), aceHigh: checkedVal("hlAce", "0") === "1" }; },
+  validate: function(){ return null; },
+  start: function(game, pack){
+    var o = game.options || {}, d = hlDeck();
+    return { turns: o.turns === "each" || o.turns === "ten" ? o.turns : "run", tenN: +o.tenN || 10, tc:0, tr:0, lastTen:null, tenLog:[], chain:[], ties: o.ties === "push" || o.ties === "lose" ? o.ties : "again", aceHigh:o.aceHigh === true,
+      players: snPlayers(game.block, pack).map(function(n){ return { name:n, score:0, best:0, run:0 }; }), turn:0, deck:d, idx:1, cur:d[0], next:null, call:null, phase:"call", verdict:"", round:1, rounds:[], log:[] };
+  },
+  view: function(run){
+    var s = run.st, cur = s.players[s.turn];
+    var chips = s.players.map(function(p, k){ return '<div class="sn-chip' + (k === s.turn && s.phase !== "roundend" ? " now" : "") + '">' + snThumb(p.name, k) + esc(p.name) + ' <b style="font-size:20px">' + p.score + '</b></div>'; }).join("");
+    var left = 52 - s.idx;
+    var chain = (s.chain || []).slice(-6).map(function(c){ return '<div class="hl-mini">' + hlCardHtml(c) + '</div>'; }).join("");
+    var cards = '<div class="hl-row">' + (chain ? '<div class="hl-chain" aria-label="Cards in this run">' + chain + '</div>' : "") + hlCardHtml(s.cur) + '<span class="hl-arrow" aria-hidden="true">→</span>' + (s.phase === "reveal" || s.phase === "result" ? hlCardHtml(s.next, s.phase === "reveal", "hlNext") : hlCardHtml(0, true)) + '</div>';
+    var msg, btns;
+    if(s.phase === "roundend"){
+      var top = Math.max.apply(null, s.players.map(function(p){ return p.score; })), lead = s.players.filter(function(p){ return p.score === top; }).map(function(p){ return p.name; });
+      msg = '<div class="verdict ok">End of round ' + s.round + '! ' + esc(lead.join(" & ")) + (lead.length > 1 ? " are" : " is") + ' in the lead.</div>';
+      btns = '<button class="btn big-btn" data-a="hl-newround">New round</button><button class="btn ghost big-btn" data-a="finish">Finish</button>';
+      return '<section class="center"><div class="sn-bar">' + chips + '</div>' + msg + '<div class="hl-calls">' + btns + '</div></section>';
+    }
+    if(s.phase === "result"){ msg = '<div class="verdict ' + (s.verdict === "right" ? "ok" : s.verdict === "push" || s.verdict === "again" ? "" : "no") + '" style="font-size:30px">' + (s.verdict === "right" ? "Right! +1" : s.verdict === "push" ? "The same! No point." : s.verdict === "again" ? "A tie! Call again." : "Wrong!") + '</div>'; btns = '<button class="btn big-btn" data-a="hl-next">' + (s.idx >= 52 ? "End of the deck" : s.verdict === "again" ? "Call again" : s.turns === "ten" && s.tc >= s.tenN ? esc(s.players[s.turn].name) + ": " + s.tr + " out of " + s.tc + " — next player" : "Next card") + '</button>'; }
+    else if(s.phase === "reveal"){ msg = '<p class="notice">' + esc(cur.name) + ' says ' + (s.call === "hi" ? "higher" : "lower") + '…</p>'; btns = ""; }
+    else if(s.turns === "ten"){ msg = (s.lastTen && s.tc === 0 ? '<div class="verdict ok" style="font-size:28px">' + esc(s.lastTen.name) + ' got ' + s.lastTen.r + ' out of ' + s.lastTen.n + '!</div>' : "") + '<p class="notice">' + esc(cur.name) + ' · call ' + (s.tc + 1) + ' of ' + s.tenN + (s.tc ? " · " + s.tr + " right so far" : "") + ': higher or lower?</p>'; btns = '<button class="btn ok big-btn" data-a="hl-call" data-c="hi">▲ Higher</button><button class="btn no big-btn" data-a="hl-call" data-c="lo">▼ Lower</button>'; }
+    else { msg = '<p class="notice">' + esc(cur.name) + (s.turns === "run" && cur.run ? " · " + cur.run + " in a row" : "") + ': higher or lower?</p>'; btns = '<button class="btn ok big-btn" data-a="hl-call" data-c="hi">▲ Higher</button><button class="btn no big-btn" data-a="hl-call" data-c="lo">▼ Lower</button>'; }
+    return '<section class="center"><div class="sn-bar">' + chips + '</div>' + msg + cards + '<p class="hl-left">Round ' + s.round + ' · ' + left + (left === 1 ? " card" : " cards") + ' left</p><div class="hl-calls">' + btns + '</div></section>';
+  },
+  after: function(run){
+    var s = run.st; if(s.phase !== "reveal" || s._animating) return;
+    var key = Math.random(); s._animating = key; s.spinning = true;
+    function alive(){ return UI.view === "play" && UI.run === run && run.st === s && s._animating === key; }
+    var reduce = prefersReduced();
+    setTimeout(function(){
+      if(!alive()) return; var e = $("hlNext"); if(e) e.classList.remove("down");
+      setTimeout(function(){
+        if(!alive()) return;
+        var a = hlRank(s.cur, s.aceHigh), b = hlRank(s.next, s.aceHigh), p = s.players[s.turn];
+        s.verdict = a === b ? (s.ties === "push" ? "push" : s.ties === "again" ? "again" : "wrong") : ((b > a) === (s.call === "hi") ? "right" : "wrong");
+        if(s.verdict === "right"){ p.score++; p.run++; p.best = Math.max(p.best, p.run); } else if(s.verdict === "wrong") p.run = 0;
+        if(s.turns === "ten" && s.verdict !== "again"){ s.tc++; if(s.verdict === "right") s.tr++; }
+        s.log.push({ p:p.name, cur:s.cur, next:s.next, call:s.call, v:s.verdict, round:s.round });
+        s.phase = "result"; s.spinning = false; s._animating = false; saveRun(); render();
+      }, reduce ? 120 : 700);
+    }, reduce ? 30 : 250);
+  },
+  act: function(run, a, el){
+    var s = run.st;
+    if(a === "hl-call"){ if(s.phase !== "call") return false; s.call = el.getAttribute("data-c"); s.next = s.deck[s.idx++]; s.phase = "reveal"; return true; }
+    if(a === "hl-next"){
+      if(s.phase !== "result") return false;
+      var p = s.players[s.turn];
+      var pass = s.verdict === "again" ? false : s.turns === "ten" ? s.tc >= s.tenN : (s.turns === "each" || s.verdict === "wrong");
+      if(pass){
+        if(s.turns === "ten"){ s.lastTen = { name:p.name, r:s.tr, n:s.tc }; s.tenLog.push(s.lastTen); s.tc = 0; s.tr = 0; }
+        s.turn = (s.turn + 1) % s.players.length; s.chain = [];
+      } else { s.chain = (s.chain || []).concat([s.cur]); }
+      if(s.idx >= 52){ s.rounds.push(s.players.map(function(x){ return x.score; })); s.phase = "roundend"; return true; }
+      s.cur = s.next; s.next = null; s.call = null; s.phase = "call"; return true;
+    }
+    if(a === "hl-newround"){ if(s.phase !== "roundend") return false; s.deck = hlDeck(); s.idx = 1; s.cur = s.deck[0]; s.next = null; s.call = null; s.chain = []; s.round++; s.phase = "call"; s.players.forEach(function(x){ x.run = 0; }); return true; }
+    return false;
+  },
+  key: function(run, k){ var s = run.st; if(s.phase === "call"){ if(k === "ArrowUp" || k === "h") return { a:"hl-call", c:"hi" }; if(k === "ArrowDown" || k === "l") return { a:"hl-call", c:"lo" }; } if(s.phase === "result" && (k === " " || k === "Enter")) return { a:"hl-next" }; return null; },
+  summary: function(run){
+    var s = run.st, sorted = s.players.slice().sort(function(a, b){ return b.score - a.score; });
+    return head(run, "Higher or Lower") + " — " + sorted.map(function(p){ return p.name + " " + p.score + (s.turns === "run" && p.best > 1 ? " (best run " + p.best + ")" : ""); }).join(", ") + " · " + s.round + (s.round === 1 ? " round" : " rounds") + ", " + s.log.length + " cards called" + (s.tenLog && s.tenLog.length ? " · best-of-" + s.tenN + " turns: " + s.tenLog.map(function(x){ return x.name + " " + x.r + "/" + x.n; }).join(", ") : "");
+  },
+  score: function(run){ var s = run.st; return { total:null, max:null, text: s.players.map(function(p){ return p.name + " " + p.score; }).join(" · ") }; },
+  items: function(){ return []; }
+};
+
+
+/* ------------------------------ SENTENCE BUILDER RACE ------------------------------ */
+/* "sentence / other accepted order | hint" per line. Tiles are the words of the first sentence. */
+function parseBuild(text){
+  var out = [], seen = {};
+  parseLines(text).forEach(function(line){
+    var i = line.indexOf("|"), left = i === -1 ? line : line.slice(0, i), hint = i === -1 ? "" : line.slice(i + 1).trim();
+    var alts = left.split(/\s+\/\s+/).map(function(x){ return x.replace(/\s+/g, " ").trim(); }).filter(Boolean);
+    if(!alts.length) return; var k = alts[0].toLowerCase(); if(seen[k]) return; seen[k] = 1;
+    out.push({ s:alts[0], alts:alts, hint:hint });
+  });
+  return out;
+}
+function bdTiles(s, bare){
+  var t = s.split(" ");
+  if(bare){
+    t[t.length - 1] = t[t.length - 1].replace(/[.!]+$/, "") || t[t.length - 1];
+    if(!/^I($|['’])/.test(t[0])) t[0] = t[0].charAt(0).toLowerCase() + t[0].slice(1);
+  }
+  return t;
+}
+function bdNorm(t){ return tyNorm(String(t).replace(/[,;:]/g, " "), false).replace(/\s+/g, " "); }
+function bdShuffle(n){ var idx = [], i; for(i=0;i<n;i++) idx.push(i); if(n < 2) return idx; for(var k=0;k<12;k++){ shuffle(idx); if(idx.some(function(v, j){ return v !== j; })) break; } return idx; }
+function bdStartItem(s){ var it = s.items[s.q[0]]; if(!it) return; s.tiles = bdTiles(it.s, s.bare); s.pool = bdShuffle(s.tiles.length); s.placed = []; s.tries = 0; s.wrong = []; s.marks = null; s.phase = "build"; s.t0 = null; }
+var BDT = null;
+TYPES.build = {
+  label: "Sentence Builder", letter: "≣",
+  blurb: "The words of a sentence come up jumbled; the student taps them into the right order, racing the clock if you like. Tap a placed word to send it back.",
+  blockLabel: "Sentences",
+  blockHint: "One sentence per line. Add other correct orders after “ / ”, and an optional hint after “|”: “Yesterday I went to the park. / I went to the park yesterday. | past simple”.",
+  placeholder: "She goes to school by bus every day.\nYesterday I went to the park. / I went to the park yesterday. | past simple\nWhere do you live? | make a question",
+  defaults: function(){ return { secs:60, bare:true, shuffle:false }; },
+  optionsHtml: function(o){
+    return '<div class="hint" id="bdCount"></div><div class="field"><span class="legend">Race the clock</span><div class="choice">' +
+      [[0, "Off"], [30, "30 s"], [60, "60 s"], [90, "90 s"], [120, "2 min"]].map(function(x){ return radio("bdSecs", x[0], x[1], +o.secs === x[0]); }).join("") +
+      '</div><div class="hint">Time per sentence. Beating it earns a bonus; running over doesn’t stop the sentence.</div></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="bdBare"' + (o.bare !== false ? " checked" : "") + '><span><b>Hide the first capital and the full stop</b><br><span class="muted">So they don’t give away the first and last word. Untick for a sentence that starts with a name.</span></span></label></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="bdShuf"' + (o.shuffle ? " checked" : "") + '><span><b>Shuffle the sentences</b><br><span class="muted">Off: the plan’s order. A replay is always shuffled.</span></span></label></div>';
+  },
+  wireOptions: function(){ function upd(){ var n = parseBuild($("gBlock").value).length; $("bdCount").textContent = n ? n + (n === 1 ? " sentence" : " sentences") : ""; } $("gBlock").addEventListener("input", upd); upd(); },
+  readOptions: function(){ return { secs: +checkedVal("bdSecs", 60), bare: $("bdBare").checked, shuffle: $("bdShuf").checked }; },
+  validate: function(block){
+    var it = parseBuild(block); if(!it.length) return "Add at least one sentence.";
+    var short = it.filter(function(x){ return x.s.split(" ").length < 3; }); if(short.length) return "Each sentence needs at least three words: “" + short[0].s + "”.";
+    var bad = it.filter(function(x){ var a = bdNorm(x.s).split(" ").sort().join(" "); return x.alts.some(function(y){ return bdNorm(y).split(" ").sort().join(" ") !== a; }); });
+    if(bad.length) return "The other orders must use exactly the same words: “" + bad[0].s + "”.";
+    return null;
+  },
+  start: function(game){
+    var it = parseBuild(game.block), o = game.options || {};
+    var s = { items:it, q: playOrder(it, game, function(x){ return x.s; }, !!o.shuffle), secs: +o.secs || 0, bare: o.bare !== false, log:[], pts:0 };
+    bdStartItem(s); return s;
+  },
+  view: function(run){
+    var s = run.st, first = s.log.filter(function(x){ return x.ok && x.tries === 1; }).length;
+    var board = '<div class="score"><span><span class="n bd">' + first + '/' + s.log.length + '</span><small>right first try</small></span>' + (s.secs ? '<span><span class="n bd">' + s.log.filter(function(x){ return x.ok && !x.late; }).length + '</span><small>beat the clock</small></span>' : "") + '<span><span class="n bd">' + s.q.length + '</span><small>left</small></span></div>';
+    if(!s.q.length) return '<section class="center">' + board + '<div class="verdict ok">All done!</div><button class="btn big-btn" data-a="finish">Finish</button></section>';
+    if(s.t0 == null) s.t0 = clockMs(run);
+    var it = s.items[s.q[0]], top = '<div class="progress">Sentence ' + (s.items.length - s.q.length + 1) + ' of ' + s.items.length + '</div>' + (it.hint ? '<div class="bd-hint">' + esc(it.hint) + '</div>' : "");
+    if(s.phase !== "build"){
+      var x = s.log[s.log.length - 1];
+      return '<section class="center">' + board + top + '<div class="verdict ' + (x.ok ? "ok" : "no") + '">' + (x.ok ? (x.tries === 1 ? "Right first try!" : "Right!") : "Here’s the sentence") + '</div>' +
+        '<div class="bd-line done">' + esc(x.ok ? (it.alts.filter(function(al){ return bdNorm(al) === bdNorm(x.built); })[0] || it.s) : it.s) + '</div>' + (s.secs && x.ok ? '<p class="notice">' + (x.late ? "Over the clock this time" : "Beat the clock!") + '</p>' : "") +
+        '<button class="btn big-btn" data-a="bd-next">Next</button></section>';
+    }
+    var line = s.placed.map(function(ti, n){ var m = s.marks ? (s.marks[n] ? " ok" : " no") : ""; return '<button class="bd-tile placed' + m + '" data-a="bd-back" data-i="' + n + '">' + esc(s.tiles[ti]) + '</button>'; }).join("");
+    var pool = s.pool.map(function(ti){ return s.placed.indexOf(ti) === -1 ? '<button class="bd-tile" data-a="bd-put" data-i="' + ti + '">' + esc(s.tiles[ti]) + '</button>' : '<span class="bd-tile gone" aria-hidden="true">' + esc(s.tiles[ti]) + '</span>'; }).join("");
+    var all = s.placed.length === s.tiles.length;
+    return '<section class="center">' + board + top + (s.secs ? '<div class="wh-bar" aria-hidden="true"><i id="bdBar" style="width:100%"></i></div><div class="hl-left" id="bdLeft"></div>' : "") +
+      '<div class="bd-line" aria-label="Your sentence">' + (line || '<span class="muted">Tap the words in order</span>') + '</div>' +
+      (s.wrong.length && s.marks ? '<div class="verdict no" style="font-size:26px">Not quite — the red words are in the wrong place</div>' : "") +
+      '<div class="bd-pool">' + pool + '</div>' +
+      '<div class="row" style="justify-content:center"><button class="btn big-btn" data-a="bd-check"' + (all ? "" : " disabled") + '>Check</button>' + (s.placed.length ? '<button class="btn ghost" data-a="bd-clear">Start again</button>' : "") + (s.wrong.length >= 2 ? '<button class="btn ghost" data-a="bd-show">Show me</button>' : "") + '</div></section>';
+  },
+  after: function(run){
+    if(BDT){ clearInterval(BDT); BDT = null; }
+    var s = run.st; if(!s.secs || s.phase !== "build" || !$("bdBar")) return;
+    function upd(){
+      var bar = $("bdBar"), lf = $("bdLeft");
+      if(!bar || UI.view !== "play" || UI.run !== run || run.paused){ clearInterval(BDT); BDT = null; return; }
+      var used = (clockMs(run) - (s.t0 || 0)) / 1000, left = Math.max(0, s.secs - used);
+      bar.style.width = (left / s.secs * 100) + "%"; bar.style.background = left <= 0 ? "var(--no)" : left < s.secs * .25 ? "var(--amber)" : "";
+      if(lf) lf.textContent = left > 0 ? Math.ceil(left) + " s" : "Time’s up — keep going!";
+    }
+    upd(); BDT = setInterval(upd, 250);
+  },
+  act: function(run, a, el){
+    var s = run.st; if(!s.q.length) return false;
+    var it = s.items[s.q[0]];
+    if(a === "bd-put"){ if(s.phase !== "build") return false; var ti = +el.getAttribute("data-i"); if(s.placed.indexOf(ti) !== -1) return false; s.placed.push(ti); s.marks = null; return true; }
+    if(a === "bd-back"){ if(s.phase !== "build") return false; s.placed.splice(+el.getAttribute("data-i"), 1); s.marks = null; return true; }
+    if(a === "bd-clear"){ if(s.phase !== "build") return false; s.placed = []; s.marks = null; return true; }
+    if(a === "bd-check" || a === "bd-show"){
+      if(s.phase !== "build") return false;
+      var late = !!s.secs && (clockMs(run) - (s.t0 || 0)) / 1000 > s.secs;
+      if(a === "bd-check"){
+        if(s.placed.length !== s.tiles.length) return false;
+        var words = s.placed.map(function(i){ return s.tiles[i]; }), built = words.join(" "), ok = it.alts.some(function(al){ return bdNorm(al) === bdNorm(built); });
+        s.tries++;
+        if(!ok){ var want = bdTiles(it.s, s.bare); s.marks = words.map(function(w, n){ return bdNorm(w) === bdNorm(want[n]); }); s.wrong.push(built); return true; }
+        var p = (s.tries === 1 ? 100 : 50) + (s.secs && !late ? 50 : 0); s.pts += p;
+        s.log.push({ ii:s.q[0], s:it.s, built:built, ok:true, tries:s.tries, wrong:s.wrong.slice(), late:late, pts:p }); s.phase = "shown"; return true;
+      }
+      if(s.wrong.length < 2) return false;
+      s.log.push({ ii:s.q[0], s:it.s, built:"", ok:false, tries:s.tries, wrong:s.wrong.slice(), late:late, pts:0 }); s.phase = "shown"; return true;
+    }
+    if(a === "bd-next"){ if(s.phase === "build") return false; s.q.shift(); bdStartItem(s); s.t0 = clockMs(run); return true; }
+    return false;
+  },
+  key: function(run, k){
+    var s = run.st; if(!s.q.length) return null;
+    if(s.phase !== "build") return k === "Enter" || k === " " ? { a:"bd-next" } : null;
+    if(k === "Enter" && s.placed.length === s.tiles.length) return { a:"bd-check" };
+    if(k === "Backspace" && s.placed.length) return { a:"bd-back", i:s.placed.length - 1 };
+    return null;
+  },
+  summary: function(run){
+    var s = run.st, first = s.log.filter(function(x){ return x.ok && x.tries === 1; }).length, parts = [];
+    var later = s.log.filter(function(x){ return x.ok && x.tries > 1; }).map(function(x){ return "“" + trunc(x.s, 50) + "” (" + x.tries + " tries; built “" + x.wrong[0] + "” first)"; });
+    if(later.length) parts.push("right after a retry: " + later.join(", "));
+    var shown = s.log.filter(function(x){ return !x.ok; }).map(function(x){ return "“" + trunc(x.s, 50) + "” (tried “" + x.wrong.join("”, “") + "”)"; });
+    if(shown.length) parts.push("shown: " + shown.join(", "));
+    if(s.secs) parts.push(s.log.filter(function(x){ return x.ok && !x.late; }).length + " beat the " + s.secs + "-second clock");
+    var nr = s.items.length - s.log.length; if(nr > 0) parts.push(nr + " not reached");
+    return head(run, "Sentence Builder") + " — " + first + "/" + s.log.length + " right first try" + (parts.length ? " · " + parts.join(" · ") : "");
+  },
+  score: function(run){ var s = run.st, f = s.log.filter(function(x){ return x.ok && x.tries === 1; }).length; return { total:f, max:s.log.length, text: f + "/" + s.log.length + " right first try" }; },
+  items: function(run){
+    return run.st.log.map(function(x){
+      return { item:x.s, result: !x.ok ? "shown" : x.tries === 1 ? "first try" : "right on try " + x.tries, ok: x.ok && x.tries === 1, points:x.pts,
+        note: (x.wrong.length ? "built " + x.wrong.map(function(w){ return "“" + w + "”"; }).join(", ") : "") + (run.st.secs && x.ok ? (x.wrong.length ? " · " : "") + (x.late ? "over the clock" : "beat the clock") : ""), secs:x.secs };
+    });
+  }
+};
+
+/* ------------------------------ SPOT THE ERROR ------------------------------ */
+/* "wrong sentence = corrected sentence" per line ("/" between accepted corrections); "sentence = ok" for one with no mistake. */
+function parseSpot(text){
+  var out = [], seen = {};
+  parseLines(text).forEach(function(line){
+    var i = line.indexOf("="), w = (i === -1 ? line : line.slice(0, i)).replace(/\s+/g, " ").trim(), r = i === -1 ? null : line.slice(i + 1).trim();
+    if(!w) return; var k = w.toLowerCase(); if(seen[k]) return; seen[k] = 1;
+    var none = r != null && /^(ok|✓|✔|correct|no mistake|right)$/i.test(r);
+    out.push({ w:w, fixes: r == null || none ? [] : r.split(/\s+\/\s+/).map(function(x){ return x.replace(/\s+/g, " ").trim(); }).filter(Boolean), none:none, raw:r });
+  });
+  return out;
+}
+/* Where the mistake is: the words that differ (widened to a neighbour when a word is missing or extra). */
+function seRegion(w, c){
+  var W = w.split(" "), C = c.split(" "), p = 0, sf = 0;
+  while(p < W.length && p < C.length && W[p] === C[p]) p++;
+  while(sf < W.length - p && sf < C.length - p && W[W.length - 1 - sf] === C[C.length - 1 - sf]) sf++;
+  var wl = p, wr = W.length - sf - 1, cl = p, cr = C.length - sf - 1, tl = wl, tr = wr;
+  if(wl > wr || cl > cr){ if(p > 0){ wl--; cl--; } if(sf > 0){ wr++; cr++; } }
+  if(tl > tr){ tl = wl; tr = wr; }
+  return { tl:tl, tr:tr, wl:wl, wr:wr, want: C.slice(cl, cr + 1).join(" "), was: W.slice(wl, wr + 1).join(" ") };
+}
+function seNorm(t){ return tyNorm(t, true).replace(/[.,!?]+$/, ""); }
+function seStartItem(s){ s.phase = "find"; s.taps = []; s.found = false; s.shown = false; s.draft = null; }
+TYPES.spot = {
+  label: "Spot the Error", letter: "✗",
+  blurb: "Each sentence has one mistake (or none). The student taps the wrong word, then fixes it — typed, or said aloud while you mark it.",
+  blockLabel: "Sentences",
+  blockHint: "One per line: wrong sentence = corrected sentence, e.g. “She don’t like apples. = She doesn’t like apples.” One mistake per sentence. Separate other good corrections with “ / ”. For a sentence with no mistake, write “= ok”.",
+  placeholder: "She don't like apples. = She doesn't like apples.\nI goed to the park yesterday. = I went to the park yesterday.\nWe are going to the beach on Sunday. = ok\nHe is more taller than me. = He is taller than me.",
+  defaults: function(){ return { fix:"type", shuffle:false }; },
+  optionsHtml: function(o){
+    return '<div class="hint" id="seCount"></div><div class="field"><span class="legend">After finding the mistake</span><div class="choice">' +
+      radio("seFix", "type", "Type the fix", o.fix === "type") + radio("seFix", "say", "Say it — I mark it", o.fix === "say") + radio("seFix", "none", "Just show the fix", o.fix === "none") +
+      '</div><div class="hint">On a student link, “Say it” becomes “Type the fix”.</div></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="seShuf"' + (o.shuffle ? " checked" : "") + '><span><b>Shuffle the sentences</b><br><span class="muted">Off: the plan’s order. A replay is always shuffled.</span></span></label></div>';
+  },
+  wireOptions: function(){ function upd(){ var it = parseSpot($("gBlock").value), ok = it.filter(function(x){ return x.none; }).length; $("seCount").textContent = it.length ? it.length + (it.length === 1 ? " sentence" : " sentences") + (ok ? " · " + ok + " with no mistake" : "") : ""; } $("gBlock").addEventListener("input", upd); upd(); },
+  readOptions: function(){ return { fix: checkedVal("seFix", "type"), shuffle: $("seShuf").checked }; },
+  validate: function(block){
+    var it = parseSpot(block); if(!it.length) return "Add at least one sentence.";
+    var noFix = it.filter(function(x){ return x.raw == null || (!x.none && !x.fixes.length); }); if(noFix.length) return "Every line needs “= the corrected sentence” (or “= ok” if there’s no mistake): “" + noFix[0].w + "”.";
+    var same = it.filter(function(x){ return x.fixes.some(function(f){ return f === x.w; }); }); if(same.length) return "This correction is the same as the sentence — write “= ok” if there’s no mistake: “" + same[0].w + "”.";
+    if(it.every(function(x){ return x.none; })) return "At least one sentence needs a mistake.";
+    return null;
+  },
+  start: function(game){
+    var it = parseSpot(game.block), o = game.options || {}, fix = o.fix || "type";
+    if(SMODE && fix === "say") fix = "type";
+    var s = { items:it, q: playOrder(it, game, function(x){ return x.w; }, !!o.shuffle), fix:fix, log:[], pts:0 };
+    seStartItem(s); return s;
+  },
+  view: function(run){
+    var s = run.st, full = s.log.filter(function(x){ return x.ok; }).length;
+    var board = '<div class="score"><span><span class="n se">' + full + '/' + s.log.length + '</span><small>spotted and fixed</small></span><span><span class="n se">' + s.q.length + '</span><small>left</small></span></div>';
+    if(!s.q.length) return '<section class="center">' + board + '<div class="verdict ok">All done!</div><button class="btn big-btn" data-a="finish">Finish</button></section>';
+    var it = s.items[s.q[0]], reg = it.none ? null : seRegion(it.w, it.fixes[0]), W = it.w.split(" ");
+    var top = '<div class="progress">Sentence ' + (s.items.length - s.q.length + 1) + ' of ' + s.items.length + '</div>';
+    function words(clickable){
+      return '<div class="se-sent">' + W.map(function(w, i){
+        var inReg = reg && i >= reg.wl && i <= reg.wr, isT = reg && i >= reg.tl && i <= reg.tr, cls = "se-w" + (s.taps.indexOf(i) !== -1 && !isT ? " no" : "") + ((s.found || s.shown || s.phase === "shown") && inReg ? " hit" : "");
+        return clickable ? '<button class="' + cls + '" data-a="se-tap" data-i="' + i + '">' + esc(w) + '</button>' : '<span class="' + cls + '">' + esc(w) + '</span>';
+      }).join(" ") + '</div>';
+    }
+    if(s.phase === "find"){
+      return '<section class="center">' + board + top + '<div class="bd-hint">Tap the mistake</div>' + words(true) +
+        (s.taps.length ? '<p class="notice">' + (s.taps.length === 1 ? "Not that one — try again." : "Still not it — look again, or tap Show me.") + '</p>' : "") +
+        '<div class="row" style="justify-content:center"><button class="btn ghost big-btn" data-a="se-none">No mistake</button>' + (s.taps.length >= 2 ? '<button class="btn ghost" data-a="se-show">Show me</button>' : "") + '</div></section>';
+    }
+    if(s.phase === "fix"){
+      var lead = '<div class="verdict ' + (s.shown ? "no" : "ok") + '">' + (s.shown ? "Here’s the mistake" : "Found it!") + '</div>';
+      if(s.fix === "type"){
+        var val = s.draft != null ? s.draft : reg.was;
+        return '<section class="center">' + board + top + lead + words(false) + '<div class="bd-hint">Fix the highlighted words</div>' +
+          '<input type="text" id="seIn" class="tyin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the fix" value="' + esc(val) + '">' +
+          '<button class="btn big-btn" data-a="se-check">Check</button>' + (SMODE ? "" : '<p class="hint" style="text-align:center">Online: type what ' + esc(run.student || "the student") + ' says.</p>') + '</section>';
+      }
+      if(s.fix === "say"){
+        return '<section class="center">' + board + top + lead + words(false) + '<div class="bd-hint">How should it be? (Say it)</div>' +
+          '<details class="se-key"><summary class="muted">Answer for you</summary>' + esc(it.fixes.join("  /  ")) + '</details>' +
+          '<div class="row" style="justify-content:center"><button class="btn ok big-btn" data-a="se-said" data-m="good">Fixed it</button><button class="btn no big-btn" data-a="se-said" data-m="work">Not quite</button></div></section>';
+      }
+    }
+    var x = s.log[s.log.length - 1];
+    var verdict = it.none ? (x.ok ? "Right — no mistake!" : "This one had no mistake") : x.ok ? "Spotted and fixed!" : !x.found ? "Tricky one" : s.fix === "none" ? "Spotted!" : "Nearly";
+    return '<section class="center">' + board + top + '<div class="verdict ' + (x.ok || (x.found && s.fix === "none") ? "ok" : "no") + '">' + verdict + '</div>' + words(false) +
+      (it.none ? "" : (x.typed != null && !x.fixed ? '<div class="aufix"><span class="was">' + esc(x.typed || "—") + '</span><span class="now">' + esc(reg.want) + '</span></div>' : "") + '<div class="se-fix">' + esc(it.fixes[0]) + '</div>') +
+      '<div class="row" style="justify-content:center"><button class="btn big-btn" data-a="se-next">Next</button>' + (x.typed != null && !x.fixed && !SMODE ? '<button class="btn ghost" data-a="se-accept">Accept it anyway</button>' : "") + '</div></section>';
+  },
+  after: function(run){
+    var inp = $("seIn"); if(!inp) return;
+    try{ inp.focus({ preventScroll:true }); }catch(e){ inp.focus(); }
+    inp.addEventListener("input", function(){ run.st.draft = inp.value; });
+    inp.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); var b = document.querySelector('[data-a="se-check"]'); if(b) b.click(); } });
+  },
+  act: function(run, a, el){
+    var s = run.st; if(!s.q.length) return false;
+    var it = s.items[s.q[0]], reg = it.none ? null : seRegion(it.w, it.fixes[0]);
+    function done(o){ o.ii = s.q[0]; o.w = it.w; o.taps = s.taps.map(function(i){ return i < 0 ? "" : it.w.split(" ")[i]; }); o.none = it.none; o.pts = 0;
+      if(o.found && !s.taps.length) o.pts += 50; else if(o.found) o.pts += 25;
+      if(o.fixed) o.pts += 50; if(s.fix === "none" && o.found) o.pts *= 2; if(it.none && o.ok) o.pts = 100;
+      s.pts += o.pts; s.log.push(o); s.phase = "shown"; }
+    if(a === "se-tap"){
+      if(s.phase !== "find") return false; var i = +el.getAttribute("data-i");
+      if(reg && i >= reg.tl && i <= reg.tr){ s.found = true; if(s.fix === "none") done({ found:true, fixed:false, ok:!s.taps.length, typed:null }); else s.phase = "fix"; return true; }
+      if(s.taps.indexOf(i) === -1) s.taps.push(i); return true;
+    }
+    if(a === "se-none"){
+      if(s.phase !== "find") return false;
+      if(it.none){ done({ found:true, fixed:false, ok:!s.taps.length, typed:null, said:"no mistake" }); return true; }
+      s.taps.push(-1); s.shown = true; if(s.fix === "none") done({ found:false, fixed:false, ok:false, typed:null, said:"no mistake" }); else s.phase = "fix"; return true;
+    }
+    if(a === "se-show"){
+      if(s.phase !== "find" || s.taps.length < 2) return false;
+      if(it.none){ done({ found:false, fixed:false, ok:false, typed:null }); return true; }
+      s.shown = true; if(s.fix === "none") done({ found:false, fixed:false, ok:false, typed:null }); else s.phase = "fix"; return true;
+    }
+    if(a === "se-check"){
+      if(s.phase !== "fix" || s.fix !== "type") return false;
+      var inp = $("seIn"), typed = String(inp ? inp.value : (s.draft || "")).replace(/\s+/g, " ").trim();
+      var fixed = it.fixes.some(function(f){ var r = seRegion(it.w, f); return seNorm(typed) === seNorm(r.want) || seNorm(typed) === seNorm(f); });
+      done({ found:!s.shown, fixed:fixed, ok:!s.shown && !s.taps.length && fixed, typed:typed }); return true;
+    }
+    if(a === "se-said"){
+      if(s.phase !== "fix" || s.fix !== "say") return false;
+      var good = el.getAttribute("data-m") === "good";
+      done({ found:!s.shown, fixed:good, ok:!s.shown && !s.taps.length && good, typed:null, mark: good ? "good" : "work", note:"" }); return true;
+    }
+    if(a === "se-accept"){
+      var x = s.log[s.log.length - 1]; if(s.phase !== "shown" || !x || x.fixed || x.typed == null) return false;
+      x.fixed = true; x.override = true; x.ok = x.found && !x.taps.length; s.pts += 50; x.pts += 50; return true;
+    }
+    if(a === "se-next"){ if(s.phase !== "shown") return false; s.q.shift(); seStartItem(s); return true; }
+    return false;
+  },
+  key: function(run, k){ var s = run.st; if(s.phase === "shown" && (k === "Enter" || k === " ")) return { a:"se-next" }; return null; },
+  summary: function(run){
+    var s = run.st, full = s.log.filter(function(x){ return x.ok; }).length, parts = [];
+    var miss = s.log.filter(function(x){ return !x.none && !x.found; }).map(function(x){ return "“" + trunc(x.w, 50) + "”"; });
+    if(miss.length) parts.push("didn’t spot: " + miss.join(", "));
+    var late = s.log.filter(function(x){ return !x.none && x.found && x.taps.length; }).map(function(x){ return "“" + trunc(x.w, 50) + "” (tapped “" + x.taps.filter(function(t){ return t; }).join("”, “") + "” first)"; });
+    if(late.length) parts.push("spotted after wrong taps: " + late.join(", "));
+    var nofix = s.log.filter(function(x){ return !x.none && !x.fixed && s.fix !== "none"; }).map(function(x){ return "“" + trunc(x.w, 50) + "”" + (x.typed != null ? " → wrote “" + (x.typed || "blank") + "”" : ""); });
+    if(nofix.length) parts.push("fix not right: " + nofix.join(", "));
+    var ov = s.log.filter(function(x){ return x.override; }).map(function(x){ return "“" + x.typed + "”"; });
+    if(ov.length) parts.push("teacher’s call: " + ov.join(", "));
+    var tricked = s.log.filter(function(x){ return x.none && !x.ok; }).map(function(x){ return "“" + trunc(x.w, 50) + "”"; });
+    if(tricked.length) parts.push("thought a correct sentence was wrong: " + tricked.join(", "));
+    var nr = s.items.length - s.log.length; if(nr > 0) parts.push(nr + " not reached");
+    return head(run, "Spot the Error") + " — " + full + "/" + s.log.length + " spotted and fixed first time" + (parts.length ? " · " + parts.join(" · ") : "");
+  },
+  score: function(run){ var s = run.st, f = s.log.filter(function(x){ return x.ok; }).length; return { total:f, max:s.log.length, text: f + "/" + s.log.length + " spotted and fixed" }; },
+  items: function(run){
+    var s = run.st;
+    return s.log.map(function(x){
+      var it = s.items[x.ii], res, note = [];
+      if(x.none) res = x.ok ? "no mistake — right" : "said it was wrong";
+      else res = !x.found ? "not spotted" : s.fix === "none" ? (x.taps.length ? "spotted after misses" : "spotted") : x.fixed ? (x.taps.length ? "fixed (after misses)" : "spotted and fixed") : "spotted, fix not right";
+      if(x.taps.length) note.push("tapped " + x.taps.map(function(t){ return t ? "“" + t + "”" : "no mistake"; }).join(", "));
+      if(x.typed != null) note.push("wrote “" + (x.typed || "blank") + "”");
+      if(x.override) note.push("teacher’s call");
+      if(!x.none) note.push("answer: " + it.fixes.join(" / "));
+      return { item:x.w, result:res, ok:x.ok, points:x.pts, note:note.join(" · "), secs:x.secs };
+    });
+  }
+};
+
+/* ------------------------------ ODD ONE OUT ------------------------------ */
+/* "apple, banana, *carrot, grape | carrot is a vegetable" per line; * marks the odd one. */
+function parseOdd(text){
+  var out = [];
+  parseLines(text).forEach(function(line){
+    var i = line.indexOf("|"), left = i === -1 ? line : line.slice(0, i), why = i === -1 ? "" : line.slice(i + 1).trim(), odd = -1, n = 0;
+    var w = left.split(",").map(function(x){ return x.trim(); }).filter(Boolean).map(function(x, k){ if(/^\*|\*$/.test(x)){ odd = k; n++; } return x.replace(/^\*\s*|\s*\*$/g, ""); });
+    if(w.length) out.push({ words:w, odd:odd, stars:n, why:why, key:w.join(", ") });
+  });
+  return out;
+}
+function odStartItem(s){ var it = s.items[s.q[0]]; if(!it) return; s.order = shuffle(it.words.map(function(_, i){ return i; })); s.taps = []; s.phase = "pick"; s.note = ""; }
+TYPES.odd = {
+  label: "Odd One Out", letter: "≠",
+  blurb: "Four or so words; the student taps the one that doesn’t belong, then says why while you mark the reason.",
+  blockLabel: "Sets",
+  blockHint: "One set per line, words separated by commas, with * on the odd one; add the reason after “|”: “apple, banana, *carrot, grape | carrot is a vegetable”. Three to six words a set.",
+  placeholder: "apple, banana, *carrot, grape | carrot is a vegetable\nran, *swim, ate, went | swim isn't in the past\nkitchen, bedroom, *library, bathroom | a library isn't a room in a home",
+  defaults: function(){ return { why:true, shuffle:false }; },
+  optionsHtml: function(o){
+    return '<div class="hint" id="odCount"></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="odWhy"' + (o.why !== false ? " checked" : "") + '><span><b>Ask why</b><br><span class="muted">After the right tap, the student says why and you mark the reason. Off (and on a student link): the reason is just shown.</span></span></label></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="odShuf"' + (o.shuffle ? " checked" : "") + '><span><b>Shuffle the sets</b><br><span class="muted">Off: the plan’s order. The words inside a set are always mixed up.</span></span></label></div>';
+  },
+  wireOptions: function(){ function upd(){ var n = parseOdd($("gBlock").value).length; $("odCount").textContent = n ? n + (n === 1 ? " set" : " sets") : ""; } $("gBlock").addEventListener("input", upd); upd(); },
+  readOptions: function(){ return { why: $("odWhy").checked, shuffle: $("odShuf").checked }; },
+  validate: function(block){
+    var it = parseOdd(block); if(!it.length) return "Add at least one set.";
+    var b = it.filter(function(x){ return x.words.length < 3 || x.words.length > 6; }); if(b.length) return "Each set needs three to six words: “" + b[0].key + "”.";
+    b = it.filter(function(x){ return x.stars !== 1; }); if(b.length) return "Put * on exactly one word in each set: “" + b[0].key + "”.";
+    return null;
+  },
+  start: function(game){
+    var it = parseOdd(game.block), o = game.options || {};
+    var s = { items:it, q: playOrder(it, game, function(x){ return x.key; }, !!o.shuffle), why: o.why !== false && !SMODE, log:[], pts:0, noteFor:null };
+    odStartItem(s); return s;
+  },
+  view: function(run){
+    var s = run.st, first = s.log.filter(function(x){ return !x.taps.length; }).length;
+    var board = '<div class="score"><span><span class="n od">' + first + '/' + s.log.length + '</span><small>first tap</small></span>' + (s.why ? '<span><span class="n od">' + s.log.filter(function(x){ return x.mark === "good"; }).length + '</span><small>good reasons</small></span>' : "") + '<span><span class="n od">' + s.q.length + '</span><small>left</small></span></div>';
+    if(!s.q.length) return '<section class="center">' + board + '<div class="verdict ok">All done!</div><button class="btn big-btn" data-a="finish">Finish</button></section>';
+    var it = s.items[s.q[0]], top = '<div class="progress">Set ' + (s.items.length - s.q.length + 1) + ' of ' + s.items.length + '</div>';
+    var tiles = '<div class="od-grid">' + s.order.map(function(k){
+      var cls = "od-tile" + (s.taps.indexOf(k) !== -1 ? " no" : "") + (s.phase !== "pick" && k === it.odd ? " yes" : "") + (s.phase !== "pick" && k !== it.odd ? " dim" : "");
+      return s.phase === "pick" && s.taps.indexOf(k) === -1 ? '<button class="' + cls + '" data-a="od-tap" data-k="' + k + '">' + esc(it.words[k]) + '</button>' : '<span class="' + cls + '">' + esc(it.words[k]) + '</span>';
+    }).join("") + '</div>';
+    if(s.phase === "pick") return '<section class="center">' + board + top + '<div class="bd-hint">Which one doesn’t belong?</div>' + tiles + (s.taps.length ? '<p class="notice">Not that one — try again.</p>' : "") + '</section>';
+    if(s.phase === "why"){
+      return '<section class="center">' + board + top + '<div class="verdict ok">' + (s.taps.length ? "Got it!" : "Right first tap!") + '</div>' + tiles + '<div class="bd-hint">Why doesn’t it belong?</div>' +
+        (it.why ? '<details class="se-key"><summary class="muted">Answer for you</summary>' + esc(it.why) + '</details>' : "") +
+        '<div class="row" style="justify-content:center"><button class="btn ok" data-a="od-why" data-m="good">Good reason</button><button class="btn no" data-a="od-why" data-m="work">Needs work</button><button class="btn ghost" data-a="od-why" data-m="skip">Skip</button></div></section>';
+    }
+    var x = s.log[s.log.length - 1];
+    return '<section class="center">' + board + top + (s.why ? "" : '<div class="verdict ok">' + (s.taps.length ? "Got it!" : "Right first tap!") + '</div>') + tiles + (it.why ? '<div class="se-fix">' + esc(it.why) + '</div>' : "") +
+      (s.noteFor != null ? '<div class="claims"><div class="claim"><div class="who">What did ' + esc(run.student || "she") + ' say? <span class="muted">(optional)</span></div><input type="text" data-note="od" placeholder="because it is vegetable" value="' + esc(x.note || "") + '"></div></div>' : "") +
+      '<button class="btn big-btn" data-a="od-next">Next</button></section>';
+  },
+  act: function(run, a, el){
+    var s = run.st; if(!s.q.length) return false;
+    var it = s.items[s.q[0]];
+    function log(mark){ var p = (s.taps.length ? 50 : 100) + (mark === "good" ? 50 : 0); s.pts += p; s.log.push({ ii:s.q[0], key:it.key, odd:it.words[it.odd], taps:s.taps.map(function(k){ return it.words[k]; }), mark:mark || "", note:"", pts:p }); s.noteFor = mark === "work" ? s.log.length - 1 : null; s.phase = "shown"; }
+    if(a === "od-tap"){
+      if(s.phase !== "pick") return false; var k = +el.getAttribute("data-k");
+      if(k === it.odd){ if(s.why) s.phase = "why"; else log(""); return true; }
+      if(s.taps.indexOf(k) === -1) s.taps.push(k); return true;
+    }
+    if(a === "od-why"){ if(s.phase !== "why") return false; log(el.getAttribute("data-m")); return true; }
+    if(a === "od-next"){ if(s.phase !== "shown") return false; s.q.shift(); s.noteFor = null; odStartItem(s); return true; }
+    return false;
+  },
+  note: function(run, v){ var s = run.st; if(s.noteFor != null && s.log[s.noteFor]) s.log[s.noteFor].note = v; },
+  key: function(run, k){ var s = run.st; if(s.phase === "shown" && (k === "Enter" || k === " ")) return { a:"od-next" }; return null; },
+  summary: function(run){
+    var s = run.st, first = s.log.filter(function(x){ return !x.taps.length; }).length, parts = [];
+    var miss = s.log.filter(function(x){ return x.taps.length; }).map(function(x){ return x.odd + " (picked " + x.taps.join(", ") + " first)"; });
+    if(miss.length) parts.push("needed more taps: " + miss.join(", "));
+    if(s.why){
+      var work = s.log.filter(function(x){ return x.mark === "work"; }).map(function(x){ return x.odd + (x.note ? " → “" + x.note + "”" : ""); });
+      parts.push(s.log.filter(function(x){ return x.mark === "good"; }).length + " good reasons");
+      if(work.length) parts.push("reason needs work: " + work.join(", "));
+    }
+    var nr = s.items.length - s.log.length; if(nr > 0) parts.push(nr + " not reached");
+    return head(run, "Odd One Out") + " — " + first + "/" + s.log.length + " on the first tap" + (parts.length ? " · " + parts.join(" · ") : "");
+  },
+  score: function(run){ var s = run.st, f = s.log.filter(function(x){ return !x.taps.length; }).length; return { total:f, max:s.log.length, text: f + "/" + s.log.length + " on the first tap" }; },
+  items: function(run){
+    return run.st.log.map(function(x){
+      var note = []; if(x.taps.length) note.push("tapped " + x.taps.join(", ") + " first"); if(x.mark) note.push("reason: " + markWord(x.mark) + (x.note ? " “" + x.note + "”" : ""));
+      note.push("odd one: " + x.odd);
+      return { item:x.key, result: x.taps.length ? "after " + x.taps.length + (x.taps.length === 1 ? " miss" : " misses") : "first tap", ok: !x.taps.length && x.mark !== "work", points:x.pts, note:note.join(" · "), secs:x.secs };
+    });
+  }
+};
+
+/* ------------------------------ STORY DICE ------------------------------ */
+/* One word per line (or commas) — or "Who: girl, robot" lines, one die per line. */
+function parseDice(text){
+  var lines = parseLines(text), grouped = lines.length > 0 && lines.every(function(l){ return /^[^,:]+:\s*\S/.test(l); });
+  if(grouped) return { grouped:true, dice: parseGroups(text).map(function(g){ return { label:g.name, words:g.items }; }) };
+  var seen = {}, words = [];
+  lines.forEach(function(l){ l.split(/,|\|/).forEach(function(w){ w = w.trim(); var k = w.toLowerCase(); if(w && !seen[k]){ seen[k] = 1; words.push(w); } }); });
+  return { grouped:false, words:words };
+}
+function sdAvail(s, label){ var pool = s.grouped ? (s.dice.filter(function(d){ return d.label === label; })[0] || { words:[] }).words : s.words; return pool.filter(function(w){ return !s.once || !s.used[w.toLowerCase()]; }); }
+function sdPick(pool, not){ var c = pool.filter(function(w){ return not.indexOf(w) === -1; }); if(!c.length) c = pool; return c.length ? c[Math.floor(Math.random() * c.length)] : null; }
+function sdRoll(s){
+  var out = [];
+  if(s.grouped) s.dice.forEach(function(d){ var w = sdPick(sdAvail(s, d.label), []); if(w) out.push({ label:d.label, w:w }); });
+  else { var pool = sdAvail(s); for(var i=0;i<s.count && out.length < pool.length;i++){ var w = sdPick(pool, out.map(function(x){ return x.w; })); out.push({ label:"", w:w }); } }
+  return out;
+}
+TYPES.dice = {
+  label: "Story Dice", letter: "⚄",
+  blurb: "Roll word dice; the student makes a sentence or tells a story using every word. You mark it, and can note what they said. Tap one die to re-roll just that one.",
+  blockLabel: "Dice words",
+  blockHint: "One word per line (or several per line, with commas) — the dice pick from all of them. Or give each die its own list, one die per line: “Who: a girl, a robot, my teacher”.",
+  placeholder: "kitchen\nhungry\nbanana\nyesterday\nscary\nrun",
+  defaults: function(){ return { count:3, once:true, task:"Make one sentence with all the words." }; },
+  optionsHtml: function(o){
+    return '<div class="hint" id="sdCount"></div><div class="field"><span class="legend">Number of dice</span><div class="choice">' +
+      [1, 2, 3, 4, 5, 6].map(function(n){ return radio("sdN", n, String(n), +o.count === n); }).join("") + '</div><div class="hint">Ignored when each die has its own list.</div></div>' +
+      '<div class="field"><label for="sdTask">Task on screen</label><input type="text" id="sdTask" value="' + esc(o.task || "") + '"><div class="hint">E.g. “Make a question with all the words.” or “Add to the story.”</div></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="sdOnce"' + (o.once !== false ? " checked" : "") + '><span><b>Use each word once</b><br><span class="muted">Words rolled and marked don’t come up again.</span></span></label></div>';
+  },
+  wireOptions: function(){ function upd(){ var d = parseDice($("gBlock").value); $("sdCount").textContent = d.grouped ? d.dice.length + " dice, each with its own list" : d.words.length ? d.words.length + (d.words.length === 1 ? " word" : " words") : ""; } $("gBlock").addEventListener("input", upd); upd(); },
+  readOptions: function(){ return { count: +checkedVal("sdN", 3), once: $("sdOnce").checked, task: $("sdTask").value.trim() }; },
+  validate: function(block, o){
+    var d = parseDice(block);
+    if(d.grouped) return d.dice.length ? null : "Add at least one die.";
+    return d.words.length < Math.max(2, (o && +o.count) || 3) ? "Add at least " + Math.max(2, (o && +o.count) || 3) + " words (one per die)." : null;
+  },
+  start: function(game){
+    var d = parseDice(game.block), o = game.options || {};
+    var s = { grouped:d.grouped, dice:d.dice || [], words:d.words || [], count: +o.count || 3, once: o.once !== false, task:o.task || "", used:{}, cur:null, rerolls:0, fresh:false, noteFor:null, log:[] };
+    if(game._only && !s.grouped){ var want = {}; game._only.forEach(function(t){ String(t).split(" · ").forEach(function(w){ want[w.toLowerCase()] = 1; }); }); var f = s.words.filter(function(w){ return want[w.toLowerCase()]; }); if(f.length) s.words = f; }
+    return s;
+  },
+  view: function(run){
+    var s = run.st, good = s.log.filter(function(x){ return x.mark === "good"; }).length;
+    var board = '<div class="score"><span><span class="n sd">' + good + '/' + s.log.length + '</span><small>good ' + (s.log.length === 1 ? "turn" : "turns") + '</small></span></div>';
+    var canRoll = sdRoll(s).length > 0;
+    if(!s.cur){
+      var note = s.noteFor != null ? '<div class="claims"><div class="claim"><div class="who">What did ' + esc(run.student || "she") + ' say? <span class="muted">(optional)</span></div><input type="text" data-note="sd" placeholder="the hungry robot run to kitchen" value="' + esc(s.log[s.noteFor].note || "") + '"></div></div>' : "";
+      return '<section class="center">' + board + (s.task ? '<div class="bd-hint">' + esc(s.task) + '</div>' : "") + note +
+        (canRoll ? '<button class="btn big-btn" data-a="sd-roll">' + (s.log.length ? "Roll again" : "Roll the dice") + '</button>' : '<p class="notice">Every word has been used.</p><button class="btn big-btn" data-a="finish">Finish</button>') + '</section>';
+    }
+    return '<section class="center">' + board + (s.task ? '<div class="bd-hint">' + esc(s.task) + '</div>' : "") +
+      '<div class="sd-row">' + s.cur.map(function(d, i){ return '<button class="sd-die' + (s.fresh ? " roll" : "") + '" data-a="sd-re" data-i="' + i + '" title="Re-roll this die">' + (d.label ? '<small>' + esc(d.label) + '</small>' : "") + esc(d.w) + '</button>'; }).join("") + '</div>' +
+      '<p class="hint" style="text-align:center;margin:0">Tap a die to re-roll just that one.</p>' +
+      '<div class="row" style="justify-content:center"><button class="btn ok" data-a="sd-mark" data-m="good">Good</button><button class="btn no" data-a="sd-mark" data-m="work">Needs work</button><button class="btn ghost" data-a="sd-mark" data-m="skip">Skip</button></div></section>';
+  },
+  after: function(run){ if(run.st.fresh){ var s = run.st; setTimeout(function(){ s.fresh = false; }, 700); } },
+  act: function(run, a, el){
+    var s = run.st;
+    if(a === "sd-roll"){ if(s.cur) return false; var r = sdRoll(s); if(!r.length) return false; s.cur = r; s.rerolls = 0; s.noteFor = null; s.fresh = true; return true; }
+    if(a === "sd-re"){
+      if(!s.cur) return false; var i = +el.getAttribute("data-i"), d = s.cur[i];
+      var pool = s.grouped ? sdAvail(s, d.label) : sdAvail(s), w = sdPick(pool, s.cur.map(function(x){ return x.w; }));
+      if(!w || w === d.w) { toast("No other word for that die."); return false; }
+      s.cur[i] = { label:d.label, w:w }; s.rerolls++; s.fresh = false; return true;
+    }
+    if(a === "sd-mark"){
+      if(!s.cur) return false; var m = el.getAttribute("data-m");
+      s.log.push({ words:s.cur.map(function(x){ return x.w; }), mark:m, note:"", rerolls:s.rerolls });
+      if(m !== "skip") s.cur.forEach(function(x){ s.used[x.w.toLowerCase()] = 1; });
+      s.noteFor = m === "work" ? s.log.length - 1 : null; s.cur = null; return true;
+    }
+    return false;
+  },
+  note: function(run, v){ var s = run.st; if(s.noteFor != null && s.log[s.noteFor]) s.log[s.noteFor].note = v; },
+  key: function(run, k){ if((k === " " || k === "Enter") && !run.st.cur) return { a:"sd-roll" }; return null; },
+  summary: function(run){
+    var s = run.st, parts = [];
+    function lbl(x){ return x.words.join(" + "); }
+    var good = s.log.filter(function(x){ return x.mark === "good"; }).map(lbl); if(good.length) parts.push("good: " + good.join(", "));
+    var work = s.log.filter(function(x){ return x.mark === "work"; }).map(function(x){ return lbl(x) + (x.note ? " → “" + x.note + "”" : ""); }); if(work.length) parts.push("needs work: " + work.join(", "));
+    var skip = s.log.filter(function(x){ return x.mark === "skip"; }).map(lbl); if(skip.length) parts.push("skipped: " + skip.join(", "));
+    return head(run, "Story Dice") + " — " + s.log.filter(function(x){ return x.mark === "good"; }).length + "/" + s.log.length + " good turns" + (s.task ? " (task: " + s.task + ")" : "") + (parts.length ? " · " + parts.join(" · ") : "");
+  },
+  score: function(run){ var s = run.st, n = s.log.filter(function(x){ return x.mark === "good"; }).length; return { total:n, max:s.log.length, text: n + "/" + s.log.length + " good turns" }; },
+  items: function(run){ return run.st.log.map(function(x){ return { item:x.words.join(" · "), result:markWord(x.mark), ok: x.mark === "good" ? true : x.mark === "work" ? false : null, note:(x.note ? "“" + x.note + "”" : "") + (x.rerolls ? (x.note ? " · " : "") + x.rerolls + " re-roll" + (x.rerolls === 1 ? "" : "s") : ""), secs:x.secs }; }); }
+};
+
+/* ------------------------------ PHONICS SORT ------------------------------ */
+/* "a_e: cake, name, gate" per line — one sound group per line; words come one at a time. */
+function phSay(w, voice){
+  try{
+    if(!window.speechSynthesis) return false;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(w), lang = voice === "uk" ? "en-GB" : "en-US";
+    u.lang = lang; u.rate = .8;
+    var v = speechSynthesis.getVoices().filter(function(x){ return x.lang && x.lang.replace("_", "-") === lang; })[0]; if(v) u.voice = v;
+    speechSynthesis.speak(u); return true;
+  }catch(e){ return false; }
+}
+function phCanSay(){ return !!window.speechSynthesis && typeof SpeechSynthesisUtterance === "function"; }
+TYPES.phon = {
+  label: "Phonics Sort", letter: "ʃ",
+  blurb: "Words come up one at a time; the student taps the sound box each one belongs in. Tap 🔊 to hear the word, or play listen-only to sort by ear. Misses come back until they’re right.",
+  blockLabel: "Sound groups",
+  blockHint: "One sound per line, then its words: “a_e (cake): cake, name, gate”. Two to five groups. The words are always mixed up, so the plan’s order doesn’t give the answer away.",
+  placeholder: "a_e: cake, name, gate, lake\nai: rain, train, paint, snail\nay: day, play, stay, tray",
+  defaults: function(){ return { listen:false, say:false, voice:"us", repeat:true }; },
+  optionsHtml: function(o){
+    return '<div class="hint" id="phCount"></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="phListen"' + (o.listen ? " checked" : "") + '><span><b>Listen only</b><br><span class="muted">Hide the word: the student hears it and sorts by ear. Each word is said when it comes up.</span></span></label></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="phSay"' + (o.say ? " checked" : "") + '><span><b>Say each word when it comes up</b><br><span class="muted">With the word showing too. 🔊 always replays it.</span></span></label></div>' +
+      '<div class="field"><span class="legend">Voice</span><div class="choice">' + radio("phVoice", "us", "American", o.voice !== "uk") + radio("phVoice", "uk", "British", o.voice === "uk") + '</div><div class="hint">Uses the device’s own voice, so it can sound a little different on the iPad and the laptop.</div></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="phRep"' + (o.repeat !== false ? " checked" : "") + '><span><b>Repeat missed words until they’re right</b></span></label></div>';
+  },
+  wireOptions: function(){ function upd(){ var g = parseGroups($("gBlock").value), n = g.reduce(function(a, x){ return a + x.items.length; }, 0); $("phCount").textContent = g.length ? g.length + " groups · " + n + " words" : ""; } $("gBlock").addEventListener("input", upd); upd(); },
+  readOptions: function(){ return { listen: $("phListen").checked, say: $("phSay").checked, voice: checkedVal("phVoice", "us"), repeat: $("phRep").checked }; },
+  validate: function(block){
+    var g = parseGroups(block); if(g.length < 2) return "Add at least two sound groups, one per line: “ai: rain, train”."; if(g.length > 5) return "Five groups at most, so the boxes fit on the screen.";
+    var seen = {}, dup = null; g.forEach(function(x){ x.items.forEach(function(w){ var k = w.toLowerCase(); if(seen[k] && seen[k] !== x.name) dup = w; seen[k] = x.name; }); });
+    return dup ? "“" + dup + "” is in two groups — each word goes in one." : null;
+  },
+  start: function(game){
+    var g = parseGroups(game.block), o = game.options || {}, words = [];
+    g.forEach(function(x, gi){ x.items.forEach(function(w){ if(!words.some(function(y){ return y.w.toLowerCase() === w.toLowerCase(); })) words.push({ w:w, g:gi }); }); });
+    return { groups:g.map(function(x){ return x.name; }), words:words, q: playOrder(words, game, function(x){ return x.w; }, true), listen: !!o.listen, say: !!o.say || !!o.listen, voice:o.voice || "us", repeat: o.repeat !== false, phase:"sort", last:null, said:-1, n:0, log:[] };
+  },
+  view: function(run){
+    var s = run.st, R = qSummaryRows(s), first = R.filter(function(r){ return r.first; }).length;
+    var board = '<div class="score"><span><span class="n ph">' + first + '/' + R.length + '</span><small>right first time</small></span><span><span class="n ph">' + s.q.length + '</span><small>left</small></span></div>';
+    if(!s.q.length) return '<section class="center">' + board + '<div class="verdict ok">All sorted!</div><button class="btn big-btn" data-a="finish">Finish</button></section>';
+    var ii = s.q[0], w = s.words[ii], tries = qTries(s, ii), x = s.log[s.log.length - 1], shown = s.phase === "shown";
+    var flash = s.last && !shown ? '<div class="ph-flash ' + (s.last.ok ? "ok" : "no") + '">' + (s.last.ok ? "✓ " : "") + esc(s.last.w) + ' → ' + esc(s.groups[s.last.g]) + '</div>' : '<div class="ph-flash"></div>';
+    var card = '<div class="ph-card">' + (s.listen && !shown ? '<span class="muted" style="font-size:22px">Listen…</span>' : esc(w.w)) + (phCanSay() ? '<button class="btn ghost sm ic ph-say" data-a="ph-say" aria-label="Say the word" title="Say the word">🔊</button>' : "") + '</div>';
+    var bins = '<div class="ph-bins" style="--n:' + s.groups.length + '">' + s.groups.map(function(name, gi){
+      var cls = "ph-bin" + (shown && gi === w.g ? " yes" : "") + (shown && x && gi === x.put && !x.ok ? " no" : "");
+      return '<button class="' + cls + '" data-a="ph-put" data-g="' + gi + '"' + (shown ? " disabled" : "") + '>' + esc(name) + '</button>';
+    }).join("") + '</div>';
+    return '<section class="center">' + board + (tries && !shown ? '<div class="again">Back again — try ' + (tries + 1) + '</div>' : '<div class="progress">Word ' + Math.min(R.length + (shown ? 0 : 1), s.words.length) + ' of ' + s.words.length + '</div>') + flash + card +
+      (shown ? '<div class="verdict no" style="font-size:26px">It goes in ' + esc(s.groups[w.g]) + '</div><button class="btn big-btn" data-a="ph-next">Next</button>' : "") + bins +
+      (s.listen && !phCanSay() ? '<p class="notice">This device can’t speak words, so say each one yourself.</p>' : "") + '</section>';
+  },
+  after: function(run){
+    var s = run.st; if(!s.q.length || !s.say || s.phase !== "sort") return;
+    var key = s.n; if(s.said === key) return; s.said = key; phSay(s.words[s.q[0]].w, s.voice);
+  },
+  act: function(run, a, el){
+    var s = run.st; if(!s.q.length) return false;
+    var ii = s.q[0], w = s.words[ii];
+    if(a === "ph-say"){ phSay(w.w, s.voice); return false; }
+    if(a === "ph-put"){
+      if(s.phase !== "sort") return false; var g = +el.getAttribute("data-g"), ok = g === w.g;
+      s.log.push({ ii:ii, w:w.w, ok:ok, put:g });
+      if(ok){ s.last = { w:w.w, g:g, ok:true }; s.q.shift(); s.n++; }
+      else { s.phase = "shown"; s.last = null; }
+      return true;
+    }
+    if(a === "ph-next"){ if(s.phase !== "shown") return false; s.q.shift(); if(s.repeat) s.q.push(ii); s.phase = "sort"; s.n++; return true; }
+    return false;
+  },
+  key: function(run, k){ var s = run.st; if(s.phase === "shown" && (k === "Enter" || k === " ")) return { a:"ph-next" }; if(s.phase === "sort" && /^[1-5]$/.test(k) && +k <= s.groups.length) return { a:"ph-put", g:+k - 1 }; return null; },
+  summary: function(run){
+    var s = run.st, R = qSummaryRows(s), first = R.filter(function(r){ return r.first; }).length, parts = [];
+    var wrong = s.log.filter(function(x){ return !x.ok; }).map(function(x){ return x.w + " → put in " + s.groups[x.put] + " (it’s " + s.groups[s.words[x.ii].g] + ")"; });
+    if(wrong.length) parts.push("mix-ups: " + wrong.join(", "));
+    var never = R.filter(function(r){ return !r.ever; }).map(function(r){ return s.words[r.ii].w; }); if(never.length) parts.push("not sorted yet: " + never.join(", "));
+    var nr = s.words.length - R.length; if(nr > 0) parts.push(nr + " not reached");
+    return head(run, "Phonics Sort") + " — " + first + "/" + R.length + " right first time" + (s.listen ? " (listen only)" : "") + " · groups: " + s.groups.join(", ") + (parts.length ? " · " + parts.join(" · ") : "");
+  },
+  score: function(run){ var R = qSummaryRows(run.st), f = R.filter(function(r){ return r.first; }).length; return { total:f, max:R.length, text: f + "/" + R.length + " right first time" }; },
+  items: function(run){
+    var s = run.st;
+    return qSummaryRows(s).map(function(r){
+      var w = s.words[r.ii], bad = r.tries.filter(function(x){ return !x.ok; }).map(function(x){ return s.groups[x.put]; });
+      return { item:w.w, result: r.first ? "first time" : r.ever ? "right on try " + (r.tries.map(function(x){ return x.ok; }).indexOf(true) + 1) : "not yet", ok:r.first, note:(bad.length ? "put in " + bad.join(", ") + " · " : "") + "sound: " + s.groups[w.g], secs:r.secs };
+    });
+  }
+};
+
 TYPES.bingo.printLabel = "Print cards";
 TYPES.bingo.print = function(game, pack){ printBingo(game, pack); };
 /* ---------- scores and per-item rows (saved with each result as score + items) ---------- */
@@ -2755,7 +3791,7 @@ function lap(run){ var now = clockMs(run), s = Math.max(0, Math.round((now - (ru
 var CLOCKT = null;
 function fmtClock(ms){ var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); }
 function fmtSecs(s){ return s < 60 ? s + " s" : Math.floor(s / 60) + " min" + (s % 60 ? " " + (s % 60) + " s" : ""); }
-var LAP_START = ["bg-next", "hm-next", "an-next", "wh-spin", "wh-pick", "sl-spin", "qz-next", "qz-bank", "qz-bet", "qz-bonusdone", "tb-show", "au-next", "sp-next"];
+var LAP_START = ["bg-next", "hm-next", "an-next", "wh-spin", "wh-pick", "sl-spin", "qz-next", "qz-bank", "qz-bet", "qz-bonusdone", "tb-show", "au-next", "sp-next", "bd-next", "se-next", "od-next", "sd-roll", "ph-next"];
 function itemsTable(items){
   if(!items || !items.length) return "";
   var pts = items.some(function(x){ return x.points != null; }), who = items.some(function(x){ return x.who; });
@@ -2766,7 +3802,7 @@ function itemsTable(items){
     }).join("") + '</tbody></table></div>';
 }
 
-var TYPE_ORDER = ["bingo", "hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "wheel", "slot", "quiz", "taboo", "auction", "spelling"];
+var TYPE_ORDER = ["bingo", "hangman", "anagrams", "cards", "typeit", "build", "spot", "match", "odd", "phon", "whack", "cross", "snakes", "hilo", "wheel", "slot", "dice", "quiz", "taboo", "auction", "spelling"];
 
 /* =====================================================================
    Views and events
@@ -2809,6 +3845,39 @@ function lessonResultsText(p){
   var rs = resultsFor(p.id).slice().sort(function(a,b){ return String(a.at).localeCompare(String(b.at)); });
   return [packTitle(p) + " · " + fmtDate(p.date)].concat(rs.map(function(r){ return r.summary; })).join("\n");
 }
+/* ---------- word bank & quick games ---------- */
+function parseBank(text){ var out = [], seen = {}; parseLines(text).forEach(function(l){ var p = l.split("|").map(function(x){ return x.trim(); }), w = p[0]; if(!w) return; var k = w.toLowerCase(); if(seen[k]) return; seen[k] = 1; out.push({ w:w, c:p[1] || "", ex:p[2] || "" }); }); return out; }
+function bankGap(b){ if(!b.ex) return ""; var re = new RegExp("\\b" + escRe(b.w) + "\\b", "i"); return re.test(b.ex) ? b.ex.replace(re, "___") : ""; }
+function bankPrompt(b){ return String(b.c || bankGap(b)).replace(/[=|]/g, " ").replace(/\s+/g, " ").trim(); }
+function bankPacks(p, scope){
+  if(scope !== "recent" || !p.student) return p.bank ? [p] : [];
+  return PACKS.filter(function(x){ return x.bank && x.student === p.student && (x.id === p.id || (+x.lp || 0) <= (+p.lp || 0)); }).sort(function(a, b){ return (+b.lp || 0) - (+a.lp || 0); }).slice(0, 3);
+}
+function bankWords(p, scope){ var out = [], seen = {}; bankPacks(p, scope).forEach(function(x){ parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!seen[k]){ seen[k] = 1; out.push(b); } }); }); return out; }
+function qWordClue(ws){ return ws.map(function(b){ var c = bankPrompt(b); return b.w + (c ? " | " + c : ""); }).join("\n"); }
+function qClueEq(ws){ return ws.map(function(b){ return bankPrompt(b) + " = " + b.w; }).join("\n"); }
+var QUICK = [
+  { k:"hangman", t:"hangman", label:"Hangman", min:3, block:qWordClue },
+  { k:"anagrams", t:"anagrams", label:"Anagrams", min:3, block:qWordClue },
+  { k:"spelling", t:"spelling", label:"Spelling Test", min:3, block:qWordClue },
+  { k:"cards", t:"cards", label:"Flash Cards", min:3, clue:true, block:qClueEq },
+  { k:"typeit", t:"typeit", label:"Type the Answer", min:3, clue:true, block:qClueEq },
+  { k:"match", t:"match", label:"Match Up", min:3, clue:true, block:function(ws){ return ws.map(function(b){ return b.w + " = " + bankPrompt(b); }).join("\n"); }, opts:function(){ return { mode:"match" }; } },
+  { k:"pairs", t:"match", label:"Memory Pairs", min:3, clue:true, block:function(ws){ return ws.map(function(b){ return b.w + " = " + bankPrompt(b); }).join("\n"); }, opts:function(){ return { mode:"pairs" }; } },
+  { k:"build", t:"build", label:"Sentence Builder", min:3, filter:function(b){ return b.ex && b.ex.split(/\s+/).length >= 3; }, need:"example sentences", block:function(ws){ return ws.map(function(b){ return b.ex; }).join("\n"); } },
+  { k:"dice", t:"dice", label:"Story Dice", min:6, block:function(ws){ return ws.map(function(b){ return b.w; }).join("\n"); }, opts:function(){ return { count:3 }; } },
+  { k:"cross", t:"cross", label:"Crossword", min:6, clue:true, block:qClueEq },
+  { k:"bingo", t:"bingo", label:"Bingo", min:9, block:function(ws){ var all = ws.every(function(b){ return bankPrompt(b); }); return ws.map(function(b){ return b.w + (all ? " = " + bankPrompt(b) : ""); }).join("\n"); }, opts:function(ws){ var n = ws.length, all = ws.every(function(b){ return bankPrompt(b); }); return { size: n >= 24 ? 5 : n >= 16 ? 4 : 3, call: all ? "definition" : "word" }; } }
+];
+function bankSection(p){
+  var mine = parseBank(p.bank), scope = UI.qScope === "recent" ? "recent" : "today", ws = bankWords(p, scope), rp = bankPacks(p, "recent");
+  var withClue = ws.filter(function(b){ return bankPrompt(b); }).length;
+  var quick = ws.length ? '<div class="row" style="margin:8px 0"><button class="btn sm' + (scope === "today" ? "" : " ghost") + '" data-a="qscope" data-v="today">Today’s words (' + mine.length + ')</button>' + (rp.length > 1 ? '<button class="btn sm' + (scope === "recent" ? "" : " ghost") + '" data-a="qscope" data-v="recent">Last ' + rp.length + ' lessons (' + bankWords(p, "recent").length + ')</button>' : "") + '</div>' +
+    '<div class="add">' + QUICK.map(function(q){ var n = q.filter ? ws.filter(q.filter).length : q.clue ? withClue : ws.length, ok = n >= q.min; return '<button data-a="quick" data-q="' + q.k + '"' + (ok ? "" : " disabled title=\"Needs " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "\"") + '>' + ball(q.t) + q.label + '</button>'; }).join("") + '</div>' : "";
+  return '<section class="section"><h3>Quick game</h3><p class="muted" style="margin-top:4px">' + (mine.length ? "Tap a game to build it from the word bank and start it straight away. It’s saved to this lesson, so its results go in the after-class report." : "No word bank yet. The planner saves each lesson’s key words here; you can also add them below.") + '</p>' + quick +
+    '<details style="margin-top:10px"' + (mine.length ? "" : " open") + '><summary class="muted">' + (mine.length ? "Word bank: " + esc(trunc(mine.map(function(b){ return b.w; }).join(", "), 90)) : "Add the word bank") + '</summary><textarea id="bankIn" style="min-height:140px;margin-top:8px" placeholder="kitchen | you cook dinner in this room | Mom is cooking in the kitchen.">' + esc(p.bank || "") + '</textarea><div class="hint">One word per line: word | clue (its meaning, never part of the word) | an example sentence with the word in it. Clue and sentence are optional.</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="bank-save">Save word bank</button></div></details></section>';
+}
+
 function viewPack(){
   var p = getPack(UI.packId);
   if(!p){ $("app").innerHTML = '<div class="wrap"><p class="notice">This lesson isn’t there any more.</p><button class="btn" data-a="home">All lessons</button></div>'; return; }
@@ -2825,9 +3894,9 @@ function viewPack(){
   var add = '<div class="add">' + TYPE_ORDER.map(function(t){ return '<button data-a="addgame" data-t="' + t + '">' + ball(t) + TYPES[t].label + '</button>'; }).join("") + '</div>';
   var hasRes = resultsFor(p.id).length;
   $("app").innerHTML = '<div class="wrap"><div class="spread"><button class="btn ghost sm" data-a="home">All lessons</button>' + statusPill() + '</div>' +
-    '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p></div>' +
+    '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
     (games || '<p class="notice">No games in this lesson yet.</p>') +
-    '<section class="section"><h3>Add a game</h3>' + add + '</section>' + lookSection(p) +
+    bankSection(p) + '<section class="section"><h3>Add a game</h3>' + add + '</section>' + lookSection(p) +
     '<section class="section"><h3>Online students</h3><p class="muted" style="margin-top:4px">Student link (on a game) sends the student that one game to play on their own device — nothing else in the app. At the end they send you a result message; paste it here.</p><button class="btn ghost" data-a="sres-open">Add a student’s result</button></section>' +
     (hasRes ? '<section class="section"><h3>Results</h3><p class="muted">Everything played in this lesson, ready for the after-class report.</p><div class="row"><button class="btn" data-a="copylesson">Copy lesson results</button></div><p class="ok-msg" id="copied" role="status"></p></section>' : "") +
     '<section class="section"><div class="row"><button class="btn ghost sm" data-a="editpack">Edit lesson details</button>' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">All of ' + esc(p.student) + '’s results</button>' : "") +
@@ -2870,7 +3939,7 @@ function viewPackEdit(){
 function viewGameEdit(){
   var d = UI.draftGame, t = TYPES[d.type];
   $("app").innerHTML = '<div class="wrap"><div class="spread"><div class="row">' + ball(d.type) + '<h2>' + t.label + '</h2></div><button class="btn ghost sm" data-a="cancelgame">Cancel</button></div>' +
-    (["anagrams", "cards", "typeit", "match", "whack", "cross", "slot", "quiz", "taboo", "auction", "spelling"].indexOf(d.type) !== -1 ? '<p class="muted">' + esc(t.blurb) + '</p>' : "") +
+    (["anagrams", "cards", "typeit", "build", "spot", "match", "odd", "phon", "whack", "cross", "snakes", "hilo", "slot", "dice", "quiz", "taboo", "auction", "spelling"].indexOf(d.type) !== -1 ? '<p class="muted">' + esc(t.blurb) + '</p>' : "") +
     '<div class="field"><label for="gTitle">Title</label><input type="text" id="gTitle" value="' + esc(d.title) + '"><div class="hint">How this game is named in the lesson and the results.</div></div>' +
     '<div class="field"><label for="gBlock">' + (t.blockLabel || (d.type === "wheel" ? "Prompts" : "Words")) + '</label><textarea id="gBlock" spellcheck="false" placeholder="' + esc(t.placeholder) + '">' + esc(d.block) + '</textarea><div class="hint">' + esc(t.blockHint) + '</div></div>' +
     t.optionsHtml(d.options) +
@@ -2882,11 +3951,11 @@ function viewGameEdit(){
 function viewPlay(){
   var run = UI.run; if(!run){ go("home"); return; }
   var t = TYPES[run.type], paused = !!run.paused;
-  $("app").innerHTML = '<header class="bar"><span class="clock" id="clock" title="Time played, not counting pauses">' + fmtClock(clockMs(run)) + '</span>' + (SMODE ? "" : '<button class="btn ghost sm" data-a="lesson">Lesson</button>') + '<div class="t">' + esc(run.title) + '</div>' +
-    (t.settings && !paused ? '<button class="btn ghost sm" data-a="settings" aria-label="Display settings" title="Display settings">⚙</button>' : "") +
-    '<button class="btn ghost sm" data-a="undo"' + (UNDO.length && !paused ? "" : " disabled") + '>Undo</button>' +
-    (paused ? "" : '<button class="btn ghost sm" data-a="pause"' + (run.st.spinning ? " disabled" : "") + '>Pause</button>') +
-    '<button class="btn ghost sm" data-a="finish-ask">Finish</button></header>' +
+  $("app").innerHTML = '<header class="bar">' + (SMODE ? "" : '<button class="btn ghost sm ic" data-a="lesson" aria-label="Back to the lesson" title="Back to the lesson">‹</button>') + '<span class="clock" id="clock" title="Time played, not counting pauses">' + fmtClock(clockMs(run)) + '</span><div class="t">' + esc(run.title) + '</div>' +
+    (SMODE ? "" : '<span class="lp" title="Lesson points so far">★ ' + fmtPts(lessonPoints(run.packId, { gameId:run.gameId, points: gamePoints(run.type, run.st, t.score ? t.score(run) : null) })) + '</span>') +
+    (paused ? "" : '<button class="btn ghost sm ic" data-a="pause" aria-label="Pause" title="Pause"' + (run.st.spinning ? " disabled" : "") + '>❚❚</button>') +
+    (paused ? "" : '<button class="btn ghost sm ic" data-a="settings" aria-label="Settings" title="Settings">⚙</button>') +
+    '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button></header>' +
     '<main class="stage">' + (run.prev && !paused ? '<p class="lasttime">Last time: ' + esc(run.prev) + '</p>' : "") + (paused ? '<div class="pausebox"><h1>Paused</h1><p class="muted">The game and its timer are stopped, and paused time isn’t counted.</p><button class="btn big-btn" data-a="resume-run">Resume</button></div>' : t.view(run)) + '</main>';
   if(CLOCKT){ clearInterval(CLOCKT); CLOCKT = null; }
   if(!paused) CLOCKT = setInterval(function(){ var e = $("clock"); if(!e || UI.view !== "play" || UI.run !== run || run.paused){ clearInterval(CLOCKT); CLOCKT = null; return; } e.textContent = fmtClock(clockMs(run)); }, 1000);
@@ -2897,7 +3966,11 @@ function viewPlay(){
       '<div class="row" style="margin-top:14px"><button class="btn' + (played ? "" : " ghost") + '" data-a="finish">Save results</button><button class="btn ' + (played ? "ghost" : "") + '" data-a="discard">Quit without saving</button><button class="btn ghost" data-a="finish-cancel">Keep playing</button></div></div></div>');
   }
   if(paused) return;
-  if(UI.settingsOpen && t.settings) $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Display settings"><div class="pop setpop"><h3 style="margin-bottom:14px">Display</h3>' + t.settings(run) + '<div class="row" style="margin-top:18px"><button class="btn" data-a="settings">Done</button></div></div></div>');
+  if(UI.settingsOpen) $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Settings"><div class="pop setpop"><h3 style="margin-bottom:14px">Settings</h3>' +
+    (SMODE ? "" : '<button class="setopt" data-a="undo"' + (UNDO.length ? "" : " disabled") + '><b>↶ Undo last move</b><small>' + (UNDO.length ? "Takes back the last answer or move, and its score." : "Nothing to undo yet.") + '</small></button>') +
+    (SMODE ? "" : (function(){ var pk = getPack(run.packId) || {}, cur = pk.look || "", usual = lookById(studentLook(pk.student) || "bright").name; return '<span class="legend" style="margin-top:16px">Look — this lesson</span>' + [["", "Usual (" + usual + ")"]].concat(LOOKS.map(function(l){ return [l.id, l.name]; })).map(function(x){ return '<button class="setopt" data-a="set-look" data-v="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '"><b>' + esc(x[1]) + '</b></button>'; }).join("") + '<div class="hint">Colours and lives only — scores aren’t affected. Applies to every game in this lesson.</div>'; })()) +
+    (t.settings ? '<h3 style="margin:18px 0 14px">Display</h3>' + t.settings(run) : "") +
+    '<div class="row" style="margin-top:18px"><button class="btn" data-a="settings">Done</button></div></div></div>');
   var note = document.querySelector("[data-note]");
   if(note) note.addEventListener("input", function(){ t.note(run, note.value.trim()); saveRun(); });
   if(t.after) t.after(run);
@@ -2911,7 +3984,7 @@ function viewDone(){
   var stored = RESULTS.some(function(x){ return x.id === r.id; });
   $("app").innerHTML = '<div class="wrap results"><div class="spread"><h2>Results</h2>' + statusPill() + '</div>' +
     '<p class="muted">' + (stored ? (STATUS === "account" ? "Saved with the lesson. The planning chat can read it at the after-class step." : "Saved on this device.") : "Saving…") + '</p>' +
-    (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") + (r.activeSecs ? '<p class="muted" style="margin:0">Played for ' + fmtSecs(r.activeSecs) + ', not counting pauses.</p>' : "") +
+    (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") + (r.packId && getPack(r.packId) ? '<div class="lpts">★ ' + fmtPts(lessonPoints(r.packId, r.points != null ? { gameId:r.gameId, points:r.points } : null)) + ' <small>lesson points' + (r.points ? " · +" + fmtPts(r.points) + " this game" : "") + '</small></div>' : "") + (r.activeSecs ? '<p class="muted" style="margin:0">Played for ' + fmtSecs(r.activeSecs) + ', not counting pauses.</p>' : "") +
     itemsTable(r.items) +
     '<h3 style="margin-top:22px">For the after-class report</h3><textarea id="res" readonly>' + esc(r.summary) + '</textarea><p class="ok-msg" id="copied" role="status"></p>' +
     '<div class="actions"><button class="btn" data-a="backlesson">Back to the lesson</button>' + (missedItems(r).length && r.gameId ? '<button class="btn ghost" data-a="retry" data-r="' + esc(r.id) + '">Retry the ' + missedItems(r).length + (missedItems(r).length === 1 ? " miss" : " misses") + '</button>' : "") + '<button class="btn ghost" data-a="copyres">Copy</button></div></div>';
@@ -2980,7 +4053,7 @@ async function startStudent(){
   render();
 }
 function makeSCode(r){
-  var slim = { t:r.type, g:r.gameId, p:r.packId, n:r.title, a:r.at, s:r.summary, sc:r.score, it:r.items, sec:r.activeSecs };
+  var slim = { t:r.type, g:r.gameId, p:r.packId, n:r.title, a:r.at, s:r.summary, sc:r.score, it:r.items, sec:r.activeSecs, pt:r.points };
   packData(slim).then(function(c){ UI.sCode = c; saveUI(); if(UI.view === "sdone") render(); });
 }
 async function importStudentResult(text){
@@ -2992,10 +4065,33 @@ async function importStudentResult(text){
   if(!g) return "That result is for a game that isn’t in this lesson.";
   if(RESULTS.some(function(x){ return x.gameId === d.g && x.at === d.a && x.packId === p.id; })) return "That result is already added.";
   var r = { id:(p.id + "_" + d.g + "_" + shortId()).replace(/[^A-Za-z0-9_\-.~:@+]/g, "-"), packId:p.id, student:p.student || "", lp:p.lp || null, gameId:d.g, type:d.t,
-    title:(d.n || g.title || "") + " (own device)", at:d.a || nowIso(), summary:String(d.s || "").replace(/^([^—]*?) — /, "$1 (own device) — "), score:d.sc || null, items:d.it || [], activeSecs:d.sec || 0, online:true };
+    title:(d.n || g.title || "") + " (own device)", at:d.a || nowIso(), summary:String(d.s || "").replace(/^([^—]*?) — /, "$1 (own device) — "), score:d.sc || null, items:d.it || [], activeSecs:d.sec || 0, online:true, points: d.pt != null ? d.pt : gamePoints(d.t, null, d.sc) };
   await STORE.saveResult(r); refresh();
   return "";
 }
+
+
+/* ---------- lesson points: each game's best play, added up ---------- */
+/* Games with their own points keep them (Quiz, Hangman, Grammar Auction, Sentence Builder, Spot the Error, Odd One Out); Whack-a-Mole's
+   1 point per hit counts as 100; everything else is 100 per right answer; Snakes & Ladders adds none. */
+function gamePoints(type, st, sc){
+  st = st || {};
+  if(type === "quiz") return Math.max(0, st.score != null ? st.score : (sc && sc.total) || 0);
+  if(type === "auction") return Math.max(0, st.bank != null ? st.bank : (sc && sc.total) || 0);
+  if(type === "hangman" && st.points != null && st.total != null) return Math.max(0, st.total);
+  if(type === "whack") return Math.max(0, (st.score != null ? st.score : (sc && sc.total) || 0) * 100);
+  if((type === "build" || type === "spot" || type === "odd") && st.pts != null) return Math.max(0, st.pts);
+  if(type === "snakes" || type === "hilo") return 0;
+  return Math.max(0, ((sc && sc.total) || 0) * 100);
+}
+function resultPoints(r){ return r.points != null ? r.points : gamePoints(r.type, r.detail, r.score); }
+function lessonPoints(packId, live){
+  var best = {};
+  RESULTS.forEach(function(r){ if(r.packId !== packId) return; var v = resultPoints(r); if(best[r.gameId] == null || v > best[r.gameId]) best[r.gameId] = v; });
+  if(live && (best[live.gameId] == null || live.points > best[live.gameId])) best[live.gameId] = live.points;
+  return Object.keys(best).reduce(function(a, k){ return a + best[k]; }, 0);
+}
+function fmtPts(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
 
 /* ---------- run lifecycle ---------- */
 function saveRun(){ saveUI(); }
@@ -3016,10 +4112,10 @@ function finishRun(){
   var slow = its.filter(function(x){ return x.secs != null; }).sort(function(a, b){ return b.secs - a.secs; }).slice(0, 3).filter(function(x){ return x.secs >= 10; });
   if(its.length >= 3 && slow.length){ var nl = sum.indexOf("\n"), add = " · slowest: " + slow.map(function(x){ return trunc(x.item, 30) + " " + fmtSecs(x.secs); }).join(", "); sum = nl === -1 ? sum + add : sum.slice(0, nl) + add + sum.slice(nl); }
   var r = { id: (run.packId + "_" + run.gameId + "_" + shortId()).replace(/[^A-Za-z0-9_\-.~:@+]/g, "-"), packId:run.packId, student:run.student, lp:run.lp, gameId:run.gameId,
-    type:run.type, title:run.title, at:nowIso(), summary:sum, score:sc, items:its, activeSecs:secs, detail:st };
+    type:run.type, title:run.title, at:nowIso(), summary:sum, score:sc, items:its, activeSecs:secs, detail:st, points: gamePoints(run.type, run.st, sc) };
   if(run.retry) r.retry = true;
-  if(SMODE){ UI.run = null; UNDO = []; UI.lastResult = { id:r.id, summary:sum, packId:r.packId, gameId:r.gameId, type:r.type, title:r.title, at:r.at, score:sc, items:its, activeSecs:secs }; UI.sKey = SMODE.key; UI.sCode = null; makeSCode(UI.lastResult); go("sdone"); return; }
-  UI.run = null; UI.lastResult = { id:r.id, summary:r.summary, packId:r.packId, gameId:r.gameId, score:sc, items:its, activeSecs:secs }; UNDO = [];
+  if(SMODE){ UI.run = null; UNDO = []; UI.lastResult = { id:r.id, summary:sum, packId:r.packId, gameId:r.gameId, type:r.type, title:r.title, at:r.at, score:sc, items:its, activeSecs:secs, points:r.points }; UI.sKey = SMODE.key; UI.sCode = null; makeSCode(UI.lastResult); go("sdone"); return; }
+  UI.run = null; UI.lastResult = { id:r.id, summary:r.summary, packId:r.packId, gameId:r.gameId, score:sc, items:its, activeSecs:secs, points:r.points }; UNDO = [];
   STORE.saveResult(r).then(function(){ refresh(); }).catch(saveErr);
   go("done");
 }
@@ -3084,6 +4180,20 @@ function handle(a, el){
     var p2 = clone(getPack(UI.packId)); p2.games = (p2.games || []).filter(function(x){ return x.id !== dg2.id; });
     UI.confirmDel = null; touchPack(p2); PACKS = PACKS.map(function(x){ return x.id === p2.id ? p2 : x; }); go("pack"); return;
   }
+  if(a === "qscope"){ UI.qScope = el.getAttribute("data-v"); saveUI(); render(); return; }
+  if(a === "bank-save"){ var bp = getPack(UI.packId), bt = $("bankIn"); if(!bp || !bt) return; var bpp = clone(bp); bpp.bank = bt.value.trim(); if(!bpp.bank) delete bpp.bank; touchPack(bpp); PACKS = PACKS.map(function(x){ return x.id === bpp.id ? bpp : x; }); render(); toast("Word bank saved: " + parseBank(bpp.bank).length + " words."); return; }
+  if(a === "quick"){
+    var qp = getPack(UI.packId), q = QUICK.filter(function(x){ return x.k === el.getAttribute("data-q"); })[0]; if(!qp || !q) return;
+    var qs = UI.qScope === "recent" ? "recent" : "today", qw = bankWords(qp, qs);
+    if(q.filter) qw = qw.filter(q.filter); else if(q.clue) qw = qw.filter(function(b){ return bankPrompt(b); });
+    if(qw.length < q.min){ toast(q.label + " needs at least " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "."); return; }
+    var ids = (qp.games || []).map(function(x){ return x.id; }), qn = 1; while(ids.indexOf("g" + qn) !== -1) qn++;
+    var qo = Object.assign({}, TYPES[q.t].defaults(qp), q.opts ? q.opts(qw) : {});
+    var qg = { id:"g" + qn, type:q.t, title:q.label + " · " + (qs === "recent" ? "recent words" : "today’s words") + " (on the spot)", block:q.block(qw), options:qo, spot:true };
+    var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
+    var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
+    startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
+  }
   if(a === "play" || a === "play-ch"){
     var pk2 = getPack(UI.packId), gm = (pk2.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
     var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(pk2), gm.options || {}));
@@ -3100,7 +4210,7 @@ function handle(a, el){
     if(!miss4.length){ toast("No misses to retry."); return; }
     var g5 = Object.assign({}, g4, { options: Object.assign({}, TYPES[g4.type].defaults(pk4), g4.options || {}), _replay:true, _only:miss4 });
     var t5 = TYPES[g4.type], st5 = t5.start(g5, pk4);
-    if(st5 && st5.order && !st5.order.length || st5 && st5.words && !st5.words.length){ toast("Those items aren’t in the game any more."); return; }
+    if(st5 && st5.order && !st5.order.length || st5 && st5.words && !st5.words.length || st5 && st5.q && !st5.q.length){ toast("Those items aren’t in the game any more."); return; }
     UI.packId = pk4.id; startRun(pk4, g5); return;
   }
   if(a === "print"){
@@ -3128,9 +4238,10 @@ function handle(a, el){
   if(a === "discard" && SMODE){ UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go("sready"); return; }
   if(a === "discard"){ var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go("pack", { packId: pid0 }); return; }
   if(a === "finish"){ UI.finishAsk = false; if(run) finishRun(); return; }
-  if(a === "undo"){ if(run && UNDO.length){ run.st = JSON.parse(UNDO.pop()); run.st._animating = false; run.st.spinning = false; saveRun(); render(); } return; }
+  if(a === "undo"){ UI.settingsOpen = false; saveUI(); if(run && UNDO.length){ run.st = JSON.parse(UNDO.pop()); run.st._animating = false; run.st.spinning = false; saveRun(); render(); } return; }
   if(a === "showres"){ var rr = RESULTS.filter(function(x){ return x.id === el.getAttribute("data-r"); })[0]; if(rr){ UI.lastResult = { id:rr.id, summary:rr.summary, packId:rr.packId, gameId:rr.gameId, type:rr.type, score:rr.score || null, items:rr.items || [], activeSecs:rr.activeSecs || 0 }; go("done"); } return; }
   if(a === "settings"){ UI.settingsOpen = !UI.settingsOpen; saveUI(); render(); return; }
+  if(a === "set-look"){ var lpk = run && getPack(run.packId); if(lpk){ var pp = clone(lpk), lv = el.getAttribute("data-v"); if(lv) pp.look = lv; else delete pp.look; touchPack(pp); PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; }); } render(); return; }
   if(a === "pause"){ if(run && !run.paused && !run.st.spinning){ run.act = clockMs(run); run.paused = true; run.st._animating = false; saveRun(); render(); } return; }
   if(a === "resume-run"){ if(run && run.paused){ clockMs(run); run.resumedAt = Date.now(); run.paused = false; saveRun(); render(); } return; }
   if(run && run.paused) return;
