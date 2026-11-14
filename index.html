@@ -741,7 +741,8 @@ var SB_URL = "https://prglfopvovvxhzrejhzc.supabase.co", SB_KEY = "sb_publishabl
 var AUTH = { need:false, sending:false, sent:"", err:"", notTeacher:false, email:"" }, SB = null;
 var LKEY = STUDENT_PAGE ? "lessonGames.student.v1" : "lessonGames.ui.v2";
 var APP_V = 20261113, SMODE = null;
-var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling", "build", "spot", "odd", "phon"];
+var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling", "build", "spot", "odd", "phon", "bingo"];
+if(SB_MODE) SLINK_TYPES.push("snakes");
 var SLINK_BASE = "https://sltimms90.github.io/lesson-games/";
 function loadLocal(k){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
 function saveLocal(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -4293,7 +4294,7 @@ function viewPack(){
       (u ? '<textarea id="slinkUrl" readonly style="min-height:90px">' + esc(u) + '</textarea><p class="muted" style="font-size:15px">' + u.length + ' characters. If Meet won’t take a link this long, send it on LINE.</p>' : '<p class="notice">Making the link…</p>') +
       '<p class="ok-msg" id="slinkMsg" role="status"></p><div class="row"><button class="btn" data-a="slink-copy"' + (u ? "" : " disabled") + '>Copy link</button><button class="btn ghost" data-a="slink-close">Close</button></div>' +
       '<details style="margin-top:12px"><summary class="muted">Student page address</summary><input id="slinkBase" value="' + esc(UI.studentBase || SLINK_BASE) + '" style="width:100%;margin-top:6px;font:inherit;padding:8px;border-radius:8px;border:2px solid var(--line);background:var(--surface);color:var(--ink)"></details></div></div>');
-    var bi = $("slinkBase"); if(bi) bi.addEventListener("change", function(){ var v = bi.value.trim(); if(v && !/\/$/.test(v)) v += "/"; UI.studentBase = v && v !== SLINK_BASE ? v : ""; saveUI(); if(UI.slink){ var g2 = (p.games || []).filter(function(x){ return x.id === UI.slink.gid; })[0]; UI.slink.url = ""; render(); packData(studentLinkData(p, g2)).then(function(c){ if(UI.slink){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }); } });
+    var bi = $("slinkBase"); if(bi) bi.addEventListener("change", function(){ var v = bi.value.trim(); if(v && !/\/$/.test(v)) v += "/"; UI.studentBase = v && v !== SLINK_BASE ? v : ""; saveUI(); if(UI.slink){ var g2 = (p.games || []).filter(function(x){ return x.id === UI.slink.gid; })[0]; UI.slink.url = ""; render(); slinkData(p, g2).then(packData).then(function(c){ if(UI.slink){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }, slinkFail); } });
   }
   if(UI.sres){
     $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Add a student’s result"><div class="pop setpop"><h3 style="margin-bottom:8px">Add a student’s result</h3><p class="muted" style="margin-top:0">Paste the whole message the student sent from their game.</p><textarea id="sresIn" style="min-height:120px"></textarea><p class="err" id="sresErr" role="alert"></p><div class="row"><button class="btn" data-a="sres-add">Add</button><button class="btn ghost" data-a="sres-close">Cancel</button></div></div></div>');
@@ -4402,9 +4403,48 @@ async function unpackData(t){
   if(t[0] === "z") b = new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
   return JSON.parse(new TextDecoder().decode(b));
 }
+/* Snakes & Ladders links: the board and token pictures are too big for a link, so they go in the public
+   "game-pictures" folder (Supabase storage; it can't be listed) and the link carries their addresses. */
+var PIC_URLS = {};
+function picUrl(dataUrl){
+  var m = /^data:(image\/[a-z+.-]+);base64,(.*)$/i.exec(String(dataUrl || ""));
+  if(!m) return Promise.resolve(dataUrl || "");
+  if(PIC_URLS[dataUrl]) return Promise.resolve(PIC_URLS[dataUrl]);
+  if(!SB || !window.crypto || !crypto.subtle) return Promise.reject(new Error("pictures can only be shared from the online app"));
+  var type = m[1].toLowerCase(), bin = atob(m[2]), bytes = new Uint8Array(bin.length);
+  for(var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  var ext = type === "image/png" ? "png" : type === "image/webp" ? "webp" : type === "image/gif" ? "gif" : "jpg";
+  return crypto.subtle.digest("SHA-256", bytes).then(function(h){
+    var hex = Array.prototype.map.call(new Uint8Array(h), function(x){ return ("0" + x.toString(16)).slice(-2); }).join("").slice(0, 32);
+    var path = hex + "." + ext, bucket = SB.storage.from("game-pictures");
+    return bucket.upload(path, new Blob([bytes], { type:type }), { upsert:true, contentType:type, cacheControl:"31536000" }).then(function(r){
+      if(r.error) throw r.error;
+      var u = bucket.getPublicUrl(path).data.publicUrl; PIC_URLS[dataUrl] = u; return u;
+    });
+  });
+}
+function snPublish(p, g){
+  var o = Object.assign({}, TYPES.snakes.defaults(p), g.options || {}), b = BOARDS[o.boardId];
+  if(!b) return Promise.reject(new Error("choose a board for this game first"));
+  var names = snPlayers(g.block, p), tokens = {};
+  return picUrl(b.img).then(function(u){
+    var board = {}; ["id", "name", "w", "h", "rows", "cols", "l", "r", "t", "b", "zig", "start", "jumps"].forEach(function(k){ if(b[k] !== undefined) board[k] = b[k]; });
+    board.img = u;
+    return names.reduce(function(pr, nm){ var st = STUDENTS[slug(nm)];
+      return pr.then(function(){ if(!st || !st.token) return; return picUrl(st.token).then(function(tu){ tokens[nm] = tu; }); }); }, Promise.resolve())
+      .then(function(){ return { board:board, tokens:tokens }; });
+  });
+}
+function slinkData(p, g){
+  var d = studentLinkData(p, g);
+  if(g.type !== "snakes") return Promise.resolve(d);
+  return snPublish(p, g).then(function(x){ d.x = x; return d; });
+}
+function slinkFail(e){ UI.slink = null; render(); toast("Couldn’t make the link: " + ((e && e.message) || "check the connection")); }
 function studentLinkData(p, g){
   var t = TYPES[g.type], o = Object.assign({}, t.defaults(p), g.options || {});
   if(g.type === "match") o.claim = false;
+  if(g.type === "bingo"){ o.show = "student"; o.self = true; }
   return { v:APP_V, p:p.id, l:p.lp || null, k:lookFor(p), g:{ id:g.id, type:g.type, title:g.title || t.label, block:g.block, options:o } };
 }
 function viewSReady(){
@@ -4423,12 +4463,14 @@ function viewSDone(){
 }
 async function startStudent(){
   STATUS = "student"; LOADED.packs = true; LOADED.results = true;
-  STORE = { saveResult:function(){ return Promise.resolve(); }, savePack:function(){ return Promise.resolve(); }, saveStudent:function(){ return Promise.resolve(); } };
+  STORE = { saveResult:function(){ return Promise.resolve(); }, savePack:function(){ return Promise.resolve(); }, saveStudent:function(){ return Promise.resolve(); }, saveBoard:function(){ return Promise.resolve(); }, saveSheet:function(){ return Promise.resolve(); } };
   var m = location.hash.match(/^#s=([A-Za-z0-9_\-]+)$/);
   function msg(t){ $("app").innerHTML = '<div class="wrap" style="text-align:center;padding-top:12vh"><h2>Lesson Games</h2><p class="notice">' + esc(t) + '</p></div>'; }
   if(!m){ msg("Ask your teacher for a game link."); return; }
   var d; try{ d = await unpackData(m[1]); }catch(e){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
   if(!d || !d.g || !TYPES[d.g.type]){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
+  if(d.x && d.x.board && d.x.board.id){ BOARDS[d.x.board.id] = d.x.board; }
+  if(d.x && d.x.tokens) Object.keys(d.x.tokens).forEach(function(nm){ STUDENTS[slug(nm)] = { id:slug(nm), name:nm, token:d.x.tokens[nm] }; });
   SMODE = { d:d, key:String(hash(m[1])) };
   PACKS = [{ id:d.p || "student", student:"", lp:d.l || null, look:d.k && d.k !== "bright" ? d.k : "", games:[d.g] }];
   if(UI.run && UI.runKey !== SMODE.key){ UI.run = null; }
@@ -4970,7 +5012,7 @@ function handle(a, el){
   if(a === "slink"){ var spk = getPack(UI.packId), sg = (spk.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0]; if(!sg) return;
     var se = TYPES[sg.type].validate(sg.block, Object.assign({}, TYPES[sg.type].defaults(spk), sg.options || {})); if(se){ toast(se); return; }
     UI.slink = { gid:sg.id, url:"" }; render();
-    packData(studentLinkData(spk, sg)).then(function(c){ if(UI.slink && UI.slink.gid === sg.id){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }); return; }
+    slinkData(spk, sg).then(packData).then(function(c){ if(UI.slink && UI.slink.gid === sg.id){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }, slinkFail); return; }
   if(a === "slink-close" || a === "sres-close"){ UI.slink = null; UI.sres = false; render(); return; }
   if(a === "slink-copy"){ var su = UI.slink && UI.slink.url; if(!su) return; copyText(su).then(function(ok){ var c = $("slinkMsg"); if(c) c.textContent = ok ? "Copied. Paste it in the Meet chat or LINE." : "Copying is blocked here. Select the link and copy it."; if(!ok){ $("slinkUrl").focus(); $("slinkUrl").select(); } }); return; }
   if(a === "sres-open"){ UI.sres = true; UI.slink = null; render(); var ta = $("sresIn"); if(ta) ta.focus(); return; }
