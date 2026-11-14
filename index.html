@@ -187,6 +187,12 @@ textarea{min-height:220px;resize:vertical;line-height:1.4}
 .slots{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 .aslot{width:clamp(42px,7vw,64px);height:clamp(52px,8.5vw,76px);border-radius:12px;border:3px dashed var(--line);display:grid;place-items:center;font:800 clamp(28px,5vw,44px)/1 "Baloo 2",sans-serif;background:transparent;cursor:pointer;padding:0}
 .aslot.filled{border-style:solid;border-color:var(--c-anagrams);background:var(--surface)}
+.slots .aslot,.tiles .tile{touch-action:none;-webkit-user-select:none;user-select:none}
+.tiles{min-height:clamp(58px,9vw,80px)}
+.aslot.over{border-color:var(--c-anagrams);border-style:solid;transform:scale(1.08)}
+.tiles.over{outline:3px dashed var(--c-anagrams);outline-offset:6px;border-radius:14px}
+.an-lift{opacity:.35}
+.an-ghost{position:fixed;z-index:1000;pointer-events:none;transform:scale(1.12);box-shadow:0 10px 24px rgba(0,0,0,.25)}
 .aslot.gap{border:0;width:clamp(14px,2.5vw,24px);cursor:default}
 .slots.right .aslot.filled{background:var(--c-anagrams);color:#fff}
 .slots.shake{animation:shake .45s}
@@ -547,6 +553,7 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 .lpts small{font:700 14px/1 "Atkinson Hyperlegible",sans-serif;color:var(--muted)}
 .bar .lp{font:800 17px/1 "Baloo 2",sans-serif;white-space:nowrap;padding:4px 10px;border-radius:999px;background:var(--soft)}
 
+.inprog{margin-top:6px;font-size:15px;font-weight:700;color:var(--c-quiz)}
 /* higher or lower */
 .hl-row{display:flex;gap:clamp(12px,3vw,28px);justify-content:center;align-items:center;flex-wrap:wrap}
 .hl-chain{display:flex;align-items:center}
@@ -634,6 +641,75 @@ span.od-tile{cursor:default}
   .bd-line,.se-sent,.od-grid,.ph-card{margin:0}
   .ph-card{min-height:clamp(96px,18vh,150px)}
 }
+/* ---------- run sheet (the paper run sheet on screen) ---------- */
+.rs.wrap{max-width:900px;padding-top:14px}
+.rs-top .t{font-size:18px}
+.rs-meta{margin:0;font-weight:700;font-size:17px}
+.rs-spine{margin:4px 0 6px;color:var(--muted);font-size:16px}
+.rs-state{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 4px}
+.rs-banner{background:var(--soft);border:2px solid var(--ball);border-radius:12px;padding:8px 12px;margin:10px 0;font-size:16px}
+.rs-blk{background:var(--surface);border:2px solid var(--line);border-radius:16px;margin:12px 0;overflow:hidden}
+.rs-blk.now{border-color:var(--ball);box-shadow:0 0 0 3px var(--stamp)}
+.rs-blk.skip .rs-body{opacity:.4}
+.rs-bar{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;background:var(--soft);padding:6px 8px 6px 14px}
+.rs-bar b{font-family:"Baloo 2",system-ui,sans-serif;font-size:19px;line-height:1.15}
+.rs-clock{font-variant-numeric:tabular-nums;font-weight:700}
+.rs-mat{color:var(--muted);font-size:15px}
+.rs-min{margin-left:auto;color:var(--muted);font-size:15px}
+.rs-skip{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 14px;min-height:40px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.rs-skip.on{background:var(--no);border-color:var(--no);color:#fff}
+.rs-body{padding:2px 12px 8px}
+.rs-ln{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.rs-body > .rs-ln:first-child{border-top:0}
+.rs-ln.gap,.rs-pg.gap{outline:3px solid var(--amber);outline-offset:-1px;border-radius:10px}
+.rs-ln.gap{padding-left:6px;padding-right:6px}
+.rs-tx{flex:1 1 240px;min-width:0;font-size:17px;overflow-wrap:anywhere}
+.rs-tx b{font-weight:700}
+.rs-info{color:var(--muted);font-size:16px}
+.rs-tk{flex:none;width:44px;height:44px;border-radius:10px;border:2px solid var(--muted);background:var(--surface);color:var(--ink);font:800 24px/1 system-ui,sans-serif;display:grid;place-items:center;cursor:pointer;touch-action:manipulation;padding:0}
+.rs-tk.y{background:var(--ok);border-color:var(--ok);color:#fff}
+.rs-tk.n{background:var(--no);border-color:var(--no);color:#fff}
+.rs-tk.auto{cursor:default;opacity:.85}
+.rs-pages{padding-left:22px;gap:8px 20px}
+.rs-pg{display:inline-flex;align-items:center;gap:8px;font-size:17px;padding:2px}
+.rs-seg{display:inline-flex;border:2px solid var(--line);border-radius:12px;overflow:hidden;flex:none}
+.rs-seg button{border:0;border-left:2px solid var(--line);background:var(--surface);color:var(--ink);min-height:44px;min-width:52px;padding:6px 12px;font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation}
+.rs-seg button:first-child{border-left:0}
+.rs-seg button.on{background:var(--ink);color:var(--surface)}
+.rs-seg button.on.ok{background:var(--ok);color:#fff}
+.rs-seg button.on.no{background:var(--no);color:#fff}
+.rs-seg button.on.amb{background:var(--amber);color:#fff}
+.rs-grp{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rs-who{font-weight:800;color:var(--muted);font-size:15px}
+.rs-in,.rs-ta,.rs-time{font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:8px 11px}
+.rs-in,.rs-ta{width:100%}
+.rs-ta{min-height:64px;resize:vertical}
+.rs-time{min-height:44px;padding:6px 8px}
+.rs-score .rs-sc-top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;width:100%}
+.rs-num{display:inline-flex;align-items:center;gap:4px;font-weight:700}
+.rs-num input{width:3.4em;text-align:center;font:inherit;font-weight:700;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:8px 4px;min-height:44px}
+.rs-tag{background:var(--soft);border:1px solid var(--ball);border-radius:8px;padding:2px 8px;font-size:15px}
+.rs-trapb{display:inline-block;background:var(--amber);color:#fff;font-weight:800;border-radius:6px;padding:1px 7px;font-size:14px;margin-right:4px}
+.rs-nd{margin-left:auto;border:2px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 12px;min-height:40px;font-size:15px;font-weight:700;cursor:pointer}
+.rs-nd.on{background:var(--no);border-color:var(--no);color:#fff}
+.rs-score.off .rs-num,.rs-score.off > .rs-in{opacity:.35}
+.rs-blank{display:flex;gap:8px;align-items:center;flex:1 1 220px}
+.rs-blank span{font-weight:700;white-space:nowrap}
+.rs-words .chip{min-height:40px}
+.rs .chip.on{background:var(--amber);border-color:var(--amber);color:#fff;font-weight:700}
+.rs-lbl{font-weight:700;flex:0 0 150px}
+.rs-ln > .rs-in,.rs-ln > .rs-ta{flex:1 1 260px;width:auto}
+.rs-card{background:var(--surface);border:2px solid var(--ball);border-radius:18px;padding:14px;margin:0 0 16px}
+.rs-card h3{margin:0 0 4px}
+.rs-gaplist{text-align:left;margin:6px 0 14px;padding-left:36px;font-size:16px;max-height:40vh;overflow:auto}
+@media (max-width:560px){
+  .rs.wrap{padding-left:10px;padding-right:10px}
+  .rs-body{padding:2px 8px 8px}
+  .rs-tx{flex-basis:calc(100% - 60px)}
+  .rs-lbl{flex-basis:100%}
+  .rs-pages{padding-left:4px}
+  .rs-nd{margin-left:0}
+}
 </style>
 </head>
 <body>
@@ -652,13 +728,19 @@ span.od-tile{cursor:default}
    students/<slug>  { id, name, look, updatedAt }  (each student's usual look)
    results/<id>     { id, packId, student, lp, gameId, type, title, at (ISO),
                       summary (plain text, one game), detail {} }
+   packs may also carry runsheet: the rs_build.py run sheet spec (Gate 5); marks go in
+   sheets/<packId>  { id, packId, student, lp, date, updatedAt, marks, finished, finishedAt, rows, gaps, summary }
+   students/<slug> may carry runsheet: "online" | "always" (when lessons open on the run sheet)
    STORAGE: every read/write goes through STORE (watchPacks, watchResults, savePack,
    deletePack, saveResult, deleteResult). Swap the adapter to move hosts.
    ===================================================================== */
 "use strict";
-var STUDENT_PAGE = /^#s=/.test(location.hash) || /github\.io$/.test(location.hostname);
+var SB_MODE = /github\.io$/.test(location.hostname) && /\/app(\/|\/index\.html)?$/.test(location.pathname);
+var STUDENT_PAGE = /^#s=/.test(location.hash) || (/github\.io$/.test(location.hostname) && !SB_MODE);
+var SB_URL = "https://prglfopvovvxhzrejhzc.supabase.co", SB_KEY = "sb_publishable_iVsi1E8C4WNFXJAz6LfftQ_L4DBWJV0";
+var AUTH = { need:false, sending:false, sent:"", err:"", notTeacher:false, email:"" }, SB = null;
 var LKEY = STUDENT_PAGE ? "lessonGames.student.v1" : "lessonGames.ui.v2";
-var APP_V = 20261112, SMODE = null;
+var APP_V = 20261113, SMODE = null;
 var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling", "build", "spot", "odd", "phon"];
 var SLINK_BASE = "https://sltimms90.github.io/lesson-games/";
 function loadLocal(k){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
@@ -755,15 +837,98 @@ function dbStore(db){
     watchStudents: function(cb, err){ return db.collection("students").limit(200).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
     saveStudent: function(o){ return q("students/" + o.id, function(){ return db.doc("students/" + o.id).set(clone(o)); }); },
     watchBoards: function(cb, err){ return db.collection("boards").limit(50).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
-    saveBoard: function(o){ return q("boards/" + o.id, function(){ return db.doc("boards/" + o.id).set(clone(o)); }); }
+    saveBoard: function(o){ return q("boards/" + o.id, function(){ return db.doc("boards/" + o.id).set(clone(o)); }); },
+    watchSheets: function(cb, err){ return db.collection("sheets").orderBy("updatedAt", "desc").limit(300).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
+    saveSheet: function(o){ return q("sheets/" + o.id, function(){ return db.doc("sheets/" + o.id).set(clone(o)); }); }
   };
 }
+/* Supabase (GitHub Pages build): one table per collection, rows are { id, data jsonb, updated_at }.
+   watch* = initial select + Realtime changes; refetches on reconnect and when the tab comes back. */
+function supabaseStore(sb){
+  var queues = {}, cache = {}, subs = {}, errs = {}, chan = null;
+  var ORDER = { packs:"updatedAt", results:"at", sheets:"updatedAt" };
+  var LIMIT = { packs:400, results:1000, students:200, boards:50, sheets:300 };
+  function q(path, fn){ var p = (queues[path] || Promise.resolve()).then(fn, fn); queues[path] = p.catch(function(){}); return p; }
+  function ok(r){ if(r && r.error) throw r.error; return r; }
+  function row(r){ var o = clone(r.data || {}); o.id = r.id; return o; }
+  function emit(t){
+    if(!cache[t] || !subs[t]) return;
+    var o = ORDER[t], list = Object.keys(cache[t]).map(function(k){ return clone(cache[t][k]); });
+    if(o) list.sort(function(a, b){ return String(b[o] || "").localeCompare(String(a[o] || "")); });
+    list = list.slice(0, LIMIT[t]);
+    subs[t].forEach(function(f){ f(list, false); });
+  }
+  function load(t){
+    var qy = sb.from(t).select("id,data");
+    if(ORDER[t]) qy = qy.order("data->>" + ORDER[t], { ascending:false });
+    return qy.limit(LIMIT[t]).then(function(r){
+      if(r.error){ (errs[t] || []).forEach(function(f){ f(r.error); }); return; }
+      var c = {}; r.data.forEach(function(x){ c[x.id] = row(x); }); cache[t] = c; emit(t);
+    });
+  }
+  function loadAll(){ Object.keys(subs).forEach(load); }
+  function change(t, p){
+    if(!cache[t]) return;
+    if(p.eventType === "DELETE"){ var id = p.old && p.old.id; if(id){ delete cache[t][id]; emit(t); } return; }
+    var n = p.new || {};
+    if(!n.id) return;
+    if(n.data == null){ sb.from(t).select("id,data").eq("id", n.id).maybeSingle().then(function(r){ if(r.data){ cache[t][r.data.id] = row(r.data); emit(t); } }); return; }
+    cache[t][n.id] = row(n); emit(t);
+  }
+  function ensureChannel(){
+    if(chan) return;
+    chan = sb.channel("lesson-games");
+    ["packs", "results", "students", "boards", "sheets"].forEach(function(t){
+      chan = chan.on("postgres_changes", { event:"*", schema:"public", table:t }, function(p){ change(t, p); });
+    });
+    var first = true;
+    chan.subscribe(function(st){ if(st === "SUBSCRIBED"){ if(!first) loadAll(); first = false; } });
+  }
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) loadAll(); });
+  window.addEventListener("online", loadAll);
+  function watch(t){ return function(cb, err){
+    (subs[t] = subs[t] || []).push(cb); (errs[t] = errs[t] || []).push(err || function(){});
+    ensureChannel();
+    if(cache[t]) setTimeout(function(){ emit(t); }, 0); else load(t);
+    return function(){ subs[t] = subs[t].filter(function(f){ return f !== cb; }); };
+  }; }
+  function save(t){ return function(o){
+    var d = clone(o); if(cache[t]){ cache[t][o.id] = clone(o); emit(t); }
+    return q(t + "/" + o.id, function(){ return sb.from(t).upsert({ id:o.id, data:d }).then(ok); });
+  }; }
+  function del(t){ return function(id){
+    if(cache[t]){ delete cache[t][id]; emit(t); }
+    return q(t + "/" + id, function(){ return sb.from(t).delete().eq("id", id).then(ok); });
+  }; }
+  return {
+    kind: "supabase",
+    watchPacks: watch("packs"), savePack: save("packs"), deletePack: del("packs"),
+    watchResults: watch("results"), saveResult: save("results"), deleteResult: del("results"),
+    watchStudents: watch("students"), saveStudent: save("students"),
+    watchBoards: watch("boards"), saveBoard: save("boards"),
+    watchSheets: watch("sheets"), saveSheet: save("sheets"),
+    /* restore a backup: upserts in batches, returns counts written per collection */
+    restore: function(cols){
+      var names = ["packs", "results", "students", "boards", "sheets"], done = {};
+      return names.reduce(function(p, t){
+        return p.then(function(){
+          var rows = (cols[t] || []).filter(function(o){ return o && o.id; }).map(function(o){ var d = clone(o); return { id:String(o.id), data:d }; });
+          done[t] = 0;
+          var chunks = []; for(var i = 0; i < rows.length; i += 20) chunks.push(rows.slice(i, i + 20));
+          return chunks.reduce(function(pp, ch){ return pp.then(function(){ return sb.from(t).upsert(ch).then(ok).then(function(){ done[t] += ch.length; }); }); }, Promise.resolve());
+        });
+      }, Promise.resolve()).then(function(){ loadAll(); return done; });
+    }
+  };
+}
+function loadScript(src){ return new Promise(function(res, rej){ var s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
 function localStore(){
   var KEY = "lessonGames.data.v2";
   var data = loadLocal(KEY) || { packs:{}, results:{} };
   if(!data.students) data.students = {};
   if(!data.boards) data.boards = {};
-  var L = { packs:[], results:[], students:[], boards:[] };
+  if(!data.sheets) data.sheets = {};
+  var L = { packs:[], results:[], students:[], boards:[], sheets:[] };
   function emit(){
     saveLocal(KEY, data);
     var p = Object.keys(data.packs).map(function(k){ return clone(data.packs[k]); }).sort(function(a,b){ return String(b.updatedAt).localeCompare(String(a.updatedAt)); });
@@ -773,6 +938,8 @@ function localStore(){
     L.students.forEach(function(f){ f(st, false); });
     var bd = Object.keys(data.boards).map(function(k){ return clone(data.boards[k]); });
     L.boards.forEach(function(f){ f(bd, false); });
+    var sh = Object.keys(data.sheets).map(function(k){ return clone(data.sheets[k]); });
+    L.sheets.forEach(function(f){ f(sh, false); });
   }
   return {
     kind: "local",
@@ -785,31 +952,60 @@ function localStore(){
     watchStudents: function(cb){ L.students.push(cb); setTimeout(emit, 0); return function(){}; },
     saveStudent: function(o){ data.students[o.id] = clone(o); emit(); return Promise.resolve(); },
     watchBoards: function(cb){ L.boards.push(cb); setTimeout(emit, 0); return function(){}; },
-    saveBoard: function(o){ data.boards[o.id] = clone(o); emit(); return Promise.resolve(); }
+    saveBoard: function(o){ data.boards[o.id] = clone(o); emit(); return Promise.resolve(); },
+    watchSheets: function(cb){ L.sheets.push(cb); setTimeout(emit, 0); return function(){}; },
+    saveSheet: function(o){ data.sheets[o.id] = clone(o); emit(); return Promise.resolve(); }
   };
 }
 
 async function connect(){
+  if(SB_MODE) return connectSupabase();
   var db = null;
   try{ if(window.claude && typeof window.claude.use === "function") db = await window.claude.use("db"); }catch(e){ db = null; }
-  STORE = db ? dbStore(db) : localStore();
-  STATUS = db ? "account" : "local";
+  startStore(db ? dbStore(db) : localStore(), db ? "account" : "local");
+}
+async function connectSupabase(){
+  try{ if(!window.supabase) await loadScript("supabase.js"); }catch(e){ STATUS = "error"; refresh(); return; }
+  SB = window.supabase.createClient(SB_URL, SB_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:"lessonGames.auth" } });
+  SB.auth.onAuthStateChange(function(ev, session){
+    if(ev === "SIGNED_OUT"){ AUTH.need = true; AUTH.sent = ""; render(); }
+    else if(session && AUTH.need) setTimeout(function(){ afterSignIn(session); }, 0);
+  });
+  var r = await SB.auth.getSession();
+  if(/access_token=|error_description=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+  if(r.data && r.data.session) return afterSignIn(r.data.session);
+  AUTH.need = true; render();
+}
+async function afterSignIn(session){
+  if(STORE && STORE.kind === "supabase" && !AUTH.need) return;
+  AUTH.email = (session.user && session.user.email) || "";
+  var t = await SB.rpc("am_i_teacher");
+  if(t.error || t.data !== true){ AUTH.need = true; AUTH.notTeacher = !t.error; AUTH.err = t.error ? "Couldn’t check the account. Check the connection and reload." : ""; render(); return; }
+  AUTH.need = false; AUTH.notTeacher = false; AUTH.err = "";
+  if(STORE && STORE.kind === "supabase"){ render(); return; }
+  startStore(supabaseStore(SB), "account");
+}
+function startStore(store, status){
+  STORE = store;
+  STATUS = status;
   var timer = setTimeout(function(){ SLOW = true; refresh(); }, 10000);
   function done(cache){ if(!cache){ clearTimeout(timer); SLOW = false; } }
   STORE.watchPacks(function(list, cache){ PACKS = list; LOADED.packs = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
   STORE.watchResults(function(list, cache){ RESULTS = list; LOADED.results = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
   STORE.watchStudents(function(list){ STUDENTS = {}; list.forEach(function(o){ STUDENTS[o.id] = o; }); refresh(); }, function(){});
   STORE.watchBoards(function(list){ BOARDS = {}; list.forEach(function(o){ BOARDS[o.id] = o; }); refresh(); }, function(){});
+  STORE.watchSheets(function(list){ SHEETS = {}; list.forEach(function(o){ SHEETS[o.id] = o; }); refresh(); }, function(){});
   refresh();
 }
-var LIVE_VIEWS = ["home", "pack", "student", "done"];
+var LIVE_VIEWS = ["home", "pack", "student", "done", "sheet"];
 function refresh(){
+  if(UI.view === "sheet" && (rsTyping() || UI.rsFinish)){ RS_PEND = true; rsPaintState(); return; }
   if(LIVE_VIEWS.indexOf(UI.view) !== -1) render();
   else { var s = $("status"); if(s) s.outerHTML = statusPill(); }
 }
 function statusPill(){
   if(STATUS === "connecting" || (STATUS === "account" && !LOADED.packs)) return '<span class="pill" id="status"><i></i>' + (SLOW ? "Can’t reach your saved games yet" : "Connecting…") + '</span>';
-  if(STATUS === "account") return '<span class="pill ok" id="status"><i></i>' + (SLOW ? "Saved games may be out of date" : "Saved to your account") + '</span>';
+  if(STATUS === "account") return '<span class="pill ok" id="status"><i></i>' + (SLOW ? "Saved games may be out of date" : (SB_MODE ? "Saved online" : "Saved to your account")) + '</span>';
   if(STATUS === "local") return '<span class="pill warn" id="status"><i></i>On this device only</span>';
   return '<span class="pill bad" id="status"><i></i>Saving is unavailable</span>';
 }
@@ -819,7 +1015,7 @@ function resultsFor(packId, gameId){ return RESULTS.filter(function(r){ return r
 function packTitle(p){ return p.title || ((p.student || "Lesson") + (p.lp ? " · LP" + p.lp : "")); }
 function students(){ var s = {}; PACKS.forEach(function(p){ if(p.student) s[p.student] = 1; }); return Object.keys(s).sort(function(a,b){ return a.localeCompare(b); }); }
 function touchPack(p){ p.updatedAt = nowIso(); return STORE.savePack(p).catch(saveErr); }
-function go(view, extra){ UI.view = view; if(extra) Object.keys(extra).forEach(function(k){ UI[k] = extra[k]; }); saveUI(); render(); window.scrollTo(0,0); }
+function go(view, extra){ if(UI.view === "sheet" && UI.packId) rsFlush(UI.packId); UI.view = view; if(extra) Object.keys(extra).forEach(function(k){ UI[k] = extra[k]; }); saveUI(); render(); window.scrollTo(0,0); }
 
 /* =====================================================================
    Games. Each type: label, letter, blurb, blockHint, placeholder,
@@ -1265,42 +1461,102 @@ function anSetup(s){
   while(tries < 12 && letters.length > 1 && order.map(function(i){ return letters[i]; }).join("").toLowerCase() === letters.join("").toLowerCase());
   s.tiles = order.map(function(i, n){ return { id:n, ch:letters[i], used:false }; });
   s.slots = letters.map(function(){ return null; });
-  s.tries = 0; s.wrongs = []; s.status = "playing"; s.clue = false; s.shake = false;
+  s.tries = 0; s.wrongs = []; s.status = "playing"; s.clue = false; s.bought = false; s.shake = false;
 }
+/* Points for the current word: full points, minus each wrong try, minus a bought clue (challenge). */
+function anWordPts(s){ return s.points == null ? 0 : Math.max(0, s.points - s.perTry * s.tries - (s.bought ? s.clueCost : 0)); }
+/* Whack-a-Mole speed levels → ms each word stays up. Old saved speeds (3 slow, 5 medium, 7, 9) map to the nearest level. */
+var WH_UP = { 2:4000, 4:3000, 6:2000, 8:1500 };
+function whLevel(v){ v = +v || 4; return v <= 2 ? 2 : v <= 5 ? 4 : v <= 7 ? 6 : 8; }
 TYPES.anagrams = {
   label: "Anagrams", letter: "A",
-  blurb: "Tap the letter tiles into order. Practice only: the letters are given, so it doesn’t test spelling.",
+  blurb: "Tap or drag the letter tiles into order, for points. Practice only: the letters are given, so it doesn’t test spelling. Challenge mode hides the clue and the gaps between words, and allows two wrong tries.",
   blockHint: "One word per line, as in the plan’s Anagrams block. Add “| clue” to give a clue: a short meaning, example or opposite in words the student already knows. Never letters or part of the word.",
   placeholder: "castle | a big old house for a king\nbridge\nmarket",
-  defaults: function(){ return {}; },
-  optionsHtml: function(){ return ""; }, wireOptions: function(){}, readOptions: function(){ return {}; },
+  defaults: function(){ return { points:100, perTry:25, clueCost:25, chTries:2 }; },
+  optionsHtml: function(o){
+    function n(v, d){ return esc(v == null ? d : v); }
+    return '<div class="two"><div class="field"><label for="anPts">Points for a word</label><input type="number" id="anPts" min="0" step="10" inputmode="numeric" value="' + n(o.points, 100) + '" style="max-width:140px"></div>' +
+      '<div class="field"><label for="anTry">Minus for each wrong try</label><input type="number" id="anTry" min="0" step="5" inputmode="numeric" value="' + n(o.perTry, 25) + '" style="max-width:140px"></div></div><div class="hint">Set the minus to 0 for young learners. A word shown scores 0.</div>' +
+      '<div class="two"><div class="field"><label for="anClue">Challenge: cost of a clue</label><input type="number" id="anClue" min="0" step="5" inputmode="numeric" value="' + n(o.clueCost, 25) + '" style="max-width:140px"></div>' +
+      '<div class="field"><span class="legend">Challenge: wrong tries allowed</span><div class="choice">' + [1,2,3].map(function(k){ return radio("anChT", k, String(k), +(o.chTries || 2) === k); }).join("") + '</div></div></div>' +
+      '<div class="hint">Normal mode: clues are free. Challenge mode: no clue unless bought, no gaps shown between words, and the word is shown after the allowed wrong tries.</div>';
+  },
+  wireOptions: function(){},
+  readOptions: function(){ function n(id, d){ var v = parseInt($(id).value, 10); return isNaN(v) ? d : Math.max(0, v); } return { points:n("anPts", 100), perTry:n("anTry", 25), clueCost:n("anClue", 25), chTries: +checkedVal("anChT", 2) }; },
   validate: function(block){ var w = parseWords(block); if(!w.length) return "Add at least one word."; return null; },
-  start: function(game){ var w0 = parseWords(game.block), s = { words: playOrder(w0, game, function(x){ return x.w; }).map(function(i){ return w0[i]; }), i:0, log:[] }; anSetup(s); return s; },
+  start: function(game){ var o = game.options || {}, w0 = parseWords(game.block), s = { words: playOrder(w0, game, function(x){ return x.w; }).map(function(i){ return w0[i]; }), i:0, log:[], total:0,
+      ch: !!game._challenge, points: o.points == null ? 100 : +o.points, perTry: o.perTry == null ? 25 : +o.perTry, clueCost: o.clueCost == null ? 25 : +o.clueCost, chTries: +o.chTries || 2 }; anSetup(s); return s; },
   view: function(run){
     var s = run.st, w = s.words[s.i], li = 0;
     var slots = w.w.split("").map(function(ch){
-      if(ch === " ") return '<span class="aslot gap"></span>';
+      if(ch === " ") return s.ch && s.status === "playing" ? "" : '<span class="aslot gap"></span>';
       var p = li++, t = s.slots[p] != null ? s.tiles[s.slots[p]] : null;
       if(s.status === "shown") return '<span class="aslot filled">' + esc(ch) + '</span>';
       return '<button class="aslot' + (t ? " filled" : "") + '" data-a="an-slot" data-p="' + p + '"' + (s.status !== "playing" || !t ? " tabindex=\"-1\"" : "") + '>' + (t ? esc(t.ch) : "") + '</button>';
     }).join("");
     var tiles = s.status === "playing" ? s.tiles.filter(function(t){ return !t.used; }).map(function(t){ return '<button class="tile" data-a="an-tile" data-id="' + t.id + '">' + esc(t.ch) + '</button>'; }).join("") : "";
-    var clue = w.c ? (s.clue ? '<div class="cluebox">' + esc(w.c) + '</div>' : '<button class="btn ghost sm" data-a="an-clue">Show the clue</button>') : "";
+    var clue = !w.c ? "" : s.clue ? '<div class="cluebox">' + esc(w.c) + '</div>' : s.status !== "playing" ? "" : !s.ch ? '<button class="btn ghost sm" data-a="an-clue">Show the clue</button>' : '<button class="btn ghost sm" data-a="an-clue">Buy the clue for ' + s.clueCost + ' points</button>';
+    var hasPts = s.points != null, wpts = s.status === "playing" ? anWordPts(s) : ((s.log[s.log.length - 1] || {}).pts || 0);
+    var board = !hasPts ? "" : '<div class="score"><span><span class="n">' + (s.total || 0) + '</span><small>points</small></span><span><span class="n">' + wpts + '</span><small>' + (s.status === "playing" ? "this word" : "won") + '</small></span></div>';
+    var triesLeft = s.ch && s.status === "playing" ? '<div class="progress">' + (s.chTries - s.tries) + (s.chTries - s.tries === 1 ? " wrong try" : " wrong tries") + ' left</div>' : "";
     var cls = "slots" + (s.status === "solved" ? " right" : "") + (s.shake ? " shake" : "");
     s.shake = false;
     var bottom = s.status === "playing" ?
-      '<div class="tiles">' + tiles + '</div><div class="row" style="justify-content:center"><button class="btn ghost sm" data-a="an-clear">Clear</button><button class="btn ghost sm" data-a="an-show">Show the word</button></div>' + (s.tries ? '<div class="notice">Not quite. Try again.</div>' : "") :
-      '<div class="verdict ' + (s.status === "solved" ? "ok" : "no") + '">' + (s.status === "solved" ? (s.tries ? "Got it!" : "First try!") : "Here it is") + '</div><button class="btn big-btn" data-a="an-next">' + (s.i < s.words.length - 1 ? "Next word" : "Finish") + '</button>';
-    return '<section class="center"><div class="progress">Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' + clue + '<div class="' + cls + '" aria-live="polite">' + slots + '</div>' + bottom + '</section>';
+      '<div class="tiles">' + tiles + '</div><div class="row" style="justify-content:center"><button class="btn ghost sm" data-a="an-clear">Clear</button><button class="btn ghost sm" data-a="an-show">Show the word</button></div>' + (s.tries ? '<div class="notice">Not quite. Try again.</div>' : "") + triesLeft :
+      '<div class="verdict ' + (s.status === "solved" ? "ok" : "no") + '">' + (s.status === "solved" ? (s.tries ? "Got it!" : "First try!") + (hasPts ? " +" + wpts : "") : "Here it is") + '</div><button class="btn big-btn" data-a="an-next">' + (s.i < s.words.length - 1 ? "Next word" : "Finish") + '</button>';
+    return '<section class="center" id="anStage">' + board + '<div class="progress">' + (s.ch ? "Challenge · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' + clue + '<div class="' + cls + '" aria-live="polite">' + slots + '</div>' + bottom + '</section>';
+  },
+  after: function(run){
+    var s = run.st, stage = $("anStage"); if(!stage || s.status !== "playing") return;
+    var drag = null, swallow = false;
+    stage.addEventListener("click", function(e){ if(swallow){ swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    function target(x, y){
+      var e = document.elementFromPoint(x, y); if(!e) return null;
+      var sl = e.closest(".aslot[data-p]"); if(sl) return { el:sl, to:sl.getAttribute("data-p") };
+      var tr = e.closest(".tiles"); if(tr) return { el:tr, to:"tray" };
+      return null;
+    }
+    function clearOver(){ stage.querySelectorAll(".over").forEach(function(o){ o.classList.remove("over"); }); }
+    stage.addEventListener("pointerdown", function(e){
+      if(e.button > 0) return;
+      var src = e.target.closest(".tile, .aslot.filled[data-p]"); if(!src) return;
+      drag = { src:src, x:e.clientX, y:e.clientY, id:e.pointerId, on:false, ghost:null };
+      try{ src.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    stage.addEventListener("pointermove", function(e){
+      if(!drag || e.pointerId !== drag.id) return;
+      if(!drag.on){
+        if(Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 8) return;
+        drag.on = true;
+        var r = drag.src.getBoundingClientRect(), g = drag.src.cloneNode(true);
+        g.className = "tile an-ghost"; g.removeAttribute("data-a");
+        g.style.width = r.width + "px"; g.style.height = r.height + "px";
+        drag.dx = e.clientX - r.left; drag.dy = e.clientY - r.top;
+        document.body.appendChild(g); drag.ghost = g; drag.src.classList.add("an-lift");
+      }
+      e.preventDefault();
+      drag.ghost.style.left = (e.clientX - drag.dx) + "px"; drag.ghost.style.top = (e.clientY - drag.dy) + "px";
+      clearOver(); var t = target(e.clientX, e.clientY); if(t) t.el.classList.add("over");
+    });
+    function end(e, cancel){
+      if(!drag || e.pointerId !== drag.id) return;
+      var d = drag; drag = null; clearOver();
+      if(!d.on) return; /* a plain tap: the normal click does the work */
+      swallow = true; setTimeout(function(){ swallow = false; }, 400);
+      if(d.ghost) d.ghost.remove(); d.src.classList.remove("an-lift");
+      if(cancel) return;
+      var t = target(e.clientX, e.clientY); if(!t) return;
+      var fromSlot = d.src.classList.contains("aslot"), v = { from: fromSlot ? "slot" : "tile", to: t.to, id: d.src.getAttribute("data-id"), p: d.src.getAttribute("data-p") };
+      handle("an-drop", { getAttribute: function(n){ var k = n.replace(/^data-/, ""), x = v[k]; return x == null ? null : String(x); } });
+    }
+    stage.addEventListener("pointerup", function(e){ end(e, false); });
+    stage.addEventListener("pointercancel", function(e){ end(e, true); });
   },
   act: function(run, a, el){
     var s = run.st, w = s.words[s.i];
-    function log(solved){ s.log.push({ w:w.w, solved:solved, tries:s.tries + (solved ? 1 : 0), wrongs:s.wrongs.slice(), clue:s.clue }); }
-    if(a === "an-tile"){
-      if(s.status !== "playing") return false;
-      var id = +el.getAttribute("data-id"), t = s.tiles[id], p = s.slots.indexOf(null);
-      if(!t || t.used || p === -1) return false;
-      t.used = true; s.slots[p] = id;
+    function log(solved){ var pts = solved ? anWordPts(s) : 0; s.total = (s.total || 0) + pts; s.log.push({ w:w.w, solved:solved, tries:s.tries + (solved ? 1 : 0), wrongs:s.wrongs.slice(), clue:s.clue, bought:!!s.bought, pts:pts }); }
+    function check(){
       if(s.slots.indexOf(null) === -1){
         var built = s.slots.map(function(x){ return s.tiles[x].ch; }).join("");
         var target = w.w.replace(/ /g, "");
@@ -1309,9 +1565,34 @@ TYPES.anagrams = {
           var li = 0, spaced = w.w.split("").map(function(ch){ return ch === " " ? " " : built[li++]; }).join("");
           s.tries++; s.wrongs.push(spaced); s.shake = true;
           s.tiles.forEach(function(x){ x.used = false; }); s.slots = s.slots.map(function(){ return null; });
+          if(s.ch && s.tries > s.chTries){ s.status = "shown"; log(false); }
         }
       }
       return true;
+    }
+    if(a === "an-tile"){
+      if(s.status !== "playing") return false;
+      var id = +el.getAttribute("data-id"), t = s.tiles[id], p = s.slots.indexOf(null);
+      if(!t || t.used || p === -1) return false;
+      t.used = true; s.slots[p] = id;
+      return check();
+    }
+    if(a === "an-drop"){
+      /* Dragged: a tray tile onto a box (anything already there goes back to the tray),
+         a box's letter onto another box (they swap), or a box's letter back to the tray. */
+      if(s.status !== "playing") return false;
+      var from = el.getAttribute("data-from"), to = el.getAttribute("data-to");
+      if(from === "tile"){
+        var did = +el.getAttribute("data-id"), dt = s.tiles[did], dp = +to;
+        if(!dt || dt.used || to === "tray" || isNaN(dp) || dp < 0 || dp >= s.slots.length) return false;
+        if(s.slots[dp] != null) s.tiles[s.slots[dp]].used = false;
+        s.slots[dp] = did; dt.used = true; return check();
+      }
+      var fp = +el.getAttribute("data-p"), tid0 = s.slots[fp];
+      if(tid0 == null) return false;
+      if(to === "tray"){ s.tiles[tid0].used = false; s.slots[fp] = null; return true; }
+      var tp = +to; if(isNaN(tp) || tp === fp || tp < 0 || tp >= s.slots.length) return false;
+      s.slots[fp] = s.slots[tp]; s.slots[tp] = tid0; return check();
     }
     if(a === "an-slot"){
       if(s.status !== "playing") return false;
@@ -1320,7 +1601,7 @@ TYPES.anagrams = {
       s.tiles[tid].used = false; s.slots[pp] = null; return true;
     }
     if(a === "an-clear"){ s.tiles.forEach(function(x){ x.used = false; }); s.slots = s.slots.map(function(){ return null; }); return true; }
-    if(a === "an-clue"){ s.clue = true; return true; }
+    if(a === "an-clue"){ if(s.status !== "playing" || s.clue) return false; if(s.ch) s.bought = true; s.clue = true; return true; }
     if(a === "an-show"){ if(s.status !== "playing") return false; s.status = "shown"; log(false); return true; }
     if(a === "an-next"){ if(s.i >= s.words.length - 1){ finishRun(); return "done"; } s.i++; anSetup(s); return true; }
     return false;
@@ -1339,7 +1620,8 @@ TYPES.anagrams = {
     var shown = s.log.filter(function(x){ return !x.solved; }).map(function(x){ return x.w; });
     if(shown.length) parts.push("shown: " + shown.join(", "));
     var nr = notReached(s.status === "playing" ? s : { words:s.words, i:s.i, status:"x" }); if(nr.length) parts.push("not reached: " + nr.join(", "));
-    return head(run, "Anagrams") + " (practice: letters given) — " + first + "/" + s.log.length + " first try" + (parts.length ? " · " + parts.join(" · ") : "");
+    var bought = s.log.filter(function(x){ return x.bought; }).map(function(x){ return x.w; }); if(bought.length) parts.push("clue bought: " + bought.join(", "));
+    return head(run, "Anagrams") + (s.ch ? " (challenge)" : "") + " (practice: letters given) — " + first + "/" + s.log.length + " first try" + (s.points != null ? ", " + (s.total || 0) + " points" : "") + (parts.length ? " · " + parts.join(" · ") : "");
   }
 };
 
@@ -1623,7 +1905,7 @@ function qzBonusView(run){
     return '<button class="' + cls + '" id="bc' + k + '" style="' + bPos(b.pos[k]) + '" data-a="qz-pick" data-k="' + k + '"' + (b.stage === "pick" ? "" : " disabled") + ' aria-label="Card ' + (b.pos[k] + 1) + '"><span class="in">' + qzCardFace(c) + '<span class="b">?</span></span></button>';
   }).join("");
   var msg = b.stage === "show" ? "Remember the cards!" : b.stage === "pick" ? "Pick a card" : b.stage === "reveal" ? (b.revealed ? qzCardLabel(b.cards[b.picked]) + "!" : "…") : "Shuffling…";
-  return '<section class="center">' + qzBoard(s) + '<h2 class="bonus-h">Bonus round</h2><p class="covermsg" aria-live="polite">' + esc(msg) + '</p><div class="bwrap">' + cards + '</div>' +
+  return '<section class="center">' + qzBoard(s) + '<h2 class="bonus-h">Bonus round' + ((b.n || 1) > 1 ? " · level " + b.n : "") + '</h2><p class="covermsg" aria-live="polite">' + esc(msg) + '</p><div class="bwrap">' + cards + '</div>' +
     (b.stage === "reveal" && b.revealed ? '<button class="btn big-btn" data-a="qz-bonusdone">Next question</button>' : "") + '</section>';
 }
 function qzBoard(s){
@@ -1632,7 +1914,7 @@ function qzBoard(s){
   return '<div class="score"><span><span class="n">' + s.score + '</span><small>points</small></span><span><span class="n">' + right + '/' + s.log.length + '</span><small>right</small></span>' + (s.streak > 1 ? '<span><span class="n">' + s.streak + '</span><small>in a row</small></span>' : "") + '</div>';
 }
 function qzBonusAfter(run){
-  var s = run.st, b = s.bonus, key = "b" + b.n + b.stage, reduce = prefersReduced();
+  var s = run.st, b = s.bonus, key = "b" + b.n + b.stage, reduce = prefersReduced(), lv = b.n || 1;
   if(s._animating === key) return;
   s._animating = key;
   function alive(){ return UI.view === "play" && UI.run === run && run.st === s && !run.paused && s.bonus === b && s._animating === key; }
@@ -1641,16 +1923,22 @@ function qzBonusAfter(run){
       if(!alive()) return;
       document.querySelectorAll(".bcard").forEach(function(e){ e.classList.add("down"); });
       setTimeout(function(){ if(!alive()) return; b.stage = "shuffle"; saveRun(); render(); }, reduce ? 80 : 650);
-    }, reduce ? 2500 : 3800);
+    }, reduce ? 2500 : Math.max(2200, 3800 - 400 * (lv - 1)));
   } else if(b.stage === "shuffle"){
-    var swaps = 7, n = 0, gap = reduce ? 520 : 760;
+    /* Each bonus round is harder: more swaps, faster moves, and from round 4 two pairs swap at once. */
+    var swaps = Math.min(18, 6 + 2 * (lv - 1)), n = 0, pairs = lv >= 4 ? 2 : 1;
+    var move = reduce ? 450 : Math.max(260, 700 - 90 * (lv - 1)), gap = move + (reduce ? 70 : 60);
+    document.querySelectorAll(".bcard").forEach(function(e){ e.style.transition = "left " + move + "ms ease-in-out,top " + move + "ms ease-in-out,transform .2s"; });
     function step(){
       if(!alive()) return;
       document.querySelectorAll(".bcard.moving").forEach(function(e){ e.classList.remove("moving"); });
       if(n++ >= swaps){ setTimeout(function(){ if(!alive()) return; b.stage = "pick"; saveRun(); render(); }, 150); return; }
-      var i = Math.floor(Math.random() * 6), j = (i + 1 + Math.floor(Math.random() * 5)) % 6, ki = b.pos.indexOf(i), kj = b.pos.indexOf(j);
-      b.pos[ki] = j; b.pos[kj] = i;
-      [ki, kj].forEach(function(k){ var e = $("bc" + k); if(e){ e.classList.add("moving"); bSet(e, b.pos[k]); } });
+      var slots = shuffle([0,1,2,3,4,5]), moved = [];
+      for(var q = 0; q < pairs; q++){
+        var i = slots[2*q], j = slots[2*q+1], ki = b.pos.indexOf(i), kj = b.pos.indexOf(j);
+        b.pos[ki] = j; b.pos[kj] = i; moved.push(ki, kj);
+      }
+      moved.forEach(function(k){ var e = $("bc" + k); if(e){ e.classList.add("moving"); bSet(e, b.pos[k]); } });
       setTimeout(step, gap);
     }
     setTimeout(step, 350);
@@ -1871,18 +2159,19 @@ function parseTaboo(text){
 function tbWho(s){ return s.who === "teacher" ? "teacher" : "student"; }
 TYPES.taboo = {
   label: "Taboo", letter: "T",
-  blurb: "Describe the word without saying the forbidden ones. When the student describes, Guessed unlocks after two clue sentences.",
+  blurb: "Describe the word without saying the forbidden ones. With the clue count on, when the student describes, Guessed unlocks after two clue sentences.",
   blockLabel: "Cards",
   blockHint: "As in the plan’s TABOO CARDS block: a TARGET: line, then a FORBIDDEN: line with commas between the words.",
   placeholder: "TABOO CARDS\nTARGET: castle\nFORBIDDEN: king, queen, big, old\n\nTARGET: bridge\nFORBIDDEN: river, cross, car",
   printLabel: "Print cards",
-  defaults: function(){ return { who:"student" }; },
+  defaults: function(){ return { who:"student", clueCount:true }; },
   optionsHtml: function(o){
     return '<div class="hint" id="tbCount"></div><div class="field"><span class="legend">Who describes first</span><div class="choice">' + radio("tbWho", "student", "The student", o.who !== "teacher") + radio("tbWho", "teacher", "The teacher", o.who === "teacher") + '</div>' +
-      '<div class="hint">You can switch before any card. When the student describes, Guessed stays locked until two clue sentences are tapped.</div></div>';
+      '<div class="hint">You can switch before any card.</div></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="tbClues"' + (o.clueCount !== false ? " checked" : "") + '><span><b>Clue count</b></span></label><div class="hint">When the student describes, tap once for each clue sentence; Guessed stays locked until two are tapped. Can also be switched mid-game in ⚙ Settings.</div></div>';
   },
   wireOptions: function(){ function upd(){ var c = parseTaboo($("gBlock").value); $("tbCount").textContent = c.length ? c.length + (c.length === 1 ? " card" : " cards") : ""; } $("gBlock").addEventListener("input", upd); upd(); },
-  readOptions: function(){ return { who: checkedVal("tbWho", "student") }; },
+  readOptions: function(){ return { who: checkedVal("tbWho", "student"), clueCount: $("tbClues").checked }; },
   validate: function(block){
     var c = parseTaboo(block);
     if(!c.length) return "Add at least one card: a TARGET: line, then a FORBIDDEN: line.";
@@ -1890,7 +2179,7 @@ TYPES.taboo = {
     if(bare) return "“" + bare.t + "” needs a FORBIDDEN: line under it.";
     return null;
   },
-  start: function(game){ return { cards: parseTaboo(game.block), i:0, who: game.options.who === "teacher" ? "teacher" : "student", phase:"cover", clues:0, log:[], last:null }; },
+  start: function(game){ return { cards: parseTaboo(game.block), i:0, who: game.options.who === "teacher" ? "teacher" : "student", phase:"cover", clues:0, clueCount: game.options.clueCount !== false, log:[], last:null }; },
   view: function(run){
     var s = run.st, got = s.log.filter(function(x){ return x.out === "got"; }).length, stu = run.student || "the student";
     var tally = '<div class="progress">' + got + ' guessed · ' + (s.log.length - got) + ' not guessed</div>';
@@ -1903,8 +2192,8 @@ TYPES.taboo = {
         '<p class="covermsg">' + (me ? "Hand the iPad to " + esc(stu) + ". The teacher looks away." : "Turn the screen away from " + esc(stu) + ".") + '</p>' +
         '<button class="btn big-btn" data-a="tb-show">Show the card</button></div></section>';
     }
-    var c = s.cards[s.i], stuDesc = tbWho(s) === "student", locked = stuDesc && s.clues < 2;
-    var counter = stuDesc ? '<button class="btn ghost big-btn counter" data-a="tb-clue">Clue sentence <span class="dots">' + [0,1].map(function(n){ return '<i class="' + (s.clues > n ? "on" : "") + '"></i>'; }).join("") + (s.clues > 2 ? " +" + (s.clues - 2) : "") + '</span></button>' : "";
+    var c = s.cards[s.i], stuDesc = tbWho(s) === "student", cc = s.clueCount !== false, locked = stuDesc && cc && s.clues < 2;
+    var counter = stuDesc && cc ? '<button class="btn ghost big-btn counter" data-a="tb-clue">Clue sentence <span class="dots">' + [0,1].map(function(n){ return '<i class="' + (s.clues > n ? "on" : "") + '"></i>'; }).join("") + (s.clues > 2 ? " +" + (s.clues - 2) : "") + '</span></button>' : "";
     return '<section class="center">' + tally + '<div class="tcard"><div class="tgt">' + esc(c.t) + '</div><div class="tsay">Don’t say</div><ul>' + c.f.map(function(w){ return '<li>' + esc(w) + '</li>'; }).join("") + '</ul></div>' + counter +
       '<div class="row" style="justify-content:center"><button class="btn ok big-btn" data-a="tb-out" data-o="got"' + (locked ? " disabled" : "") + '>Guessed</button><button class="btn no" data-a="tb-out" data-o="buzz">Said a forbidden word</button><button class="btn ghost" data-a="tb-out" data-o="pass">Pass</button></div>' +
       (locked ? '<p class="notice">Two clue sentences first, then Guessed unlocks.</p>' : "") + '</section>';
@@ -1913,18 +2202,20 @@ TYPES.taboo = {
     var s = run.st;
     if(a === "tb-who"){ if(s.phase !== "cover") return false; s.who = el.getAttribute("data-w") === "teacher" ? "teacher" : "student"; return true; }
     if(a === "tb-show"){ if(s.phase !== "cover" || s.i >= s.cards.length) return false; s.phase = "card"; s.clues = 0; return true; }
-    if(a === "tb-clue"){ if(s.phase !== "card" || tbWho(s) !== "student") return false; s.clues++; return true; }
+    if(a === "tb-clue"){ if(s.phase !== "card" || tbWho(s) !== "student" || s.clueCount === false) return false; s.clues++; return true; }
+    if(a === "tb-cc"){ s.clueCount = s.clueCount === false; return true; }
     if(a === "tb-out"){
       if(s.phase !== "card") return false;
       var o = el.getAttribute("data-o");
-      if(o === "got" && tbWho(s) === "student" && s.clues < 2) return false;
+      if(o === "got" && tbWho(s) === "student" && s.clueCount !== false && s.clues < 2) return false;
       var c = s.cards[s.i];
-      s.last = { t:c.t, who:tbWho(s), out:o, clues: tbWho(s) === "student" ? s.clues : null };
+      s.last = { t:c.t, who:tbWho(s), out:o, clues: tbWho(s) === "student" && s.clueCount !== false ? s.clues : null };
       s.log.push(s.last); s.i++; s.phase = "cover"; s.clues = 0; return true;
     }
     return false;
   },
-  key: function(run, k){ var s = run.st; if(s.phase === "card" && k === " " && tbWho(s) === "student") return { a:"tb-clue" }; if(s.phase === "cover" && k === "Enter") return { a:"tb-show" }; return null; },
+  settings: function(run){ var on = run.st.clueCount !== false; return '<button class="setopt" data-a="tb-cc" aria-pressed="' + on + '"><b>Clue count</b><small>' + (on ? "On: Guessed unlocks after two clue sentences." : "Off: no counter; Guessed is always open.") + '</small></button>'; },
+  key: function(run, k){ var s = run.st; if(s.phase === "card" && k === " " && tbWho(s) === "student" && s.clueCount !== false) return { a:"tb-clue" }; if(s.phase === "cover" && k === "Enter") return { a:"tb-show" }; return null; },
   summary: function(run){
     var s = run.st, got = s.log.filter(function(x){ return x.out === "got"; }), parts = [];
     ["student", "teacher"].forEach(function(w){
@@ -2609,18 +2900,18 @@ TYPES.whack = {
   blockLabel: "Rounds",
   blockHint: "Each round: a prompt line, then HIT: the right words, then MISS: the wrong ones, with commas between. A blank line starts the next round.",
   placeholder: "Hit the past tenses!\nHIT: went, saw, played, ate, took\nMISS: go, see, play, eat, take\n\nHit the words with a magic e!\nHIT: cake, bike, home, cute\nMISS: cat, bit, hop, cut",
-  defaults: function(){ return { time:60, speed:5 }; },
+  defaults: function(){ return { time:60, speed:4 }; },
   optionsHtml: function(o){
     return '<div class="hint" id="whCount"></div><div class="field"><span class="legend">Time per round</span><div class="choice">' + [30,45,60,90].map(function(n){ return radio("whTime", n, n + " s", +(o.time || 60) === n); }).join("") + '</div></div>' +
-      '<div class="field"><span class="legend">Speed</span><div class="choice">' + [[3,"Slow"],[5,"Medium"],[7,"Fast"],[9,"Very fast"]].map(function(x){ return radio("whSpeed", x[0], x[1], +(o.speed || 5) === x[0]); }).join("") + '</div></div>';
+      '<div class="field"><span class="legend">Speed</span><div class="choice">' + [[2,"Easy"],[4,"Normal"],[6,"Fast"],[8,"Very fast"]].map(function(x){ return radio("whSpeed", x[0], x[1], whLevel(o.speed) === x[0]); }).join("") + '</div><div class="hint">How long each word stays up: Easy 4 s, Normal 3 s, Fast 2 s, Very fast 1.5 s. Each round starts with one word at a time and builds up (to two on Easy, three otherwise).</div></div>';
   },
   wireOptions: function(){ function upd(){ var r = parseWhack($("gBlock").value); $("whCount").textContent = r.length ? r.length + (r.length === 1 ? " round" : " rounds") : ""; } $("gBlock").addEventListener("input", upd); upd(); },
-  readOptions: function(){ return { time: +checkedVal("whTime", 60), speed: +checkedVal("whSpeed", 5) }; },
+  readOptions: function(){ return { time: +checkedVal("whTime", 60), speed: +checkedVal("whSpeed", 4) }; },
   validate: function(block){ var r = parseWhack(block); if(!r.length) return "Add a round with a HIT: line."; if(r.some(function(x){ return !x.miss.length; })) return "Every round needs a MISS: line too, or there’s nothing to avoid."; return null; },
   start: function(game){
     var o = game.options || {}, rounds = parseWhack(game.block);
     if(game._only){ var set = {}; game._only.forEach(function(w){ set[itemKey(w)] = 1; }); rounds = rounds.map(function(r){ var h = r.hit.filter(function(w){ return set[itemKey(w)]; }); return { prompt:r.prompt, hit: h.length ? h : r.hit, miss:r.miss }; }); }
-    var st = { rounds:rounds, r:0, phase:"ready", time:(+o.time || 60) * 1000, speed:+o.speed || 5, left:0, score:0, stats:{}, roundLog:[], log:[] };
+    var st = { rounds:rounds, r:0, phase:"ready", time:(+o.time || 60) * 1000, speed:whLevel(o.speed), left:0, score:0, stats:{}, roundLog:[], log:[] };
     rounds.forEach(function(r){ r.hit.forEach(function(w){ whStat(st, w, true); }); r.miss.forEach(function(w){ whStat(st, w, false); }); });
     return st;
   },
@@ -2639,7 +2930,8 @@ TYPES.whack = {
   after: function(run){
     var s = run.st; if(s.phase !== "play") return;
     var id = Math.random(), boardEl = $("whBoard"); s.loopId = id;
-    var up = Math.max(650, 2600 - s.speed * 220), gap = Math.max(280, up * 0.5), holes = [], lastT = Date.now(), nextSpawn = 300, rd = s.rounds[s.r];
+    /* Ramp: one word at a time at first, then more as the round goes on (Easy tops out at two). */
+    var lv = whLevel(s.speed), up = WH_UP[lv], top = lv === 2 ? 2 : 3, holes = [], lastT = Date.now(), nextSpawn = 300, rd = s.rounds[s.r];
     var rl = { hit:0, wrong:0, missed:0 };
     function alive(){ return UI.view === "play" && UI.run === run && run.st === s && !run.paused && s.phase === "play" && s.loopId === id && document.body.contains(boardEl); }
     function el(k){ return boardEl.querySelector('[data-k="' + k + '"]'); }
@@ -2670,12 +2962,12 @@ TYPES.whack = {
       nextSpawn -= dt;
       if(nextSpawn <= 0){
         var free = []; for(var f=0;f<9;f++) if(!holes[f]) free.push(f);
-        var busy = 9 - free.length;
-        if(free.length && busy < 3){
+        var busy = 9 - free.length, prog = 1 - s.left / s.time, most = Math.min(top, 1 + Math.floor(prog * top));
+        if(free.length && busy < most){
           var correct = Math.random() < 0.55, list = correct ? rd.hit : rd.miss;
           show(free[Math.floor(Math.random() * free.length)], list[Math.floor(Math.random() * list.length)], correct);
         }
-        nextSpawn = gap * (0.7 + Math.random() * 0.6);
+        nextSpawn = Math.max(280, up * (0.55 - 0.25 * (1 - s.left / s.time))) * (0.7 + Math.random() * 0.6);
       }
       setTimeout(tick, 50);
     })();
@@ -2758,6 +3050,17 @@ function cwCells(lay, pairs){
   lay.words.forEach(function(wd, wi){ var a = pairs[wd.k].a; for(var i=0;i<a.length;i++){ var R = wd.r + (wd.dir === "d" ? i : 0), C = wd.c + (wd.dir === "a" ? i : 0), key = R + "," + C; if(!map[key]) map[key] = { ch:a[i], words:[] }; map[key].words.push({ wi:wi, i:i }); } if(!map[wd.r + "," + wd.c].num) map[wd.r + "," + wd.c].num = wd.num; });
   return map;
 }
+/* Mark every written word that hasn't been checked yet. Returns whether any were marked. */
+function cwCheck(s){
+  var any = false;
+  s.lay.words.forEach(function(w, wi){
+    var e = s.entry[wi]; if(!e || s.state[wi] === "ok" || s.state[wi] === "shown" || s.state[wi] === "no") return;
+    var ok = e.v === s.pairs[w.k].a; any = true;
+    s.log.push({ ii:wi, f:s.pairs[w.k].clue, b:s.pairs[w.k].ans, typed:e.v, ok:ok });
+    s.state[wi] = ok ? "ok" : (s.showWrong ? "shown" : "no");
+  });
+  return any;
+}
 TYPES.cross = {
   label: "Crossword", letter: "C",
   blurb: "A crossword built from your clues. Tap a clue, the student says or types the word, and Check marks every word in the grid. Prints as a worksheet too.",
@@ -2799,6 +3102,12 @@ TYPES.cross = {
         (s.warn ? '<p class="err">' + esc(s.warn) + '</p>' : "") + '<div class="row" style="margin-top:10px"><button class="btn ok" data-a="cw-check">Check</button><button class="btn ghost" data-a="finish">Finish</button></div>' + (SMODE ? "" : '<p class="hint">Online: type what ' + esc(run.student || "the student") + ' says.</p>');
     return '<section class="center"><div class="score"><span><span class="n cw">' + okN + '/' + lay.words.length + '</span><small>words right</small></span></div><div class="cw-layout"><div class="cw-grid" style="--cs:' + cs + 'px;grid-template-columns:repeat(' + lay.cols + ',' + cs + 'px)">' + cells + '</div><div class="cw-clues">' + list("a", "Across") + list("d", "Down") + entry + '</div></div></section>';
   },
+  beforeFinish: function(run){
+    /* Finish counts what's written: a full-length word still in the box is entered, then everything unchecked is checked. */
+    var s = run.st, wd = s.lay.words[s.sel], inp = $("cwIn"), v = cwLetters(inp ? inp.value : s.draft || "");
+    if(wd && v.length === s.pairs[wd.k].a.length && s.state[s.sel] !== "ok" && s.state[s.sel] !== "shown" && !(s.entry[s.sel] && s.entry[s.sel].v === v)){ s.entry[s.sel] = { v:v, t:Date.now() }; if(s.state[s.sel] === "no") delete s.state[s.sel]; }
+    cwCheck(s);
+  },
   after: function(run){
     var inp = $("cwIn"); if(!inp) return;
     inp.addEventListener("input", function(){ run.st.draft = inp.value; });
@@ -2819,14 +3128,7 @@ TYPES.cross = {
       return true;
     }
     if(a === "cw-check"){
-      var any = false;
-      lay.words.forEach(function(w, wi){
-        var e = s.entry[wi]; if(!e || s.state[wi] === "ok" || s.state[wi] === "shown" || s.state[wi] === "no") return;
-        var ok = e.v === s.pairs[w.k].a; any = true;
-        s.log.push({ ii:wi, f:s.pairs[w.k].clue, b:s.pairs[w.k].ans, typed:e.v, ok:ok });
-        s.state[wi] = ok ? "ok" : (s.showWrong ? "shown" : "no");
-      });
-      if(!any){ s.warn = "Write a word in first (or change a red one)."; }
+      if(!cwCheck(s)){ s.warn = "Write a word in first (or change a red one)."; }
       return true;
     }
     return false;
@@ -3102,6 +3404,19 @@ function hlCardHtml(c, down, id){
   return '<div class="hlc' + (down ? " down" : "") + '"' + (id ? ' id="' + id + '"' : "") + ' role="img" aria-label="' + (down ? "Face-down card" : name + " of " + { "♠":"spades", "♥":"hearts", "♦":"diamonds", "♣":"clubs" }[su]) + '"><div class="in"><div class="f' + (red ? " red" : "") + '"><span class="cn tl">' + r + '<i>' + su + '</i></span>' + mid + '<span class="cn br">' + r + '<i>' + su + '</i></span></div><div class="b"></div></div></div>';
 }
 function hlDeck(){ var d = []; for(var i=0;i<52;i++) d.push(i); return shuffle(d); }
+/* Does this result hand over to another player (or end the deck)? Only then does the teacher tap a button. */
+function hlPass(s){ return s.verdict === "again" ? false : s.turns === "ten" ? s.tc >= s.tenN : (s.turns === "each" || s.verdict === "wrong"); }
+function hlNeedTap(s){ return s.idx >= 52 || (hlPass(s) && (s.players.length > 1 || s.turns === "ten")); }
+function hlAdvance(s){
+  var p = s.players[s.turn];
+  if(hlPass(s)){
+    if(s.turns === "ten"){ s.lastTen = { name:p.name, r:s.tr, n:s.tc }; s.tenLog.push(s.lastTen); s.tc = 0; s.tr = 0; }
+    s.turn = (s.turn + 1) % s.players.length; s.chain = [];
+  } else { s.chain = (s.chain || []).concat([s.cur]); }
+  s.auto = false;
+  if(s.idx >= 52){ s.rounds.push(s.players.map(function(x){ return x.score; })); s.phase = "roundend"; return; }
+  s.cur = s.next; s.next = null; s.call = null; s.phase = "call";
+}
 TYPES.hilo = {
   label: "Higher or Lower", letter: "♠",
   blurb: "A playing-card reward game: guess whether the next card is higher or lower. Running scores across rounds; it doesn’t add to the lesson points.",
@@ -3135,14 +3450,24 @@ TYPES.hilo = {
       btns = '<button class="btn big-btn" data-a="hl-newround">New round</button><button class="btn ghost big-btn" data-a="finish">Finish</button>';
       return '<section class="center"><div class="sn-bar">' + chips + '</div>' + msg + '<div class="hl-calls">' + btns + '</div></section>';
     }
-    if(s.phase === "result"){ msg = '<div class="verdict ' + (s.verdict === "right" ? "ok" : s.verdict === "push" || s.verdict === "again" ? "" : "no") + '" style="font-size:30px">' + (s.verdict === "right" ? "Right! +1" : s.verdict === "push" ? "The same! No point." : s.verdict === "again" ? "A tie! Call again." : "Wrong!") + '</div>'; btns = '<button class="btn big-btn" data-a="hl-next">' + (s.idx >= 52 ? "End of the deck" : s.verdict === "again" ? "Call again" : s.turns === "ten" && s.tc >= s.tenN ? esc(s.players[s.turn].name) + ": " + s.tr + " out of " + s.tc + " — next player" : "Next card") + '</button>'; }
+    if(s.phase === "result"){
+      var nxt = s.players[(s.turn + 1) % s.players.length].name;
+      msg = '<div class="verdict ' + (s.verdict === "right" ? "ok" : s.verdict === "push" || s.verdict === "again" ? "" : "no") + '" style="font-size:30px">' + (s.verdict === "right" ? "Right! +1" : s.verdict === "push" ? "The same! No point." : s.verdict === "again" ? "A tie! Call again." : "Wrong!") + '</div>';
+      btns = !hlNeedTap(s) ? "" : '<button class="btn big-btn" data-a="hl-next">' + (s.idx >= 52 ? "End of the deck" : (s.turns === "ten" ? esc(s.players[s.turn].name) + " got " + s.tr + " out of " + s.tc + " · " : "") + "Now it’s " + esc(nxt) + "’s turn ✓") + '</button>'; }
     else if(s.phase === "reveal"){ msg = '<p class="notice">' + esc(cur.name) + ' says ' + (s.call === "hi" ? "higher" : "lower") + '…</p>'; btns = ""; }
     else if(s.turns === "ten"){ msg = (s.lastTen && s.tc === 0 ? '<div class="verdict ok" style="font-size:28px">' + esc(s.lastTen.name) + ' got ' + s.lastTen.r + ' out of ' + s.lastTen.n + '!</div>' : "") + '<p class="notice">' + esc(cur.name) + ' · call ' + (s.tc + 1) + ' of ' + s.tenN + (s.tc ? " · " + s.tr + " right so far" : "") + ': higher or lower?</p>'; btns = '<button class="btn ok big-btn" data-a="hl-call" data-c="hi">▲ Higher</button><button class="btn no big-btn" data-a="hl-call" data-c="lo">▼ Lower</button>'; }
     else { msg = '<p class="notice">' + esc(cur.name) + (s.turns === "run" && cur.run ? " · " + cur.run + " in a row" : "") + ': higher or lower?</p>'; btns = '<button class="btn ok big-btn" data-a="hl-call" data-c="hi">▲ Higher</button><button class="btn no big-btn" data-a="hl-call" data-c="lo">▼ Lower</button>'; }
     return '<section class="center"><div class="sn-bar">' + chips + '</div>' + msg + cards + '<p class="hl-left">Round ' + s.round + ' · ' + left + (left === 1 ? " card" : " cards") + ' left</p><div class="hl-calls">' + btns + '</div></section>';
   },
   after: function(run){
-    var s = run.st; if(s.phase !== "reveal" || s._animating) return;
+    var s = run.st;
+    if(s.phase === "result" && s.auto && !s._animating){
+      /* Same player carries on: show the verdict for a moment, then the next call — no button. */
+      var k2 = Math.random(); s._animating = k2;
+      setTimeout(function(){ if(!(UI.view === "play" && UI.run === run && run.st === s && !run.paused && s._animating === k2 && s.phase === "result")) return; s._animating = false; hlAdvance(s); saveRun(); render(); }, prefersReduced() ? 600 : 1100);
+      return;
+    }
+    if(s.phase !== "reveal" || s._animating) return;
     var key = Math.random(); s._animating = key; s.spinning = true;
     function alive(){ return UI.view === "play" && UI.run === run && run.st === s && s._animating === key; }
     var reduce = prefersReduced();
@@ -3155,28 +3480,21 @@ TYPES.hilo = {
         if(s.verdict === "right"){ p.score++; p.run++; p.best = Math.max(p.best, p.run); } else if(s.verdict === "wrong") p.run = 0;
         if(s.turns === "ten" && s.verdict !== "again"){ s.tc++; if(s.verdict === "right") s.tr++; }
         s.log.push({ p:p.name, cur:s.cur, next:s.next, call:s.call, v:s.verdict, round:s.round });
-        s.phase = "result"; s.spinning = false; s._animating = false; saveRun(); render();
+        s.phase = "result"; s.auto = !hlNeedTap(s); s.spinning = false; s._animating = false; saveRun(); render();
       }, reduce ? 120 : 700);
     }, reduce ? 30 : 250);
   },
   act: function(run, a, el){
     var s = run.st;
-    if(a === "hl-call"){ if(s.phase !== "call") return false; s.call = el.getAttribute("data-c"); s.next = s.deck[s.idx++]; s.phase = "reveal"; return true; }
+    if(a === "hl-call"){ if(s.phase !== "call") return false; s._animating = false; s.call = el.getAttribute("data-c"); s.next = s.deck[s.idx++]; s.phase = "reveal"; return true; }
     if(a === "hl-next"){
       if(s.phase !== "result") return false;
-      var p = s.players[s.turn];
-      var pass = s.verdict === "again" ? false : s.turns === "ten" ? s.tc >= s.tenN : (s.turns === "each" || s.verdict === "wrong");
-      if(pass){
-        if(s.turns === "ten"){ s.lastTen = { name:p.name, r:s.tr, n:s.tc }; s.tenLog.push(s.lastTen); s.tc = 0; s.tr = 0; }
-        s.turn = (s.turn + 1) % s.players.length; s.chain = [];
-      } else { s.chain = (s.chain || []).concat([s.cur]); }
-      if(s.idx >= 52){ s.rounds.push(s.players.map(function(x){ return x.score; })); s.phase = "roundend"; return true; }
-      s.cur = s.next; s.next = null; s.call = null; s.phase = "call"; return true;
+      s._animating = false; hlAdvance(s); return true;
     }
     if(a === "hl-newround"){ if(s.phase !== "roundend") return false; s.deck = hlDeck(); s.idx = 1; s.cur = s.deck[0]; s.next = null; s.call = null; s.chain = []; s.round++; s.phase = "call"; s.players.forEach(function(x){ x.run = 0; }); return true; }
     return false;
   },
-  key: function(run, k){ var s = run.st; if(s.phase === "call"){ if(k === "ArrowUp" || k === "h") return { a:"hl-call", c:"hi" }; if(k === "ArrowDown" || k === "l") return { a:"hl-call", c:"lo" }; } if(s.phase === "result" && (k === " " || k === "Enter")) return { a:"hl-next" }; return null; },
+  key: function(run, k){ var s = run.st; if(s.phase === "call"){ if(k === "ArrowUp" || k === "h") return { a:"hl-call", c:"hi" }; if(k === "ArrowDown" || k === "l") return { a:"hl-call", c:"lo" }; } if(s.phase === "result" && hlNeedTap(s) && (k === " " || k === "Enter")) return { a:"hl-next" }; return null; },
   summary: function(run){
     var s = run.st, sorted = s.players.slice().sort(function(a, b){ return b.score - a.score; });
     return head(run, "Higher or Lower") + " — " + sorted.map(function(p){ return p.name + " " + p.score + (s.turns === "run" && p.best > 1 ? " (best run " + p.best + ")" : ""); }).join(", ") + " · " + s.round + (s.round === 1 ? " round" : " rounds") + ", " + s.log.length + " cards called" + (s.tenLog && s.tenLog.length ? " · best-of-" + s.tenN + " turns: " + s.tenLog.map(function(x){ return x.name + " " + x.r + "/" + x.n; }).join(", ") : "");
@@ -3776,8 +4094,8 @@ TYPES.bingo.items = function(run){
 };
 TYPES.hangman.score = function(run){ var s = run.st, n = s.log.filter(function(x){ return x.solved; }).length; return { total:n, max:s.log.length, text:n + "/" + s.log.length + " words solved" }; };
 TYPES.hangman.items = function(run){ return run.st.log.map(function(x){ return { item:x.w, result: x.solved ? "solved" : x.shown ? "shown" : "not solved", ok:x.solved, note: (x.wrong.length ? "wrong: " + x.wrong.join(" ").toUpperCase() : "") + (x.clue ? (x.wrong.length ? " · " : "") + (x.bought ? "clue bought (1 life)" : "clue used") : ""), secs:x.secs }; }); };
-TYPES.anagrams.score = function(run){ var s = run.st, n = s.log.filter(function(x){ return x.solved && x.tries === 1; }).length; return { total:n, max:s.log.length, text:n + "/" + s.log.length + " first try" }; };
-TYPES.anagrams.items = function(run){ return run.st.log.map(function(x){ return { item:x.w, result: !x.solved ? "shown" : x.tries === 1 ? "first try" : x.tries + " tries", ok: x.solved && x.tries === 1, note: x.wrongs.length ? "tried: " + x.wrongs.join(", ") : "", secs:x.secs }; }); };
+TYPES.anagrams.score = function(run){ var s = run.st, n = s.log.filter(function(x){ return x.solved && x.tries === 1; }).length, pts = s.points != null && s.total != null; return { total: pts ? s.total : n, max: pts ? s.points * s.log.length : s.log.length, right:n, asked:s.log.length, text: (pts ? s.total + " points · " : "") + n + "/" + s.log.length + " first try" }; };
+TYPES.anagrams.items = function(run){ return run.st.log.map(function(x){ return { item:x.w, result: !x.solved ? "shown" : x.tries === 1 ? "first try" : x.tries + " tries", ok: x.solved && x.tries === 1, note: (x.wrongs.length ? "tried: " + x.wrongs.join(", ") : "") + (x.bought ? (x.wrongs.length ? " · " : "") + "clue bought" : ""), points:x.pts, secs:x.secs }; }); };
 TYPES.wheel.score = function(run){ var s = run.st, n = s.log.filter(function(x){ return x.mark === "good"; }).length; return { total:n, max:s.log.length, text:n + "/" + s.log.length + " good answers" }; };
 TYPES.wheel.items = function(run){ return run.st.log.map(function(x){ return { item:x.p, result:markWord(x.mark), ok:x.mark === "good", note:(x.note ? "“" + x.note + "”" : "") + (x.picked ? (x.note ? " · " : "") + "picked by hand" : ""), secs:x.secs }; }); };
 TYPES.slot.score = function(run){ var s = run.st, n = s.log.filter(function(x){ return x.mark === "good"; }).length; return { total:n, max:s.log.length, text:n + "/" + s.log.length + " good sentences" }; };
@@ -3786,7 +4104,7 @@ TYPES.taboo.score = function(run){ var s = run.st, n = s.log.filter(function(x){
 TYPES.taboo.items = function(run){ return run.st.log.map(function(x){ return { item:x.t, result: x.out === "got" ? "guessed" : x.out === "buzz" ? "forbidden word" : "passed", ok:x.out === "got", note:(x.who === "student" ? (run.student || "student") + " described" + (x.clues != null ? ", " + x.clues + " clue sentences" : "") : "teacher described"), secs:x.secs }; }); };
 
 /* ---------- game clock (pauses excluded) ---------- */
-function clockMs(run){ if(run.act == null){ run.act = 0; run.resumedAt = Date.now(); run.lapAt = 0; } return run.act + (run.paused || run.away ? 0 : Date.now() - run.resumedAt); }
+function clockMs(run){ if(run.act == null){ run.act = 0; run.resumedAt = Date.now(); run.lapAt = 0; } return run.act + (run.paused || run.away || run.left ? 0 : Date.now() - run.resumedAt); }
 function lap(run){ var now = clockMs(run), s = Math.max(0, Math.round((now - (run.lapAt || 0)) / 1000)); run.lapAt = now; return s; }
 var CLOCKT = null;
 function fmtClock(ms){ var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); }
@@ -3810,35 +4128,101 @@ var TYPE_ORDER = ["bingo", "hangman", "anagrams", "cards", "typeit", "build", "s
 function ball(type){ return '<span class="mini" style="--c:var(--c-' + type + ')"><span>' + TYPES[type].letter + '</span></span>'; }
 function loadingView(){ $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>Lesson games</h1>' + statusPill() + '</div><p class="notice">Loading your lessons…</p></div>'; }
 
+function viewSignIn(){
+  var body;
+  if(AUTH.notTeacher) body = '<p class="notice">You’re signed in as ' + esc(AUTH.email) + ', but that account can’t open the lessons.</p><div class="row" style="margin-top:14px"><button class="btn" data-a="sb-signout">Sign in with another email</button></div>';
+  else body = '<p class="muted">Type your email and tap Send. Open the link in the email on this device, or type the 6-digit code if the email shows one.</p>' +
+    '<div class="field"><label for="sbEmail">Email</label><input type="text" id="sbEmail" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" value="' + esc(AUTH.email || loadLocal("lessonGames.lastEmail") || "") + '"></div>' +
+    '<div class="row"><button class="btn" data-a="sb-send"' + (AUTH.sending ? " disabled" : "") + '>' + (AUTH.sending ? "Sending…" : (AUTH.sent ? "Send again" : "Send sign-in email")) + '</button></div>' +
+    (AUTH.sent ? '<p class="notice" style="margin-top:14px">Email sent to ' + esc(AUTH.sent) + '.</p><div class="field"><label for="sbCode">Code from the email (if it has one)</label><input type="text" id="sbCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></div><div class="row"><button class="btn ghost" data-a="sb-code">Sign in with the code</button></div>' : "");
+  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>Lesson games</h1></div><h2>Sign in</h2>' + body + (AUTH.err ? '<p class="err" style="margin-top:12px">' + esc(AUTH.err) + '</p>' : "") + '</div>';
+}
+function sbHandle(a){
+  if(a === "sb-send"){
+    var em = (($("sbEmail") || {}).value || "").trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ AUTH.err = "Type a full email address."; render(); return true; }
+    AUTH.email = em; AUTH.err = ""; AUTH.sending = true; saveLocal("lessonGames.lastEmail", em); render();
+    SB.auth.signInWithOtp({ email:em, options:{ emailRedirectTo: location.origin + location.pathname, shouldCreateUser:true } }).then(function(r){
+      AUTH.sending = false; if(r.error) AUTH.err = r.error.message || "Couldn’t send the email."; else AUTH.sent = em; render();
+    });
+    return true;
+  }
+  if(a === "sb-code"){
+    var code = (($("sbCode") || {}).value || "").replace(/\s+/g, "");
+    if(!code){ AUTH.err = "Type the code from the email."; render(); return true; }
+    AUTH.err = ""; render();
+    SB.auth.verifyOtp({ email:AUTH.sent || AUTH.email, token:code, type:"email" }).then(function(r){ if(r.error){ AUTH.err = "That code didn’t work. Use the newest email, or tap the link."; render(); } });
+    return true;
+  }
+  if(a === "sb-signout"){ AUTH.notTeacher = false; SB.auth.signOut(); return true; }
+  return false;
+}
 function render(){
   if(SMODE && ["play", "sready", "sdone"].indexOf(UI.view) === -1) UI.view = "sready";
   applyLook();
   var v = UI.view;
   if(SMODE && v === "sready") return viewSReady();
   if(SMODE && v === "sdone") return viewSDone();
+  if(SB_MODE && AUTH.need) return viewSignIn();
+  if(SB_MODE && !STORE) return loadingView();
   if(v === "play") return viewPlay();
   if(v === "packEdit") return viewPackEdit();
   if(v === "gameEdit") return viewGameEdit();
   if(v === "done") return viewDone();
   if(!LOADED.packs && STATUS !== "error") return loadingView();
+  if(v === "sheet") return viewSheet();
   if(v === "pack") return viewPack();
   if(v === "student") return viewStudent();
   return viewHome();
 }
 
+function backupData(){
+  function vals(o){ return Object.keys(o).map(function(k){ return o[k]; }); }
+  return { format:"lesson-games-backup", v:1, exported:nowIso(), from: SB_MODE ? "supabase" : (STATUS === "account" ? "claude" : "device"),
+    collections:{ packs:PACKS, results:RESULTS, students:vals(STUDENTS), boards:vals(BOARDS), sheets:vals(SHEETS) } };
+}
+function backupCounts(c){ return ["packs", "results", "students", "boards", "sheets"].map(function(t){ return t + " " + ((c[t] || []).length || 0); }).join(" · "); }
+async function backupDownload(){
+  var data = backupData(), name = "lesson-games-backup-" + today() + ".json", text = JSON.stringify(data);
+  var dl = null;
+  try{ if(!SB_MODE && window.claude && typeof window.claude.use === "function") dl = await window.claude.use("downloads"); }catch(e){ dl = null; }
+  if(dl){ try{ await dl.save({ filename:name, data:text }); toast("Backup saved: " + backupCounts(data.collections)); }catch(e){ toast("Backup not saved."); } return; }
+  try{ var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type:"application/json" })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast("Backup saved: " + backupCounts(data.collections)); }
+  catch(e){ toast("Couldn’t make the backup file."); }
+}
+function restoreFile(file){
+  if(!file || !STORE || !STORE.restore) return;
+  var rd = new FileReader();
+  rd.onload = function(){
+    var d; try{ d = JSON.parse(rd.result); }catch(e){ toast("That file isn’t a Lesson Games backup."); return; }
+    if(!d || d.format !== "lesson-games-backup" || !d.collections){ toast("That file isn’t a Lesson Games backup."); return; }
+    if(!window.confirm("Copy this backup into your saved games?\n" + backupCounts(d.collections) + "\nLessons with the same id are replaced by the backup copy.")) return;
+    toast("Restoring…");
+    STORE.restore(d.collections).then(function(n){ toast("Restored: " + backupCounts({ packs:{length:n.packs}, results:{length:n.results}, students:{length:n.students}, boards:{length:n.boards}, sheets:{length:n.sheets} })); }, function(e){ toast("Restore stopped: " + ((e && e.message) || "error")); });
+  };
+  rd.readAsText(file);
+}
+function dataSection(){
+  return '<section class="section"><h3>Your data</h3><div class="row">' +
+    '<button class="btn ghost sm" data-a="backup">Download a backup</button>' +
+    (STORE && STORE.restore ? '<button class="btn ghost sm" data-a="restore">Restore from a backup file</button><input type="file" id="restoreFile" accept=".json,application/json" hidden>' : "") +
+    (SB_MODE ? '<button class="btn ghost sm" data-a="sb-signout">Sign out</button>' : "") +
+    '</div>' + (SB_MODE && AUTH.email ? '<p class="hint">Signed in as ' + esc(AUTH.email) + '</p>' : "") + '</section>';
+}
 function viewHome(){
   var packs = PACKS.slice().sort(function(a,b){ return String(b.date || "").localeCompare(String(a.date || "")) || String(b.updatedAt).localeCompare(String(a.updatedAt)); });
   var shown = UI.showAll ? packs : packs.slice(0, 25);
-  var resume = UI.run ? '<p><button class="btn ghost" data-a="resume">Back to the game in progress: ' + esc(UI.run.title) + '</button></p>' : "";
+  var resume = inProgressHtml(false);
   var list = packs.length ? '<ul class="list">' + shown.map(function(p){
     var played = resultsFor(p.id).length, n = (p.games || []).length;
-    return '<li><button class="item" data-a="open" data-id="' + esc(p.id) + '"><span><b>' + esc(packTitle(p)) + '</b><small>' + esc(fmtDate(p.date)) + ' · ' + n + (n === 1 ? " game" : " games") + (played ? " · " + played + " played" : "") + (p.source === "plan" ? " · from the plan" : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
+    return '<li><button class="item" data-a="open" data-id="' + esc(p.id) + '"><span><b>' + esc(packTitle(p)) + '</b><small>' + esc(fmtDate(p.date)) + ' · ' + n + (n === 1 ? " game" : " games") + (played ? " · " + played + " played" : "") + (p.source === "plan" ? " · from the plan" : "") + (rsSpec(p) ? " · run sheet" + (SHEETS[p.id] && SHEETS[p.id].finished ? " ✓" : "") : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
   }).join("") + '</ul>' + (packs.length > shown.length ? '<p><button class="btn ghost sm" data-a="showall">Show all ' + packs.length + ' lessons</button></p>' : "")
     : '<p class="notice">No lessons yet. Lessons made by the planning chat appear here by themselves, or tap New lesson.</p>';
   var st = students();
   var stu = st.length ? '<section class="section"><h3>Students</h3><div class="chips">' + st.map(function(s){ return '<button class="chip" data-a="student" data-s="' + esc(s) + '">' + esc(s) + '</button>'; }).join("") + '</div></section>' : "";
   $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>Lesson games</h1>' + statusPill() + '</div>' + resume +
-    '<div class="spread"><h3>Lessons</h3><button class="btn sm" data-a="newpack">New lesson</button></div><div style="margin-top:12px">' + list + '</div>' + stu + '</div>';
+    '<div class="spread"><h3>Lessons</h3><button class="btn sm" data-a="newpack">New lesson</button></div><div style="margin-top:12px">' + list + '</div>' + stu + dataSection() + '</div>';
+  var rf = $("restoreFile"); if(rf) rf.addEventListener("change", function(){ restoreFile(rf.files && rf.files[0]); rf.value = ""; });
 }
 
 function lessonResultsText(p){
@@ -3887,7 +4271,8 @@ function viewPack(){
     return '<div class="game">' + ball(g.type) + '<div class="body"><b>' + esc(g.title || t.label) + '</b><span class="muted" style="font-size:15px">' + t.label + (rs.length ? " · played " + rs.length + (rs.length === 1 ? " time" : " times") : "") + '</span>' +
       (last ? '<div class="sum">' + esc(last.summary) + '</div>' : "") +
       (leakyClues(g).length ? '<div class="cluewarn">Clues that give the answer away: ' + esc(leakyClues(g).join(", ")) + '. Tap Edit to rewrite them.</div>' : "") +
-      '<div class="row"><button class="btn sm" data-a="play" data-g="' + esc(g.id) + '">' + (rs.length ? "Play again" : "Play") + '</button>' + (g.type === "hangman" ? '<button class="btn ghost sm" data-a="play-ch" data-g="' + esc(g.id) + '">Challenge</button>' : "") + '<button class="btn ghost sm" data-a="editgame" data-g="' + esc(g.id) + '">Edit</button>' + (last ? '<button class="btn ghost sm" data-a="showres" data-r="' + esc(last.id) + '">Details</button>' : "") + (last && missedItems(last).length ? '<button class="btn ghost sm" data-a="retry" data-r="' + esc(last.id) + '">Retry ' + missedItems(last).length + (missedItems(last).length === 1 ? " miss" : " misses") + '</button>' : "") +
+      (function(){ var lr = findRun(p.id, g.id); return lr ? '<div class="inprog">Left part-way' + (lr.st && lr.st.log ? " · " + lr.st.log.length + " done" : "") + ' — Resume carries on where you stopped.</div>' : ""; })() +
+      '<div class="row">' + (findRun(p.id, g.id) ? '<button class="btn sm" data-a="play-resume" data-k="' + esc(p.id + "|" + g.id) + '">▶ Resume</button><button class="btn ghost sm" data-a="play" data-g="' + esc(g.id) + '">Start over</button>' : '<button class="btn sm" data-a="play" data-g="' + esc(g.id) + '">' + (rs.length ? "Play again" : "Play") + '</button>') + (g.type === "hangman" || g.type === "anagrams" ? '<button class="btn ghost sm" data-a="play-ch" data-g="' + esc(g.id) + '">Challenge</button>' : "") + '<button class="btn ghost sm" data-a="editgame" data-g="' + esc(g.id) + '">Edit</button>' + (last ? '<button class="btn ghost sm" data-a="showres" data-r="' + esc(last.id) + '">Details</button>' : "") + (last && missedItems(last).length ? '<button class="btn ghost sm" data-a="retry" data-r="' + esc(last.id) + '">Retry ' + missedItems(last).length + (missedItems(last).length === 1 ? " miss" : " misses") + '</button>' : "") +
       (t.print ? '<button class="btn ghost sm" data-a="print" data-g="' + esc(g.id) + '">' + (t.printLabel || "Print") + '</button>' : "") +
       (SLINK_TYPES.indexOf(g.type) !== -1 ? '<button class="btn ghost sm" data-a="slink" data-g="' + esc(g.id) + '">Student link</button>' : "") + '</div></div></div>';
   }).join("");
@@ -3895,7 +4280,7 @@ function viewPack(){
   var hasRes = resultsFor(p.id).length;
   $("app").innerHTML = '<div class="wrap"><div class="spread"><button class="btn ghost sm" data-a="home">All lessons</button>' + statusPill() + '</div>' +
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
-    (games || '<p class="notice">No games in this lesson yet.</p>') +
+    rsPackCard(p) + (games || '<p class="notice">No games in this lesson yet.</p>') +
     bankSection(p) + '<section class="section"><h3>Add a game</h3>' + add + '</section>' + lookSection(p) +
     '<section class="section"><h3>Online students</h3><p class="muted" style="margin-top:4px">Student link (on a game) sends the student that one game to play on their own device — nothing else in the app. At the end they send you a result message; paste it here.</p><button class="btn ghost" data-a="sres-open">Add a student’s result</button></section>' +
     (hasRes ? '<section class="section"><h3>Results</h3><p class="muted">Everything played in this lesson, ready for the after-class report.</p><div class="row"><button class="btn" data-a="copylesson">Copy lesson results</button></div><p class="ok-msg" id="copied" role="status"></p></section>' : "") +
@@ -3945,7 +4330,7 @@ function viewGameEdit(){
     t.optionsHtml(d.options) +
     '<p class="err" id="err" role="alert"></p><div class="actions"><button class="btn" data-a="savegame">Save</button>' +
     (d.isNew ? "" : '<button class="btn danger" data-a="delgame">' + (UI.confirmDel === d.id ? "Tap again to delete" : "Delete game") + '</button>') + '</div></div>';
-  t.wireOptions();
+  if(t.wireOptions) t.wireOptions();
 }
 
 function viewPlay(){
@@ -3963,7 +4348,7 @@ function viewPlay(){
     var played = (run.st.log || []).length + (run.st.bonusLog || []).length;
     $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Finish"><div class="pop setpop"><h3 style="margin-bottom:10px">Finish this game?</h3>' +
       '<p class="muted" style="margin-top:0">' + (SMODE ? "Finish shows your score and a message to send your teacher." : played ? "Save keeps the results for the after-class report. Quit throws this play away, as if it never happened." : "Nothing has been scored yet, so saving would record a score of 0. Quit throws this play away, as if it never happened.") + '</p>' +
-      '<div class="row" style="margin-top:14px"><button class="btn' + (played ? "" : " ghost") + '" data-a="finish">Save results</button><button class="btn ' + (played ? "ghost" : "") + '" data-a="discard">Quit without saving</button><button class="btn ghost" data-a="finish-cancel">Keep playing</button></div></div></div>');
+      '<div class="row" style="margin-top:14px"><button class="btn' + (played ? "" : " ghost") + '" data-a="finish">Save results</button><button class="btn ' + (played ? "ghost" : "") + '" data-a="discard">Quit without saving</button><button class="btn ghost" data-a="finish-cancel">Keep playing</button>' + (SMODE ? "" : '<button class="btn ghost" data-a="lesson">Leave it for later</button>') + '</div>' + (SMODE ? "" : '<p class="muted" style="margin:12px 0 0;font-size:15px">Leave it for later goes back to the lesson with this game kept as it is — tap Resume on it to carry on. You can leave several games like this.</p>') + '</div></div>');
   }
   if(paused) return;
   if(UI.settingsOpen) $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Settings"><div class="pop setpop"><h3 style="margin-bottom:14px">Settings</h3>' +
@@ -4078,7 +4463,7 @@ function gamePoints(type, st, sc){
   st = st || {};
   if(type === "quiz") return Math.max(0, st.score != null ? st.score : (sc && sc.total) || 0);
   if(type === "auction") return Math.max(0, st.bank != null ? st.bank : (sc && sc.total) || 0);
-  if(type === "hangman" && st.points != null && st.total != null) return Math.max(0, st.total);
+  if((type === "hangman" || type === "anagrams") && st.points != null && st.total != null) return Math.max(0, st.total);
   if(type === "whack") return Math.max(0, (st.score != null ? st.score : (sc && sc.total) || 0) * 100);
   if((type === "build" || type === "spot" || type === "odd") && st.pts != null) return Math.max(0, st.pts);
   if(type === "snakes" || type === "hilo") return 0;
@@ -4093,10 +4478,362 @@ function lessonPoints(packId, live){
 }
 function fmtPts(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
 
+/* =====================================================================
+   RUN SHEET — the paper run sheet on screen (Run_Sheet_template.md; spec = rs_build.py's JSON).
+   packs/<id>.runsheet  the rs_build spec, saved by the planning chat at Gate 5 (app lines may carry
+                        "game": "g2"). The paper PDF is built from the same spec.
+   sheets/<packId>      { id, packId, student, lp, date, updatedAt, marks {key: value}, finished, finishedAt,
+                          rows [ {block, type, label, mark} ], gaps [labels], summary (plain text) }
+   Marks: "y" ran / "n" didn't run / missing = not marked (asked at Phase B). Keys come from the block label
+   and the line's own text, so a re-saved plan keeps the marks on lines that didn't change.
+   students/<slug>.runsheet  "online" (default: opens first for online lessons) | "always"
+   ===================================================================== */
+var SHEETS = {}, RS_LOCAL = {}, RS_DIRTY = {}, RS_TIMER = null, RS_SAVING = 0, RS_PEND = false, RS_TICK = null;
+var RS_PLAN = ["no", "too long", "instructions", "level", "materials"];
+
+function rsSpec(p){ return p && p.runsheet && Array.isArray(p.runsheet.blocks) && p.runsheet.blocks.length ? p.runsheet : null; }
+function rsOnline(spec){ return /online/i.test(String(spec && spec.format || "")); }
+function rsStudentMode(name){ var o = name ? STUDENTS[slug(name)] : null; return o && o.runsheet === "always" ? "always" : "online"; }
+function rsOn(p){ var s = rsSpec(p); return !!s && (rsOnline(s) || rsStudentMode(p.student) === "always"); }
+function rsHm(t){ var m = /^(\d{1,2}):(\d{2})/.exec(String(t || "")); return m ? +m[1] * 60 + +m[2] : null; }
+function rsFmt(n){ n = ((n % 1440) + 1440) % 1440; return String(Math.floor(n / 60)).padStart(2, "0") + ":" + String(n % 60).padStart(2, "0"); }
+function rsNow(){ var d = new Date(); return rsFmt(d.getHours() * 60 + d.getMinutes()); }
+function rsGroup(spec){ return spec.group && spec.group.length ? spec.group.map(String) : [""]; }
+function rsPer(k, s){ return k + (s ? "@" + s : ""); }
+function rsLineText(ln){ return String(ln.label || ln.text || ln.spring || ln.tag || (ln.words || []).join(",") || (ln.items || []).join(",") || ""); }
+function rsLayout(spec){
+  var t = rsHm(spec.start) || 0, seen = {};
+  return spec.blocks.map(function(b, bi){
+    var bk = "b" + hash(String(b.label || bi)).toString(36);
+    if(seen[bk]) bk += "_" + bi; seen[bk] = 1;
+    var cnt = {};
+    var lines = (b.lines || []).map(function(ln){
+      var base = bk + "." + (ln.type || "x") + "." + hash(rsLineText(ln)).toString(36);
+      var n = cnt[base] = (cnt[base] || 0) + 1;
+      return { key: n > 1 ? base + "_" + n : base, ln: ln };
+    });
+    var o = { key: bk, label: String(b.label || ""), material: String(b.material || ""), mins: +b.mins || 0, start: t, lines: lines };
+    t += o.mins; return o;
+  });
+}
+function rsEnd(spec){ var t = rsHm(spec.start) || 0; spec.blocks.forEach(function(b){ t += +b.mins || 0; }); return t; }
+
+/* working copy: the saved doc, or local edits not yet saved */
+function rsDoc(pid){
+  if(!RS_DIRTY[pid] || !RS_LOCAL[pid]){ var s = SHEETS[pid]; RS_LOCAL[pid] = s ? clone(s) : { id: pid, packId: pid, marks: {} }; if(!RS_LOCAL[pid].marks) RS_LOCAL[pid].marks = {}; }
+  return RS_LOCAL[pid];
+}
+function rsGet(pid, k){ var v = rsDoc(pid).marks[k]; return v == null ? "" : v; }
+function rsSet(pid, k, v){
+  var d = rsDoc(pid);
+  if(v == null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && !v.length)) delete d.marks[k]; else d.marks[k] = v;
+  RS_DIRTY[pid] = true; clearTimeout(RS_TIMER); RS_TIMER = setTimeout(function(){ rsFlush(pid); }, 700); rsPaintState();
+}
+function rsFlush(pid){
+  clearTimeout(RS_TIMER); RS_TIMER = null;
+  var p = getPack(pid);
+  if(!RS_DIRTY[pid] || !p || !rsSpec(p) || !STORE) return Promise.resolve();
+  var out = rsBuildDoc(p, rsDoc(pid)); delete out._gapKeys;
+  RS_DIRTY[pid] = false; RS_SAVING++; SHEETS[pid] = clone(out); RS_LOCAL[pid] = clone(out); rsPaintState();
+  return STORE.saveSheet(out).then(function(){ RS_SAVING--; rsPaintState(); }, function(e){ RS_SAVING--; RS_DIRTY[pid] = true; rsPaintState(); saveErr(e); });
+}
+function rsFlushAll(){ Object.keys(RS_DIRTY).forEach(function(pid){ if(RS_DIRTY[pid]) rsFlush(pid); }); }
+
+/* which game an app line is, and its newest result */
+function rsTitleKey(s){ return itemKey(s).replace(/\s*\((misses|challenge|on the spot)\)$/, "").replace(/^\d+[a-z]?\s+/, ""); }
+function rsAppGame(p, ln){
+  var gs = p.games || [];
+  if(ln.game){ var g = gs.filter(function(x){ return x.id === ln.game; })[0]; if(g) return g; }
+  var want = rsTitleKey(ln.label);
+  return gs.filter(function(x){ var t = rsTitleKey(x.title || ""); return t && want && (t === want || want.indexOf(t) !== -1 || t.indexOf(want) !== -1); })[0] || null;
+}
+function rsAppResult(p, ln){
+  var g = rsAppGame(p, ln); if(!g) return null;
+  return RESULTS.filter(function(r){ return r.packId === p.id && r.gameId === g.id; })[0] || null;
+}
+
+/* The reading Phase B gets: rows, the unmarked list and a plain-text summary, from the marks. */
+function rsBuildDoc(p, d){
+  var spec = rsSpec(p), lay = rsLayout(spec), G = rsGroup(spec), M = d.marks || {};
+  function g(k){ var v = M[k]; return v == null ? "" : v; }
+  var L = [], rows = [], gaps = [], gapKeys = {};
+  function row(block, type, label, mark, unknown, key){ rows.push({ block: block, type: type, label: label, mark: mark }); if(unknown){ gaps.push(label); gapKeys[key] = 1; } }
+  function tri(v){ return v === "y" ? "✓ ran" : v === "n" ? "✗ didn’t run" : "(?)"; }
+  function who(s){ return s ? s + " " : ""; }
+  L.push("RUN SHEET (marked in the app) · " + [spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · "));
+  if(spec.spine) L.push("Spine: " + spec.spine);
+  lay.forEach(function(b){
+    var skip = g(b.key + ".skip") === "y", bl = b.label;
+    L.push(""); L.push(rsFmt(b.start) + " · " + bl + (b.material ? " · " + b.material : "") + " · " + b.mins + " min" + (skip ? " — SKIPPED (did not run)" : ""));
+    if(skip) row(bl, "block", bl, "skipped — did not run", false, b.key);
+    b.lines.forEach(function(x){
+      var ln = x.ln, k = x.key, t = ln.type, v, txt, lab;
+      if(t === "cue"){
+        if(ln.nobox) return;
+        lab = (ln.label || "step") + (ln.text ? " — " + ln.text : "");
+        v = skip ? "n" : g(k); txt = tri(v); L.push("  " + txt + " · " + lab); row(bl, t, lab, txt, !v, k);
+      } else if(t === "pages"){
+        L.push("  pages: " + (ln.items || []).map(function(it, i){ var pv = skip ? "n" : g(k + ".p" + i); row(bl, "page", it, tri(pv), !pv, k + ".p" + i); return it + " " + (pv === "y" ? "✓" : pv === "n" ? "✗" : "(?)"); }).join(" · "));
+      } else if(t === "score"){
+        lab = ln.label + " __/" + ln.n + (ln.tag ? " [" + ln.tag + "]" : "") + (ln.trap ? " (trap: item " + ln.trap + ")" : "");
+        var nd = skip || g(k + ".x") === "n", blank = false;
+        if(nd) txt = "✗ not done";
+        else {
+          txt = G.map(function(s){ var sv = g(rsPer(k, s)); if(sv === "") blank = true; return who(s) + (sv !== "" ? sv + "/" + ln.n : "[blank]"); }).join(" · ");
+          txt += g(k + ".m") ? " — mistakes: " + g(k + ".m") : " — no mistakes written";
+        }
+        L.push("  " + lab + ": " + txt); row(bl, t, lab, txt, blank && !nd, k);
+      } else if(t === "app"){
+        var r = rsAppResult(p, ln); v = g(k);
+        txt = r ? "played in the app — " + (r.score && r.score.text ? r.score.text : "result saved") + " (see results)" : skip ? "✗ didn’t run" : v === "y" ? "✓ ran (no app result: played outside the app)" : v === "n" ? "✗ didn’t run" : "(?) no app result";
+        L.push("  app game · " + ln.label + ": " + txt); row(bl, t, ln.label, txt, !r && !skip && !v, k);
+      } else if(t === "trap"){
+        lab = "TRAP “" + ln.spring + "”";
+        var tb = false;
+        txt = skip ? "✗ didn’t run" : G.map(function(s){ var tv = g(rsPer(k, s)); if(!tv) tb = true; return who(s) + (tv === "r" ? "right" : tv === "w" ? "wrong" : "(?)"); }).join(" · ");
+        L.push("  " + lab + ": " + txt); row(bl, t, lab, txt, tb && !skip, k);
+      } else if(t === "judge"){
+        lab = "[" + ln.tag + "]";
+        var jb = false;
+        txt = skip ? "✗ didn’t run" : G.map(function(s){ var jv = g(rsPer(k, s)); if(!jv) jb = true; return who(s) + (jv || "(?)"); }).join(" · ");
+        L.push("  judged " + lab + ": " + txt); row(bl, t, lab, txt, jb && !skip, k);
+      } else if(t === "clock"){
+        v = g(k); txt = skip ? "✗ didn’t run" : v ? "actual " + v : "[blank]";
+        L.push("  " + ln.text + ": " + txt); row(bl, t, ln.text, txt, !v && !skip, k);
+      } else if(t === "done"){
+        var bls = ln.blanks || [], db = false;
+        txt = bls.length ? bls.map(function(n, i){ var dv = g(k + ".x" + i); if(!dv) db = true; return n + ": " + (dv || "[blank]"); }).join(" · ") : "";
+        L.push("  Done = " + ln.text + (txt ? " · " + txt : "")); if(bls.length) row(bl, t, "Done = " + ln.text, skip ? "✗ didn’t run" : txt, db && !skip, k);
+      } else if(t === "words"){
+        var circ = Array.isArray(g(k)) ? g(k) : [];
+        txt = circ.length ? "stumbled: " + circ.join(", ") : "no stumbles circled";
+        L.push("  words (" + (ln.words || []).join(", ") + "): " + txt); row(bl, t, "words", txt, false, k);
+      } else if(t === "box"){
+        v = skip ? "n" : g(k); txt = v === "y" ? "✓ done" : v === "n" ? "✗ not done" : "(?)";
+        L.push("  ☐ " + ln.text + ": " + txt); row(bl, t, ln.text, txt, !v, k);
+      } else if(t === "write"){
+        v = g(k); L.push("  " + ln.label + ": " + (v || "—")); row(bl, t, ln.label, v || "—", false, k);
+      }
+    });
+  });
+  var E = "End";
+  L.push(""); L.push("END (planned " + rsFmt(rsEnd(spec)) + ")");
+  function endRow(label, key, val, need){ L.push("  " + label + ": " + (val || (need ? "[blank]" : "—"))); row(E, "end", label, val || (need ? "[blank]" : "—"), need && !val, key); }
+  endRow("Finished", "end.fin", g("end.fin"), true);
+  endRow("Changed in the room", "end.chg", g("end.chg"), false);
+  endRow("Spine 1–5", "end.spine", g("end.spine"), true);
+  G.forEach(function(s){ endRow("Energy 1–5" + (s ? " · " + s : ""), rsPer("end.energy", s), g(rsPer("end.energy", s)), true); });
+  endRow("Plan got in the way?", "end.plan", (Array.isArray(g("end.plan")) ? g("end.plan") : []).join(", "), true);
+  (spec.asks || []).forEach(function(a, i){ endRow("Ask · " + a.label, "ask." + i, g("ask." + i), true); });
+  endRow("Parent said", "end.parent", g("end.parent"), false);
+  endRow("Other mistakes", "end.other", g("end.other"), false);
+  L.push(""); L.push(gaps.length ? "UNMARKED — ask at Phase B: " + gaps.join(" · ") : "Everything is marked.");
+  return { id: p.id, packId: p.id, student: p.student || spec.student || "", lp: p.lp || spec.lp || null, date: p.date || "", updatedAt: nowIso(),
+    marks: clone(M), finished: !!d.finished, finishedAt: d.finishedAt || null, rows: rows, gaps: gaps, summary: L.join("\n"), _gapKeys: gapKeys };
+}
+
+/* ---------- screen ---------- */
+function rsTick(pid, k, label){
+  var v = rsGet(pid, k);
+  return '<button class="rs-tk ' + (v === "y" ? "y" : v === "n" ? "n" : "") + '" data-a="rs-tick" data-k="' + esc(k) + '" aria-label="' + esc(label) + ': ' + (v === "y" ? "ran" : v === "n" ? "didn’t run" : "not marked") + '">' + (v === "y" ? "✓" : v === "n" ? "✗" : "") + '</button>';
+}
+function rsSeg(pid, k, opts, label){
+  var v = rsGet(pid, k);
+  return '<span class="rs-seg" role="group" aria-label="' + esc(label || "") + '">' + opts.map(function(o){ var on = v === o[0]; return '<button class="' + (on ? "on " + (o[2] || "") : "") + '" data-a="rs-set" data-k="' + esc(k) + '" data-v="' + esc(o[0]) + '" aria-pressed="' + on + '">' + esc(o[1]) + '</button>'; }).join("") + '</span>';
+}
+function rsIn(pid, k, ph, label){ return '<input type="text" class="rs-in" data-rsin="' + esc(k) + '" value="' + esc(rsGet(pid, k)) + '" placeholder="' + esc(ph || "") + '" aria-label="' + esc(label || ph || "") + '" autocomplete="off">'; }
+function rsWho(s){ return s ? '<span class="rs-who">' + esc(s) + '</span>' : ""; }
+function rsLine(p, x, G, gk){
+  var ln = x.ln, k = x.key, t = ln.type, pid = p.id, gap = gk && gk[k] ? " gap" : "";
+  if(t === "cue"){
+    var lab = (ln.label ? '<b>' + esc(ln.label) + '</b> ' : "") + '<span class="muted">' + esc(ln.text || "") + '</span>';
+    if(ln.nobox) return '<div class="rs-ln"><span class="rs-tx">' + lab + '</span></div>';
+    return '<div class="rs-ln' + gap + '">' + rsTick(pid, k, ln.label || "step") + '<span class="rs-tx">' + lab + '</span></div>';
+  }
+  if(t === "pages") return '<div class="rs-ln rs-pages">' + (ln.items || []).map(function(it, i){ return '<span class="rs-pg' + (gk && gk[k + ".p" + i] ? " gap" : "") + '">' + rsTick(pid, k + ".p" + i, it) + '<span>' + esc(it) + '</span></span>'; }).join("") + '</div>';
+  if(t === "score"){
+    var nd = rsGet(pid, k + ".x") === "n";
+    return '<div class="rs-ln rs-score' + gap + (nd ? " off" : "") + '"><div class="rs-sc-top"><b>' + esc(ln.label) + '</b>' +
+      G.map(function(s){ var kk = rsPer(k, s); return '<label class="rs-num">' + rsWho(s) + '<input type="text" inputmode="numeric" data-rsin="' + esc(kk) + '" value="' + esc(rsGet(pid, kk)) + '" aria-label="' + esc(ln.label + " score" + (s ? " " + s : "")) + '" autocomplete="off"><span>/' + esc(ln.n) + '</span></label>'; }).join("") +
+      (ln.tag ? '<span class="rs-tag">' + esc(ln.tag) + '</span>' : "") + (ln.trap ? '<span class="rs-tag">trap: item ' + esc(ln.trap) + '</span>' : "") +
+      '<button class="rs-nd' + (nd ? " on" : "") + '" data-a="rs-nd" data-k="' + esc(k) + '" aria-pressed="' + nd + '">not done</button></div>' +
+      rsIn(pid, k + ".m", "Mistakes (4: he go)", ln.label + " mistakes") + '</div>';
+  }
+  if(t === "app"){
+    var r = rsAppResult(p, ln), gm = rsAppGame(p, ln);
+    return '<div class="rs-ln' + gap + '">' + (r ? '<span class="rs-tk y auto" title="Played in the app">✓</span>' : rsTick(pid, k, ln.label)) +
+      '<span class="rs-tx"><b>' + esc(ln.label) + '</b> <span class="muted">' + (r ? "played · " + esc(r.score && r.score.text ? r.score.text : "saved") : gm ? "app game" : "app game — not found in this lesson") + '</span></span>' +
+      (gm ? '<button class="btn sm' + (r ? " ghost" : "") + '" data-a="rs-play" data-g="' + esc(gm.id) + '">' + (r ? "Play again" : "Play") + '</button>' : "") + '</div>';
+  }
+  if(t === "trap") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><span class="rs-trapb">TRAP</span>“' + esc(ln.spring) + '”</span>' +
+    G.map(function(s){ return '<span class="rs-grp">' + rsWho(s) + rsSeg(pid, rsPer(k, s), [["r", "right", "ok"], ["w", "wrong", "no"]], "Trap" + (s ? " " + s : "")) + '</span>'; }).join("") + '</div>';
+  if(t === "judge") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><span class="rs-tag">' + esc(ln.tag) + '</span></span>' +
+    G.map(function(s){ return '<span class="rs-grp">' + rsWho(s) + rsSeg(pid, rsPer(k, s), [["met", "met", "ok"], ["part", "part", "amb"], ["not", "not", "no"]], ln.tag + (s ? " " + s : "")) + '</span>'; }).join("") + '</div>';
+  if(t === "clock") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><b>' + esc(ln.text) + '</b> <span class="muted">· actual</span></span><input type="time" class="rs-time" data-rsin="' + esc(k) + '" value="' + esc(rsGet(pid, k)) + '" aria-label="' + esc(ln.text) + ' actual"><button class="btn ghost sm" data-a="rs-now" data-k="' + esc(k) + '">Now</button></div>';
+  if(t === "done") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><b>Done =</b> ' + esc(ln.text) + '</span>' + (ln.blanks || []).map(function(n, i){ return '<label class="rs-blank"><span>' + esc(n) + '</span>' + rsIn(pid, k + ".x" + i, "", n) + '</label>'; }).join("") + '</div>';
+  if(t === "listen") return '<div class="rs-ln"><span class="rs-tx rs-info">Listen for: ' + esc(ln.text) + '</span></div>';
+  if(t === "words"){
+    var circ = rsGet(pid, k); circ = Array.isArray(circ) ? circ : [];
+    return '<div class="rs-ln rs-words"><span class="rs-info">Words · tap a stumble:</span><span class="chips">' + (ln.words || []).slice(0, 8).map(function(w){ var on = circ.indexOf(w) !== -1; return '<button class="chip' + (on ? " on" : "") + '" data-a="rs-word" data-k="' + esc(k) + '" data-w="' + esc(w) + '" aria-pressed="' + on + '">' + esc(w) + '</button>'; }).join("") + '</span></div>';
+  }
+  if(t === "box") return '<div class="rs-ln' + gap + '">' + rsTick(pid, k, ln.text) + '<span class="rs-tx">' + esc(ln.text) + '</span></div>';
+  if(t === "write") return '<div class="rs-ln"><span class="rs-lbl">' + esc(ln.label) + '</span>' + rsIn(pid, k, "", ln.label) + '</div>';
+  return "";
+}
+function rsTyping(){ var a = document.activeElement; return !!(a && a.getAttribute && a.getAttribute("data-rsin")); }
+function rsPaintState(){
+  var e = $("rsState"); if(!e || UI.view !== "sheet") return;
+  var p = getPack(UI.packId); if(!p || !rsSpec(p)) return;
+  var n = rsBuildDoc(p, rsDoc(p.id)).gaps.length;
+  var saving = RS_SAVING || RS_DIRTY[p.id];
+  e.className = "pill " + (STATUS === "account" ? (saving ? "warn" : "ok") : "warn");
+  e.innerHTML = '<i></i>' + (saving ? "Saving…" : STATUS === "account" ? "Saved with the lesson" : "On this device only") + " · " + (n ? n + " unmarked" : "all marked");
+}
+function viewSheet(){
+  var p = getPack(UI.packId), spec = rsSpec(p);
+  if(!p){ go("home"); return; } if(!spec){ go("pack"); return; }
+  var pid = p.id, d = rsDoc(pid), lay = rsLayout(spec), G = rsGroup(spec), info = rsBuildDoc(p, d), gk = UI.rsGaps ? info._gapKeys : null;
+  var nowM = rsHm(rsNow()), isToday = p.date === today(), endM = rsEnd(spec), nowBlk = null;
+  if(isToday) lay.forEach(function(b){ if(nowM >= b.start && nowM < b.start + b.mins) nowBlk = b; });
+  var resume = inProgressHtml(true, pid);
+  var blocks = lay.map(function(b){
+    var skip = rsGet(pid, b.key + ".skip") === "y";
+    return '<section class="rs-blk' + (skip ? " skip" : "") + (nowBlk === b ? " now" : "") + '" id="' + esc(b.key) + '"><div class="rs-bar"><span class="rs-clock">' + rsFmt(b.start) + '</span><b>' + esc(b.label) + '</b>' + (b.material ? '<span class="rs-mat">' + esc(b.material) + '</span>' : "") +
+      '<span class="rs-min">' + b.mins + ' min</span><button class="rs-skip' + (skip ? " on" : "") + '" data-a="rs-skip" data-k="' + esc(b.key) + '" aria-pressed="' + skip + '">skip</button></div><div class="rs-body">' +
+      b.lines.map(function(x){ return rsLine(p, x, G, gk); }).join("") + '</div></section>';
+  }).join("");
+  var plan = rsGet(pid, "end.plan"); plan = Array.isArray(plan) ? plan : [];
+  function gl(k){ return gk && gk[k] ? " gap" : ""; }
+  var five = [["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"]];
+  var end = '<section class="rs-blk rs-end"><div class="rs-bar"><span class="rs-clock">' + rsFmt(endM) + '</span><b>End</b></div><div class="rs-body">' +
+    '<div class="rs-ln' + gl("end.fin") + '"><span class="rs-lbl">Finished</span><input type="time" class="rs-time" data-rsin="end.fin" value="' + esc(rsGet(pid, "end.fin")) + '" aria-label="Finished"><button class="btn ghost sm" data-a="rs-now" data-k="end.fin">Now</button></div>' +
+    '<div class="rs-ln"><span class="rs-lbl">Changed in the room</span>' + rsIn(pid, "end.chg", "", "Changed in the room") + '</div>' +
+    '<div class="rs-ln' + gl("end.spine") + '"><span class="rs-lbl">Spine</span>' + rsSeg(pid, "end.spine", five, "Spine 1 to 5") + '</div>' +
+    G.map(function(s){ var ek = rsPer("end.energy", s); return '<div class="rs-ln' + gl(ek) + '"><span class="rs-lbl">Energy' + (s ? " · " + esc(s) : "") + '</span>' + rsSeg(pid, ek, five, "Energy 1 to 5" + (s ? " " + s : "")) + '</div>'; }).join("") +
+    '<div class="rs-ln' + gl("end.plan") + '"><span class="rs-lbl">Plan got in the way?</span><span class="chips">' + RS_PLAN.map(function(o){ var on = plan.indexOf(o) !== -1; return '<button class="chip' + (on ? " on" : "") + '" data-a="rs-plan" data-v="' + esc(o) + '" aria-pressed="' + on + '">' + esc(o) + '</button>'; }).join("") + '</span></div>' +
+    (spec.asks || []).map(function(a, i){ var ak = "ask." + i; return '<div class="rs-ln' + gl(ak) + '"><span class="rs-lbl">Ask · ' + esc(a.label) + '</span>' + (a.options && a.options.length ? rsSeg(pid, ak, a.options.map(function(o){ return [String(o), String(o)]; }), a.label) : rsIn(pid, ak, "", a.label)) + '</div>'; }).join("") +
+    '<div class="rs-ln"><span class="rs-lbl">Parent said</span>' + rsIn(pid, "end.parent", "", "Parent said") + '</div>' +
+    '<div class="rs-ln"><span class="rs-lbl">Other mistakes</span><textarea class="rs-ta" data-rsin="end.other" aria-label="Other mistakes">' + esc(rsGet(pid, "end.other")) + '</textarea></div>' +
+    '</div></section>';
+  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games">‹ Games</button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
+    '<main class="wrap rs"><p class="rs-meta">' + esc([spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · ")) + '</p>' +
+    (spec.spine ? '<p class="rs-spine"><b>Spine:</b> ' + esc(spec.spine) + '</p>' : "") +
+    '<div class="rs-state"><span class="pill" id="rsState"><i></i></span>' + (isToday ? '<span class="pill">Now ' + rsNow() + (nowBlk ? " · " + esc(nowBlk.label) : nowM >= endM ? " · lesson time over" : "") + '</span>' : "") + '</div>' +
+    '<p class="muted" style="font-size:15px;margin:4px 0 0">Tap once for ✓ ran, again for ✗ didn’t run, again to clear. Nothing marked = asked at Phase B.</p>' +
+    resume + blocks + (spec.flex ? '<p class="rs-info"><b>If long:</b> ' + esc(spec.flex) + '</p>' : "") + end + '</main>';
+  rsPaintState();
+  if(UI.rsFinish){
+    var gaps = info.gaps;
+    $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Finish the run sheet"><div class="pop setpop"><h3 style="margin-bottom:8px">' + (gaps.length ? gaps.length + " still unmarked" : "Everything is marked") + '</h3>' +
+      (gaps.length ? '<p class="muted" style="margin:0;font-size:16px">Unmarked lines are asked about at Phase B. Mark them now if you know.</p><ol class="rs-gaplist">' + gaps.slice(0, 30).map(function(x){ return '<li>' + esc(x) + '</li>'; }).join("") + '</ol>' : '<p class="muted" style="font-size:16px">Saved with the lesson for the after-class report.</p>') +
+      '<div class="row" style="margin-top:8px">' + (gaps.length ? '<button class="btn" data-a="rs-gaps">Show them</button>' : "") + '<button class="btn' + (gaps.length ? " ghost" : "") + '" data-a="rs-done">' + (gaps.length ? "Finish anyway" : "Finish") + '</button><button class="btn ghost" data-a="rs-finish-x">Back</button></div></div></div>');
+  }
+  /* keep the saved reading up to date when a game result arrives */
+  var saved = SHEETS[pid];
+  if(saved && !RS_DIRTY[pid] && saved.summary !== info.summary){ RS_DIRTY[pid] = true; RS_LOCAL[pid] = clone(saved); clearTimeout(RS_TIMER); RS_TIMER = setTimeout(function(){ rsFlush(pid); }, 900); }
+  if(!RS_TICK) RS_TICK = setInterval(function(){ if(UI.view === "sheet" && !rsTyping() && !UI.rsFinish) render(); }, 30000);
+}
+function rsPackCard(p){
+  var spec = rsSpec(p), mode = rsStudentMode(p.student);
+  var modeRow = p.student ? '<div class="row" style="margin-top:10px"><span class="muted" style="font-size:15px">Open lessons on the run sheet for ' + esc(p.student) + ':</span><span class="rs-seg"><button class="' + (mode === "online" ? "on" : "") + '" data-a="rs-mode" data-v="online" aria-pressed="' + (mode === "online") + '">Online lessons</button><button class="' + (mode === "always" ? "on" : "") + '" data-a="rs-mode" data-v="always" aria-pressed="' + (mode === "always") + '">Every lesson</button></span></div>' : "";
+  var paste = '<details style="margin-top:10px"><summary class="muted">' + (spec ? "Replace the run sheet" : "Paste a run sheet") + '</summary><p class="muted" style="font-size:15px">The run sheet spec (JSON) the planning chat gives to rs_build.py.</p><textarea id="rsSpecIn" spellcheck="false" style="min-height:140px;font-size:14px"></textarea><p class="err" id="rsSpecErr" role="alert"></p><button class="btn sm" data-a="rs-spec">Save run sheet</button></details>';
+  if(!spec) return '<section class="rs-card"><h3>Run sheet</h3><p class="muted" style="margin:0;font-size:16px">None saved with this lesson yet: the planning chat adds it at Gate 5.</p>' + paste + modeRow + '</section>';
+  var info = rsBuildDoc(p, rsDoc(p.id)), marked = Object.keys(rsDoc(p.id).marks || {}).length;
+  return '<section class="rs-card"><div class="spread"><div><h3>Run sheet</h3><p class="muted" style="margin:0;font-size:16px">' + esc(spec.format || "") + (rsDoc(p.id).finished ? " · finished" : marked ? " · started · " + info.gaps.length + " unmarked" : " · not started") + '</p></div><button class="btn" data-a="rs-open">Open run sheet</button></div>' + modeRow + paste + '</section>';
+}
+function rsSpecFrom(text){
+  var o; try{ o = JSON.parse(String(text || "").trim()); }catch(e){ return { err: "That isn’t valid JSON. Paste the whole spec, from { to }." }; }
+  if(o && o.runsheet) o = o.runsheet;
+  if(!o || !Array.isArray(o.blocks) || !o.blocks.length) return { err: "No blocks found: this doesn’t look like a run sheet spec." };
+  if(rsHm(o.start) == null) return { err: "The spec needs a start time, like \"16:50\"." };
+  var sum = o.blocks.reduce(function(a, b){ return a + (+b.mins || 0); }, 0);
+  return { spec: o, warn: o.length && sum !== +o.length ? "Blocks add up to " + sum + " min, lesson is " + o.length + "." : "" };
+}
+function rsHandle(a, el){
+  var pid = UI.packId, p = getPack(pid), k = el.getAttribute("data-k");
+  if(a === "rs-open"){ UI.rsGaps = false; go("sheet"); return; }
+  if(a === "rs-games"){ rsFlush(pid); UI.rsGaps = false; UI.rsFinish = false; go("pack"); return; }
+  if(a === "rs-mode"){ if(!p || !p.student) return; var sid = slug(p.student), so = Object.assign({ id: sid, name: p.student }, STUDENTS[sid] || {}, { runsheet: el.getAttribute("data-v"), updatedAt: nowIso() }); STUDENTS[sid] = so; STORE.saveStudent(so).catch(saveErr); render(); return; }
+  if(a === "rs-spec"){
+    var r = rsSpecFrom($("rsSpecIn").value); if(r.err){ $("rsSpecErr").textContent = r.err; return; }
+    var pp = clone(p); pp.runsheet = r.spec; touchPack(pp); PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; });
+    toast("Run sheet saved." + (r.warn ? " " + r.warn : "")); render(); return;
+  }
+  if(!p || !rsSpec(p)) return;
+  if(a === "rs-tick"){ var v = rsGet(pid, k); rsSet(pid, k, v === "" ? "y" : v === "y" ? "n" : ""); render(); return; }
+  if(a === "rs-set"){ var nv = el.getAttribute("data-v"); rsSet(pid, k, rsGet(pid, k) === nv ? "" : nv); render(); return; }
+  if(a === "rs-skip"){ rsSet(pid, k + ".skip", rsGet(pid, k + ".skip") === "y" ? "" : "y"); render(); return; }
+  if(a === "rs-nd"){ rsSet(pid, k + ".x", rsGet(pid, k + ".x") === "n" ? "" : "n"); render(); return; }
+  if(a === "rs-now"){ rsSet(pid, k, rsNow()); render(); return; }
+  if(a === "rs-word" || a === "rs-plan"){
+    var key = a === "rs-plan" ? "end.plan" : k, w = el.getAttribute(a === "rs-plan" ? "data-v" : "data-w"), cur = rsGet(pid, key); cur = Array.isArray(cur) ? cur.slice() : [];
+    var at = cur.indexOf(w);
+    if(at !== -1) cur.splice(at, 1);
+    else if(a === "rs-plan" && w === "no") cur = ["no"];
+    else { if(a === "rs-plan") cur = cur.filter(function(x){ return x !== "no"; }); cur.push(w); }
+    rsSet(pid, key, cur); render(); return;
+  }
+  if(a === "rs-play"){
+    var gm = (p.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0]; if(!gm) return;
+    var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}));
+    if(bad){ toast("This game needs fixing first: " + bad); return; }
+    rsFlush(pid); UI.rsRet = pid;
+    if(findRun(pid, gm.id)){ resumeRun(pid + "|" + gm.id); return; }
+    startRun(p, Object.assign({}, gm, { options: Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}), _replay: resultsFor(p.id, gm.id).length > 0 })); return;
+  }
+  if(a === "rs-finish"){ UI.rsFinish = true; render(); return; }
+  if(a === "rs-finish-x"){ UI.rsFinish = false; render(); return; }
+  if(a === "rs-gaps"){ UI.rsFinish = false; UI.rsGaps = true; render(); var f = document.querySelector(".rs-ln.gap,.rs-pg.gap"); if(f) f.scrollIntoView({ block: "center" }); return; }
+  if(a === "rs-done"){
+    if(!rsGet(pid, "end.fin")) rsSet(pid, "end.fin", rsNow());
+    var dd = rsDoc(pid); RS_DIRTY[pid] = true; dd.finished = true; dd.finishedAt = nowIso();
+    UI.rsFinish = false; UI.rsGaps = false;
+    rsFlush(pid).then(function(){ toast(STATUS === "account" ? "Run sheet saved for the after-class report." : "Run sheet saved on this device."); });
+    render(); return;
+  }
+}
+function lessonView(pid){ var p = getPack(pid); return UI.rsRet === pid && rsSpec(p) ? "sheet" : "pack"; }
+document.addEventListener("input", function(e){
+  var el = e.target, k = el && el.getAttribute && el.getAttribute("data-rsin");
+  if(!k || UI.view !== "sheet" || !UI.packId) return;
+  rsSet(UI.packId, k, el.value);
+});
+document.addEventListener("focusout", function(){
+  if(!RS_PEND) return;
+  setTimeout(function(){ if(RS_PEND && UI.view === "sheet" && !rsTyping()){ RS_PEND = false; render(); } }, 60);
+});
+window.addEventListener("pagehide", rsFlushAll);
+document.addEventListener("visibilitychange", function(){ if(document.hidden) rsFlushAll(); });
+
+
 /* ---------- run lifecycle ---------- */
 function saveRun(){ saveUI(); }
+/* Games left part-way: UI.run is the one on screen (or last on screen); UI.parked holds the others,
+   one per lesson game, so several games can be left and picked up again. Their clocks stop while away. */
+function rkey(r){ return r.packId + "|" + r.gameId; }
+function stopClock(r){ if(r && !r.left){ r.act = clockMs(r); r.left = true; } }
+function startClock(r){ if(r && r.left){ r.left = false; r.resumedAt = Date.now(); } if(r && r.st){ r.st._animating = false; r.st.spinning = false; } }
+function parkRun(){ if(UI.run && !SMODE){ stopClock(UI.run); UI.parked = UI.parked || {}; UI.parked[rkey(UI.run)] = UI.run; } UI.run = null; UNDO = []; }
+function findRun(pid, gid){ var k = pid + "|" + gid; if(UI.run && rkey(UI.run) === k) return UI.run; return (UI.parked || {})[k] || null; }
+function resumeRun(k){
+  if(!(UI.run && rkey(UI.run) === k)){
+    var r = (UI.parked || {})[k]; if(!r) return false;
+    parkRun(); delete UI.parked[k]; UI.run = r;
+  }
+  UI.settingsOpen = false; UI.finishAsk = false; UI.packId = UI.run.packId; startClock(UI.run); go("play"); return true;
+}
+function inProgress(){ var out = []; if(UI.run) out.push(UI.run); Object.keys(UI.parked || {}).forEach(function(k){ out.push(UI.parked[k]); }); return out.filter(function(r){ return getPack(r.packId); }); }
+function inProgressHtml(small, pid){
+  var list = inProgress().filter(function(r){ return !pid || r.packId === pid; }); if(!list.length) return "";
+  return '<p class="row">' + list.map(function(r){ return '<button class="btn ghost' + (small ? " sm" : "") + '" data-a="play-resume" data-k="' + esc(rkey(r)) + '">▶ Resume: ' + esc(r.title) + (pid ? "" : " · " + esc(packTitle(getPack(r.packId)))) + '</button>'; }).join("") + '</p>';
+}
+(function(){ /* tidy games left more than three days ago */
+  var cut = Date.now() - 3 * 864e5, P = UI.parked || {};
+  Object.keys(P).forEach(function(k){ if(!P[k] || Date.parse(P[k].startedAt || 0) < cut) delete P[k]; });
+})();
 function startRun(p, g){
   var t = TYPES[g.type];
+  if(!SMODE){ if(UI.run && rkey(UI.run) !== p.id + "|" + g.id) parkRun(); if(UI.parked) delete UI.parked[p.id + "|" + g.id]; }
   UNDO = []; UI.settingsOpen = false; UI.finishAsk = false;
   var prev = resultsFor(p.id, g.id).filter(function(x){ return x.score && x.score.text && !x.retry; })[0];
   UI.runKey = SMODE ? SMODE.key : null;
@@ -4123,10 +4860,15 @@ function finishRun(){
 /* ---------- events ---------- */
 function handle(a, el){
   var run = UI.run;
+  if(a.indexOf("sb-") === 0 && SB_MODE && sbHandle(a)) return;
+  if(a === "backup"){ backupDownload(); return; }
+  if(a === "restore"){ var fi = $("restoreFile"); if(fi) fi.click(); return; }
+  if(a.indexOf("rs-") === 0){ rsHandle(a, el); return; }
   if(a === "home"){ UI.confirmDel = null; go("home"); return; }
   if(a === "showall"){ UI.showAll = true; render(); return; }
-  if(a === "resume"){ go("play"); return; }
-  if(a === "open"){ UI.confirmDel = null; go("pack", { packId: el.getAttribute("data-id") }); return; }
+  if(a === "resume"){ if(run) startClock(run); go("play"); return; }
+  if(a === "play-resume"){ if(!resumeRun(el.getAttribute("data-k"))) toast("That game isn’t waiting any more."); return; }
+  if(a === "open"){ UI.confirmDel = null; var opk = getPack(el.getAttribute("data-id")); UI.rsGaps = false; UI.rsFinish = false; go(opk && rsOn(opk) ? "sheet" : "pack", { packId: el.getAttribute("data-id") }); return; }
   if(a === "student"){ go("student", { student: el.getAttribute("data-s") }); return; }
   if(a === "newpack"){ UI.draftPack = { student:"", lp:"", date:today() }; go("packEdit"); return; }
   if(a === "editpack"){ var p0 = getPack(UI.packId); UI.draftPack = { id:p0.id, student:p0.student || "", lp:p0.lp || "", date:p0.date || today() }; go("packEdit"); return; }
@@ -4192,9 +4934,10 @@ function handle(a, el){
     var qg = { id:"g" + qn, type:q.t, title:q.label + " · " + (qs === "recent" ? "recent words" : "today’s words") + " (on the spot)", block:q.block(qw), options:qo, spot:true };
     var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
     var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
-    startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
+    UI.rsRet = null; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
   }
   if(a === "play" || a === "play-ch"){
+    UI.rsRet = null;
     var pk2 = getPack(UI.packId), gm = (pk2.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
     var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(pk2), gm.options || {}));
     if(bad){ toast("This game needs fixing first: " + bad); return; }
@@ -4222,7 +4965,7 @@ function handle(a, el){
   }
   if(a === "copylesson"){ var pc = getPack(UI.packId); copyText(lessonResultsText(pc)).then(function(ok){ var c = $("copied"); if(c) c.textContent = ok ? "Copied." : "Copying is blocked here."; }); return; }
   if(a === "copyres"){ copyText($("res").value).then(function(ok){ $("copied").textContent = ok ? "Copied." : "Copying is blocked here. Select the text and copy it."; if(!ok){ $("res").focus(); $("res").select(); } }); return; }
-  if(a === "backlesson"){ go("pack", { packId: UI.lastResult ? UI.lastResult.packId : UI.packId }); return; }
+  if(a === "backlesson"){ var blp = UI.lastResult ? UI.lastResult.packId : UI.packId; go(lessonView(blp), { packId: blp }); return; }
   if(a === "s-start"){ if(SMODE){ startRun(PACKS[0], PACKS[0].games[0]); } return; }
   if(a === "slink"){ var spk = getPack(UI.packId), sg = (spk.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0]; if(!sg) return;
     var se = TYPES[sg.type].validate(sg.block, Object.assign({}, TYPES[sg.type].defaults(spk), sg.options || {})); if(se){ toast(se); return; }
@@ -4232,11 +4975,11 @@ function handle(a, el){
   if(a === "slink-copy"){ var su = UI.slink && UI.slink.url; if(!su) return; copyText(su).then(function(ok){ var c = $("slinkMsg"); if(c) c.textContent = ok ? "Copied. Paste it in the Meet chat or LINE." : "Copying is blocked here. Select the link and copy it."; if(!ok){ $("slinkUrl").focus(); $("slinkUrl").select(); } }); return; }
   if(a === "sres-open"){ UI.sres = true; UI.slink = null; render(); var ta = $("sresIn"); if(ta) ta.focus(); return; }
   if(a === "sres-add"){ var tv = $("sresIn").value; importStudentResult(tv).then(function(err){ if(err){ $("sresErr").textContent = err; return; } UI.sres = false; render(); toast("Result added."); }); return; }
-  if(a === "lesson"){ if(SMODE){ go("sready"); return; } go("pack", { packId: run ? run.packId : UI.packId }); return; }
+  if(a === "lesson"){ if(SMODE){ go("sready"); return; } UI.finishAsk = false; UI.settingsOpen = false; if(run) stopClock(run); var lpid = run ? run.packId : UI.packId; go(lessonView(lpid), { packId: lpid }); return; }
   if(a === "finish-ask"){ if(run){ UI.finishAsk = true; render(); } return; }
   if(a === "finish-cancel"){ UI.finishAsk = false; render(); return; }
   if(a === "discard" && SMODE){ UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go("sready"); return; }
-  if(a === "discard"){ var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go("pack", { packId: pid0 }); return; }
+  if(a === "discard"){ var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go(lessonView(pid0), { packId: pid0 }); return; }
   if(a === "finish"){ UI.finishAsk = false; if(run) finishRun(); return; }
   if(a === "undo"){ UI.settingsOpen = false; saveUI(); if(run && UNDO.length){ run.st = JSON.parse(UNDO.pop()); run.st._animating = false; run.st.spinning = false; saveRun(); render(); } return; }
   if(a === "showres"){ var rr = RESULTS.filter(function(x){ return x.id === el.getAttribute("data-r"); })[0]; if(rr){ UI.lastResult = { id:rr.id, summary:rr.summary, packId:rr.packId, gameId:rr.gameId, type:rr.type, score:rr.score || null, items:rr.items || [], activeSecs:rr.activeSecs || 0 }; go("done"); } return; }
