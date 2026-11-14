@@ -3,7 +3,7 @@ import json, os
 from playwright.sync_api import sync_playwright
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(HERE, "../.."))
 MOCK = open(os.path.join(HERE, "mock-supabase.js")).read()
-HOOK = "window.__T={get STORE(){return STORE},get UI(){return UI},get LIVE(){return LIVE},packData:packData,get PACKS(){return PACKS},get RESULTS(){return RESULTS}};\n"
+HOOK = "window.__T={get STORE(){return STORE},get UI(){return UI},get LIVE(){return LIVE},packData:packData,get PACKS(){return PACKS},get RESULTS(){return RESULTS},liveRoomFor:liveRoomFor,get SB(){return SB},get AUTH(){return AUTH},get STOREKIND(){return STORE && STORE.kind}};\n"
 def app_html():
     a = open(ROOT + "/app/index.html", encoding="utf-8").read()
     assert a.count("if(STUDENT_PAGE) startStudent();") == 1

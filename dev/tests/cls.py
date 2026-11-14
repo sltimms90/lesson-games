@@ -8,7 +8,7 @@ games = [
   {"id":"g4","type":"whack","title":"Moles","block":"Hit the past!\nHIT: went, saw\nMISS: go, see","options":{"time":30,"speed":2}},
   {"id":"g5","type":"quiz","title":"Quiz","block":"Which is a verb?\nhappy\n*climb\ntable\n\nPick the noun\n*table\nrun\nblue","options":{"timer":20,"bonus":0}},
 ]
-pack = {"id":"mia-lp9","student":"Mia Chen","lp":9,"title":"Mia · LP9","date":"2026-11-15","updatedAt":"x","games":games}
+pack = {"id":"mia-lp9","student":"Mia Chen","lp":9,"title":"Mia · LP9","date":"2026-11-15","updatedAt":"x","games":games,"liveRoom":"0123456789abcdef0123456789abcdef"}  # pre-set: the mock database resets on reload
 db = seed_db([pack], students=[{"id":"mia-chen","name":"Mia Chen","token":TOK}])
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
@@ -57,6 +57,9 @@ with sync_playwright() as p:
     # 3. student reloads mid-game and carries on
     s.reload(); s.wait_for_timeout(1200)
     check(s.evaluate("__T.UI.view") == "play" and s.evaluate("__T.UI.run && __T.UI.run.gameId") == "g2", "student reload resumes the same game")
+    t.reload(); t.wait_for_timeout(1500)
+    check("Loading your lessons" not in t.inner_text("#app") and t.locator("[data-a=resume-run]").count() == 1, "teacher reload mid-game shows the game, not a stuck Loading screen")
+    t.click("[data-a=resume-run]"); t.wait_for_timeout(300)
     # 4. teacher quits -> student back to waiting
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); s.wait_for_timeout(500)
     check("Waiting for your teacher" in s.inner_text("#app"), "teacher's Quit takes the game off the student's screen")

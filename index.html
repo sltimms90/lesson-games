@@ -1030,8 +1030,9 @@ function startStore(store, status){
 var LIVE_VIEWS = ["home", "pack", "student", "done", "sheet"];
 function refresh(){
   if(UI.view === "sheet" && (rsTyping() || UI.rsFinish)){ RS_PEND = true; rsPaintState(); return; }
-  if(LIVE_VIEWS.indexOf(UI.view) !== -1) render();
-  else { var s = $("status"); if(s) s.outerHTML = statusPill(); }
+  /* Game screens don't redraw on data changes, except while the loading screen is still up (a reload mid-game). */
+  if(LIVE_VIEWS.indexOf(UI.view) !== -1 || $("loadingView")) render();
+  else { var s = $("status"); if(s) s.outerHTML = statusPill(); try{ liveSync(); livePaint(); }catch(e){} }
 }
 function statusPill(){
   if(STATUS === "connecting" || (STATUS === "account" && !LOADED.packs)) return '<span class="pill" id="status"><i></i>' + (SLOW ? "Can’t reach your saved games yet" : "Connecting…") + '</span>';
@@ -4202,7 +4203,7 @@ var TYPE_ORDER = ["bingo", "hangman", "anagrams", "cards", "typeit", "build", "s
    Views and events
    ===================================================================== */
 function ball(type){ return '<span class="mini" style="--c:var(--c-' + type + ')"><span>' + TYPES[type].letter + '</span></span>'; }
-function loadingView(){ $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>Lesson games</h1>' + statusPill() + '</div><p class="notice">Loading your lessons…</p></div>'; }
+function loadingView(){ $("app").innerHTML = '<div class="wrap" id="loadingView"><div class="spread head"><h1>Lesson games</h1>' + statusPill() + '</div><p class="notice">Loading your lessons…</p></div>'; }
 
 function viewSignIn(){
   var body;
