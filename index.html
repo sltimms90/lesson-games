@@ -712,6 +712,7 @@ span.od-tile{cursor:default}
 }
 .livepill{position:fixed;left:12px;bottom:12px;z-index:50;font:600 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:999px;background:var(--surface);border:2px solid var(--line);color:var(--muted,#667)}
 .livepill.on{border-color:#1E8A5A;color:#1E8A5A}
+.notmine{opacity:.45}
 </style>
 </head>
 <body>
@@ -4489,7 +4490,7 @@ function liveJoin(room){
       var ps = ch.presenceState(), others = Object.keys(ps).filter(function(k){ return k !== LIVE.me; });
       LIVE.peers = others.length;
       LIVE.peerName = others.length ? ((ps[others[0]][0] || {}).name || "") : "";
-      livePaint();
+      if(UI.view === "play" && UI.run && !UI.run.st._animating) render(); else livePaint();
     });
     ch.subscribe(function(s){
       if(LIVE.chan !== ch || s !== "SUBSCRIBED") return;
@@ -4576,6 +4577,39 @@ function livePaint(){
   var on = LIVE.peers > 0;
   el.className = "livepill" + (on ? " on" : "");
   el.textContent = on ? "● " + (SMODE ? "Teacher" : (LIVE.peerName || "Student")) + " connected" : "○ Waiting for " + (SMODE ? "your teacher" : "the student") + "…";
+}
+/* Turns: with both screens connected, each side only plays its own turns. The teacher's turns are the players
+   named Teacher / Sam (or, if nobody is, every player after the first); the student's screen takes the rest.
+   Bingo: the student calls and taps their card; Good sentence / Not yet are the teacher's. If the other screen
+   isn't connected, nothing is locked, so a game never gets stuck. */
+function liveTeacherSlot(s, k){
+  var ps = s.players || [], anyT = ps.some(function(p){ return snIsTeacher(p && p.name); });
+  return anyT ? snIsTeacher(ps[k] && ps[k].name) : k > 0;
+}
+function liveMine(s, k){ return SMODE ? !liveTeacherSlot(s, k) : liveTeacherSlot(s, k); }
+function liveLocked(run){ return liveOn(run) && LIVE.peers > 0; }
+function liveMayAct(run, a){
+  if(!liveLocked(run)) return true;
+  var s = run.st;
+  if(run.type === "snakes"){
+    if(a === "sn-lucky" || a === "sn-fix") return !SMODE;
+    if(a === "sn-roll" || a === "sn-place") return s.fix != null ? !SMODE : liveMine(s, s.turn);
+  }
+  if(run.type === "hilo" && (a === "hl-call" || a === "hl-next")) return liveMine(s, s.turn);
+  if(run.type === "bingo" && a === "bg-res") return !SMODE;
+  return true;
+}
+function liveTurnName(run){ var s = run.st, p = s.players && s.players[s.turn]; return p ? p.name : ""; }
+function liveLockPaint(){
+  var run = UI.run; if(UI.view !== "play" || !liveLocked(run)) return;
+  document.querySelectorAll("#app [data-a]").forEach(function(b){
+    var a = b.getAttribute("data-a"); if(liveMayAct(run, a)) return;
+    if(run.type === "bingo"){ var row = b.closest(".claim"); if(row && SMODE){ row.innerHTML = '<div class="who">Say your sentence to your teacher…</div>'; } return; }
+    b.disabled = true; b.classList.add("notmine");
+    if(a === "sn-roll" || a === "hl-call") b.title = liveTurnName(run) + "’s turn";
+  });
+  var el = document.getElementById("livePill"), nm = (run.type === "snakes" || run.type === "hilo") && run.st.players ? liveTurnName(run) : "";
+  if(el && nm && !(run.st.phase === "over" || run.st.phase === "roundend")) el.textContent += " · " + (liveMine(run.st, run.st.turn) ? "your turn" : nm + "’s turn");
 }
 
 function studentLinkData(p, g){
@@ -5171,6 +5205,7 @@ function handle(a, el){
   if(a === "pause"){ if(run && !run.paused && !run.st.spinning){ run.act = clockMs(run); run.paused = true; run.st._animating = false; saveRun(); render(); } return; }
   if(a === "resume-run"){ if(run && run.paused){ clockMs(run); run.resumedAt = Date.now(); run.paused = false; saveRun(); render(); } return; }
   if(run && run.paused) return;
+  if(run && TYPES[run.type] && !liveMayAct(run, a)){ toast(run.type === "bingo" ? "Your teacher marks the sentence." : "It’s " + liveTurnName(run) + "’s turn."); return; }
   if(run && TYPES[run.type]){
     var snap = JSON.stringify(run.st), nl = (run.st.log || []).length, nb = (run.st.bonusLog || []).length;
     var r = TYPES[run.type].act(run, a, el);
@@ -5211,7 +5246,7 @@ document.addEventListener("visibilitychange", function(){
 });
 if(UI.run && UI.run.away){ UI.run.away = false; UI.run.resumedAt = Date.now(); }
 if(UI.run && UI.run.st) UI.run.st._animating = false; /* resume a spin cut off by a reload */
-var _render0 = render; render = function(){ _render0(); try{ liveSync(); livePaint(); }catch(e){} };
+var _render0 = render; render = function(){ _render0(); try{ liveSync(); livePaint(); liveLockPaint(); }catch(e){} };
 if(STUDENT_PAGE) startStudent(); else { render(); connect(); }
 
 })();
