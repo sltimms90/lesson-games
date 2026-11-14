@@ -3,6 +3,7 @@ from playwright.sync_api import sync_playwright
 ROOT = __import__("os").path.abspath(__import__("os").path.join(__import__("os").path.dirname(__file__), "../.."))
 MOCK = open("mock-supabase.js").read()
 APP = open(ROOT + "/app/index.html", encoding="utf-8").read()
+APP = __import__("re").sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>', "", APP)  # the test hook changes the script, so its hash no longer matches
 HOOK = "window.__T={get STORE(){return STORE},slinkData:slinkData,packData:packData,get SLINK_TYPES(){return SLINK_TYPES}};\n"
 APP = APP.replace("if(STUDENT_PAGE) startStudent();", HOOK + "if(STUDENT_PAGE) startStudent();")
 BOARD = open("board.b64").read(); TOK = open("tok.b64").read(); JPG = open("board.jpg","rb").read()

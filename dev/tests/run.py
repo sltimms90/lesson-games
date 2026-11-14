@@ -3,6 +3,7 @@ from playwright.sync_api import sync_playwright
 ROOT = __import__("os").path.abspath(__import__("os").path.join(__import__("os").path.dirname(__file__), "../.."))
 MOCK = open("mock-supabase.js").read()
 APP = open(ROOT + "/app/index.html", encoding="utf-8").read()
+APP = __import__("re").sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>', "", APP)  # the test hook changes the script, so its hash no longer matches
 HOOK = "window.__T={get STORE(){return STORE},get STUDENT_PAGE(){return STUDENT_PAGE},get SB_MODE(){return SB_MODE},packData:packData,studentLinkData:studentLinkData};\n"
 assert APP.count("if(STUDENT_PAGE) startStudent();") == 1
 APP = APP.replace("if(STUDENT_PAGE) startStudent();", HOOK + "if(STUDENT_PAGE) startStudent();")

@@ -6,6 +6,7 @@ MOCK = open(os.path.join(HERE, "mock-supabase.js")).read()
 HOOK = "window.__T={get STORE(){return STORE},get UI(){return UI},get LIVE(){return LIVE},packData:packData,get PACKS(){return PACKS},get RESULTS(){return RESULTS},liveRoomFor:liveRoomFor,get SB(){return SB},get AUTH(){return AUTH},get STOREKIND(){return STORE && STORE.kind}};\n"
 def app_html():
     a = open(ROOT + "/app/index.html", encoding="utf-8").read()
+    a = __import__("re").sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>', "", a)  # the hook changes the script, so its CSP hash wouldn't match
     assert a.count("if(STUDENT_PAGE) startStudent();") == 1
     return a.replace("if(STUDENT_PAGE) startStudent();", HOOK + "if(STUDENT_PAGE) startStudent();")
 APP = app_html()

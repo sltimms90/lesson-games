@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-foQz83pWUMTcWTcZoaXRO6DdNIpJb/UQ3znvJkYxMhk='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -1448,7 +1449,7 @@ TYPES.hangman = {
     var board = s.points == null ? "" : '<div class="score"><span><span class="n">' + (s.total || 0) + '</span><small>points</small></span><span><span class="n">' + pts + '</span><small>' + (s.status === "playing" ? "this word" : "won") + '</small></span></div>';
     return '<section class="center hm"><div class="hm-side">' + lives + '</div><div class="hm-main">' + board + '<div class="progress">' + (s.ch ? "Challenge · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' +
       '<div class="word" aria-live="polite">' + slots + '</div>' + clue +
-      '<div class="wrong">' + (s.wrong.length ? 'Wrong: <b>' + s.wrong.join(" ") + '</b>' : '&nbsp;') + '</div>' + bottom + '</div></section>';
+      '<div class="wrong">' + (s.wrong.length ? 'Wrong: <b>' + esc(s.wrong.join(" ")) + '</b>' : '&nbsp;') + '</div>' + bottom + '</div></section>';
   },
   act: function(run, a, el){
     var s = run.st, w = s.words[s.i];
@@ -3227,9 +3228,9 @@ function snJumps(text){ var j = {}; String(text || "").split(/\n|;/).forEach(fun
 function snPlayers(block, pack){ var n = parseLines(block || "").map(function(x){ return x.trim(); }).filter(Boolean); if(!n.length) n = [(pack && pack.student) || "Student", "Teacher"]; return n.slice(0, 6); }
 function snToken(name, k){
   var o = STUDENTS[slug(name)];
-  return o && o.token ? '<img src="' + o.token + '" alt="">' : '<span style="background:' + SN_COLORS[k % SN_COLORS.length] + '">' + esc((name || "?").charAt(0).toUpperCase()) + '</span>';
+  return o && o.token ? '<img src="' + esc(o.token) + '" alt="">' : '<span style="background:' + SN_COLORS[k % SN_COLORS.length] + '">' + esc((name || "?").charAt(0).toUpperCase()) + '</span>';
 }
-function snThumb(name, k){ var o = STUDENTS[slug(name)]; return '<span class="th" style="background:' + SN_COLORS[k % SN_COLORS.length] + '">' + (o && o.token ? '<img src="' + o.token + '" alt="">' : esc((name || "?").charAt(0).toUpperCase())) + '</span>'; }
+function snThumb(name, k){ var o = STUDENTS[slug(name)]; return '<span class="th" style="background:' + SN_COLORS[k % SN_COLORS.length] + '">' + (o && o.token ? '<img src="' + esc(o.token) + '" alt="">' : esc((name || "?").charAt(0).toUpperCase())) + '</span>'; }
 function dieFace(n, spin){
   var on = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] }[n] || [], h = "";
   for(var i=0;i<9;i++) h += '<i' + (on.indexOf(i) !== -1 ? ' class="on"' : "") + '></i>';
@@ -3256,7 +3257,7 @@ function snPreviewHtml(b){
   var g = snGrid(b), N = snCount(g), nums = "", J = snJumps(b.jumps), lines = "";
   for(var n=1;n<=N;n++){ var p = snPos(g, n); nums += '<span class="num" style="left:' + p.x + '%;top:' + p.y + '%">' + n + '</span>'; }
   Object.keys(J).forEach(function(a){ var p1 = snPos(g, +a), p2 = snPos(g, J[a]), up = J[a] > +a; lines += '<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + p2.x + '" y2="' + p2.y + '" stroke="' + (up ? "#1E8A5A" : "#C8323B") + '" stroke-width="1.2" stroke-linecap="round" marker-end="url(#ar' + (up ? "u" : "d") + ')"/>'; });
-  return '<div class="sn-prev"><img src="' + b.img + '" alt="Board"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><marker id="aru" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0L4,2L0,4z" fill="#1E8A5A"/></marker><marker id="ard" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0L4,2L0,4z" fill="#C8323B"/></marker></defs>' + lines + '</svg>' + nums + '</div><p class="hint">The numbers should sit on the board’s squares; green arrows are ladders, red are snakes. Nudge the edges or fix the list if anything is off.</p>';
+  return '<div class="sn-prev"><img src="' + esc(b.img) + '" alt="Board"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><marker id="aru" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0L4,2L0,4z" fill="#1E8A5A"/></marker><marker id="ard" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0L4,2L0,4z" fill="#C8323B"/></marker></defs>' + lines + '</svg>' + nums + '</div><p class="hint">The numbers should sit on the board’s squares; green arrows are ladders, red are snakes. Nudge the edges or fix the list if anything is off.</p>';
 }
 function snPlayersHtml(){
   var names = snPlayers($("gBlock") ? $("gBlock").value : "", getPack(UI.packId));
@@ -3357,7 +3358,7 @@ TYPES.snakes = {
     var btns = s.phase === "over" ? '<button class="btn big-btn" data-a="finish">Finish</button>'
       : '<button class="btn big-btn" data-a="sn-roll"' + (s.phase === "roll" && s.fix == null ? "" : " disabled") + '>Roll</button>';
     return '<section class="center sn-wrap">' +
-      '<div class="sn-board' + (pick ? " pickable" : "") + '" id="snBoardEl" style="--ar:' + ((b.w || 1) / (b.h || 1)) + '"><img src="' + b.img + '" alt="Game board">' + toks + '</div>' +
+      '<div class="sn-board' + (pick ? " pickable" : "") + '" id="snBoardEl" style="--ar:' + ((+b.w || 1) / (+b.h || 1)) + '"><img src="' + esc(b.img) + '" alt="Game board">' + toks + '</div>' +
       '<div class="sn-side"><div class="sn-bar">' + chips + '</div>' + msg +
       '<div class="sn-dice" id="snDice">' + dieFace(s.dice[0], rolling) + dieFace(s.dice[1], rolling) + (s.lucky ? '<span class="sn-dot"></span>' : "") + '</div><div class="row" style="justify-content:center">' + btns + '</div></div></section>';
   },
@@ -4553,7 +4554,7 @@ function viewPlay(){
     (paused ? "" : '<button class="btn ghost sm ic" data-a="pause" aria-label="Pause" title="Pause"' + (run.st.spinning ? " disabled" : "") + '>❚❚</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="settings" aria-label="Settings" title="Settings">⚙</button>') +
     '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button></header>' +
-    '<main class="stage">' + (run.prev && !paused ? '<p class="lasttime">Last time: ' + esc(run.prev) + '</p>' : "") + (paused ? '<div class="pausebox"><h1>Paused</h1><p class="muted">The game and its timer are stopped, and paused time isn’t counted.</p><button class="btn big-btn" data-a="resume-run">Resume</button></div>' : t.view(run)) + '</main>';
+    '<main class="stage">' + (run.prev && !paused ? '<p class="lasttime">Last time: ' + esc(run.prev) + '</p>' : "") + (paused ? '<div class="pausebox"><h1>Paused</h1><p class="muted">The game and its timer are stopped, and paused time isn’t counted.</p><button class="btn big-btn" data-a="resume-run">Resume</button></div>' : (function(){ try{ return t.view(run); }catch(e){ run.broken = true; return '<p class="notice">Something went wrong drawing this game. Tap ✕ to save or quit it.</p>'; } })()) + '</main>';
   if(CLOCKT){ clearInterval(CLOCKT); CLOCKT = null; }
   if(!paused) CLOCKT = setInterval(function(){ var e = $("clock"); if(!e || UI.view !== "play" || UI.run !== run || run.paused){ clearInterval(CLOCKT); CLOCKT = null; return; } e.textContent = fmtClock(clockMs(run)); }, 1000);
   if(UI.finishAsk){
@@ -4570,7 +4571,8 @@ function viewPlay(){
     '<div class="row" style="margin-top:18px"><button class="btn" data-a="settings">Done</button></div></div></div>');
   var note = document.querySelector("[data-note]");
   if(note) note.addEventListener("input", function(){ t.note(run, note.value.trim()); saveRun(); });
-  if(t.after && !liveMirror(run)) t.after(run);
+  if(t.after && !liveMirror(run) && !run.broken){ try{ t.after(run); }catch(e){} }
+  run.broken = false;
 }
 
 /* Items a result got wrong, for Retry the misses (games that log per item). */
@@ -4754,13 +4756,84 @@ function liveGame(gid){
   return g ? { p:p, g:g } : null;
 }
 function LIVE_PACK(){ var pid = UI.view === "play" && UI.run ? UI.run.packId : UI.packId; return pid; }
+function liveDrawable(run, st){
+  var t = TYPES[run.type]; if(!t) return false;
+  try{ t.view(Object.assign({}, run, { st: clone(st), liveOverride:true })); return true; }catch(e){ return false; }
+}
 function liveApply(run, m){
   run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0;
   LIVE.sent = JSON.stringify(liveStrip(run.st));
   saveUI(); if(UI.view === "play") render();
 }
+
+/* ---------- untrusted input: links and the live channel ----------
+   Anyone with a student or class link knows the lesson's room, and anyone can build a link, so nothing that
+   arrives that way is trusted. Text loses < and >; where this screen's own state has a number, true/false or
+   list, the incoming value must be the same kind or the whole message is dropped; ids must look like ids;
+   pictures must be in our own storage. */
+var PIC_RE = /^https:\/\/prglfopvovvxhzrejhzc\.supabase\.co\/storage\/v1\/object\/public\/game-pictures\/[0-9a-f]{32}\.(jpg|png|webp|gif)$/;
+function picOk(u){ return typeof u === "string" && PIC_RE.test(u); }
+function idOk(v){ return typeof v === "string" && /^[A-Za-z0-9_\-.~:@+]{1,80}$/.test(v); }
+function liveClean(v, ref, depth){
+  depth = depth || 0;
+  if(depth > 14) throw new Error("too deep");
+  if(v === null || v === undefined) return v === null ? null : undefined;
+  var t = typeof v, rt = ref === null || ref === undefined ? "" : Array.isArray(ref) ? "array" : typeof ref;
+  if(rt === "number" && t !== "number") throw new Error("number expected");
+  if(rt === "boolean" && t !== "boolean") throw new Error("true/false expected");
+  if(rt === "array" && !Array.isArray(v)) throw new Error("list expected");
+  if(rt === "object" && (t !== "object" || Array.isArray(v))) throw new Error("object expected");
+  if(t === "string") return v.length > 6000 ? "" : v.replace(/</g, "‹").replace(/>/g, "›");
+  if(t === "number") return isFinite(v) ? v : 0;
+  if(t === "boolean") return v;
+  if(Array.isArray(v)){
+    if(v.length > 3000) throw new Error("list too long");
+    return v.map(function(x, i){ return liveClean(x, rt === "array" ? (ref[i] !== undefined ? ref[i] : null) : null, depth + 1); });
+  }
+  if(t === "object"){
+    var o = {}, keys = Object.keys(v); if(keys.length > 400) throw new Error("too many keys");
+    keys.forEach(function(k){ if(k === "__proto__" || k === "constructor" || k === "prototype") return; o[k] = liveClean(v[k], rt === "object" ? ref[k] : null, depth + 1); });
+    return o;
+  }
+  return undefined;
+}
+/* A Snakes & Ladders board from a link or a class message: only the fields the game reads, with numbers as numbers. */
+function pubBoard(b){
+  if(!b || typeof b !== "object" || !idOk(b.id) || !picOk(b.img)) return null;
+  var o = { id:b.id, img:b.img, name: typeof b.name === "string" ? liveClean(b.name) : "", zig: b.zig !== false, start: b.start === "tl" || b.start === "br" || b.start === "tr" ? b.start : "bl", jumps: typeof b.jumps === "string" ? b.jumps.slice(0, 2000) : "" };
+  ["w", "h", "rows", "cols", "l", "r", "t", "b"].forEach(function(k){ var n = +b[k]; if(isFinite(n)) o[k] = n; });
+  return o;
+}
+function pubTokens(x){ var out = {}; if(x && typeof x === "object") Object.keys(x).slice(0, 12).forEach(function(nm){ if(picOk(x[nm])) out[String(nm).slice(0, 40)] = x[nm]; }); return out; }
+/* A game definition from a link or a class message. */
+function pubGame(g){
+  if(!g || typeof g !== "object" || !idOk(g.id) || !TYPES[g.type]) return null;
+  var c; try{ c = liveClean(g); }catch(e){ return null; }
+  c.block = typeof c.block === "string" ? c.block : ""; c.options = c.options && typeof c.options === "object" && !Array.isArray(c.options) ? c.options : {};
+  return c;
+}
+function liveMsgOk(m){
+  if(["hello", "st", "fin", "stop", "ack"].indexOf(m.t) === -1) return false;
+  if(m.g !== undefined && !idOk(m.g)) return false;
+  if(m.p !== undefined && !idOk(m.p)) return false;
+  if(m.gen !== undefined && !idOk(m.gen)) return false;
+  if(m.rev !== undefined && (typeof m.rev !== "number" || !isFinite(m.rev))) return false;
+  if(m.t0 !== undefined && (typeof m.t0 !== "number" || !isFinite(m.t0))) return false;
+  if(typeof m.from !== "string" || m.from.length > 40) return false;
+  try{
+    if(m.st !== undefined){ var r = UI.run && UI.run.gameId === m.g ? UI.run.st : null; m.st = liveClean(m.st, r); if(!m.st || typeof m.st !== "object" || Array.isArray(m.st)) return false; }
+    if(m.title !== undefined) m.title = typeof m.title === "string" ? liveClean(m.title) : "";
+  }catch(e){ return false; }
+  if(m.gd !== undefined){
+    var g = m.gd && pubGame(m.gd.g); if(!g) return false;
+    var x = m.gd.x ? { board: pubBoard(m.gd.x.board), tokens: pubTokens(m.gd.x.tokens) } : null;
+    m.gd = { g:g, l: typeof m.gd.l === "number" ? m.gd.l : null, k: typeof m.gd.k === "string" && /^[a-z0-9-]{1,30}$/.test(m.gd.k) ? m.gd.k : "", x:x };
+  }
+  return true;
+}
 function liveRecv(m){
-  if(!m || m.from === LIVE.me) return;
+  if(!m || typeof m !== "object" || m.from === LIVE.me) return;
+  if(!liveMsgOk(m)) return;
   var run = UI.run;
   if(m.t === "hello"){ if(run && liveOn(run)) liveOut(true); return; }
   if(m.t === "fin"){
@@ -4784,8 +4857,8 @@ function liveRecv(m){
     if(run.liveGen === m.gen){
       if(liveRejects(run, m)){ run.st._rev = Math.max(run.st._rev || 0, m.rev || 0) + 1; LIVE.sent = ""; liveOut(true); return; }
       var mine = run.st._rev || 0;
-      if(m.rev > mine || (m.rev === mine && m.from > LIVE.me && JSON.stringify(liveStrip(m.st)) !== JSON.stringify(liveStrip(run.st)))) liveApply(run, m);
-    } else if((m.t0 || 0) > (run.liveT0 || 0)) liveApply(run, m);
+      if(m.rev > mine || (m.rev === mine && m.from > LIVE.me && JSON.stringify(liveStrip(m.st)) !== JSON.stringify(liveStrip(run.st)))){ if(liveDrawable(run, m.st)) liveApply(run, m); else { delete LIVE.last[m.g]; run.st._rev = Math.max(mine, m.rev || 0) + 1; LIVE.sent = ""; liveOut(true); } }
+    } else if((m.t0 || 0) > (run.liveT0 || 0)){ if(liveDrawable(run, m.st)) liveApply(run, m); }
     else liveOut(true);
     return;
   }
@@ -4803,7 +4876,7 @@ function liveStart(run){
   if(!LIVE.room || LIVE_TYPES.indexOf(run.type) === -1) return;
   if(!SMODE){ var p = getPack(run.packId); if(!p || p.liveRoom !== LIVE.room) return; }
   var m = LIVE.last[run.gameId];
-  if(m && !(m.st.phase === "over" || m.st.winner) && !UI.liveFresh){ run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; run.peerIn = m.from !== LIVE.me; LIVE.sent = JSON.stringify(liveStrip(run.st)); }
+  if(m && !(m.st.phase === "over" || m.st.winner) && !UI.liveFresh && liveDrawable(run, m.st)){ run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; run.peerIn = m.from !== LIVE.me; LIVE.sent = JSON.stringify(liveStrip(run.st)); }
   else { run.liveGen = shortId(); run.liveT0 = Date.now(); run.st._rev = 0; LIVE.sent = ""; setTimeout(function(){ if(UI.run === run) liveOut(true); }, 0); }
   UI.liveFresh = false;
   if(!SMODE){
@@ -4930,8 +5003,8 @@ function clsGameDef(p, g){
 }
 function clsApply(gd, pid){
   SMODE.d.g = gd.g; SMODE.d.p = pid; SMODE.d.l = gd.l || null;
-  if(gd.x && gd.x.board && gd.x.board.id) BOARDS[gd.x.board.id] = gd.x.board;
-  if(gd.x && gd.x.tokens) Object.keys(gd.x.tokens).forEach(function(nm){ STUDENTS[slug(nm)] = { id:slug(nm), name:nm, token:gd.x.tokens[nm] }; });
+  var bd = gd.x && pubBoard(gd.x.board); if(bd) BOARDS[bd.id] = bd;
+  if(gd.x){ var tk = pubTokens(gd.x.tokens); Object.keys(tk).forEach(function(nm){ STUDENTS[slug(nm)] = { id:slug(nm), name:nm, token:tk[nm] }; }); }
   var k = gd.k || SMODE.d.k;
   PACKS = [{ id:pid || "class", student:"", lp:gd.l || null, look: k && k !== "bright" ? k : "", games:[gd.g] }];
 }
@@ -4999,10 +5072,11 @@ async function startStudent(){
   function msg(t){ $("app").innerHTML = '<div class="wrap" style="text-align:center;padding-top:12vh"><h2>Lesson Games</h2><p class="notice">' + esc(t) + '</p></div>'; }
   if(mc){
     var dc; try{ dc = await unpackData(mc[1]); }catch(e){ dc = null; }
-    if(!dc || !dc.r){ msg("This class link looks broken. Ask your teacher to send it again."); return; }
-    SMODE = { cls:true, key:"c" + hash(mc[1]), d:{ v:dc.v, n:dc.n || "", k:dc.k || "", live:{ r:String(dc.r) }, g:null, p:null } };
-    PACKS = [{ id:"class", student:"", look: dc.k && dc.k !== "bright" ? dc.k : "", games:[] }];
-    if(UI.clsG && UI.clsG.key === SMODE.key && UI.clsG.gd) clsApply(UI.clsG.gd, UI.clsG.p);
+    if(!dc || typeof dc.r !== "string" || !/^[0-9a-f]{32}$/.test(dc.r)){ msg("This class link looks broken. Ask your teacher to send it again."); return; }
+    var dk = typeof dc.k === "string" && /^[a-z0-9-]{1,30}$/.test(dc.k) ? dc.k : "";
+    SMODE = { cls:true, key:"c" + hash(mc[1]), d:{ v:+dc.v || 0, n: typeof dc.n === "string" ? liveClean(dc.n).slice(0, 40) : "", k:dk, live:{ r:dc.r }, g:null, p:null } };
+    PACKS = [{ id:"class", student:"", look: dk && dk !== "bright" ? dk : "", games:[] }];
+    if(UI.clsG && UI.clsG.key === SMODE.key && UI.clsG.gd && pubGame(UI.clsG.gd.g) && idOk(UI.clsG.p)) clsApply(UI.clsG.gd, UI.clsG.p);
     if(UI.run && (UI.runKey !== SMODE.key || !SMODE.d.g || UI.run.gameId !== SMODE.d.g.id)) UI.run = null;
     if(UI.view === "sdone" && UI.sKey !== SMODE.key) UI.view = "sready";
     if(UI.view !== "sdone" && !(UI.view === "play" && UI.run)) UI.view = "sready";
@@ -5012,8 +5086,11 @@ async function startStudent(){
   if(!m){ msg("Ask your teacher for a game link."); return; }
   var d; try{ d = await unpackData(m[1]); }catch(e){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
   if(!d || !d.g || !TYPES[d.g.type]){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
-  if(d.x && d.x.board && d.x.board.id){ BOARDS[d.x.board.id] = d.x.board; }
-  if(d.x && d.x.tokens) Object.keys(d.x.tokens).forEach(function(nm){ STUDENTS[slug(nm)] = { id:slug(nm), name:nm, token:d.x.tokens[nm] }; });
+  var sg = pubGame(d.g); if(!sg){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
+  d.g = sg; d.p = idOk(d.p) ? d.p : "student"; d.n = typeof d.n === "string" ? liveClean(d.n).slice(0, 40) : ""; d.k = typeof d.k === "string" && /^[a-z0-9-]{1,30}$/.test(d.k) ? d.k : ""; d.l = typeof d.l === "number" ? d.l : null;
+  if(d.live && !(d.live.r && /^[0-9a-f]{32}$/.test(d.live.r))) delete d.live;
+  var lbd = d.x && pubBoard(d.x.board); if(lbd) BOARDS[lbd.id] = lbd;
+  if(d.x){ var ltk = pubTokens(d.x.tokens); Object.keys(ltk).forEach(function(nm){ STUDENTS[slug(nm)] = { id:slug(nm), name:nm, token:ltk[nm] }; }); }
   SMODE = { d:d, key:String(hash(m[1])) };
   PACKS = [{ id:d.p || "student", student:"", lp:d.l || null, look:d.k && d.k !== "bright" ? d.k : "", games:[d.g] }];
   if(UI.run && UI.runKey !== SMODE.key){ UI.run = null; }
