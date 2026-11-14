@@ -39,8 +39,9 @@ with sync_playwright() as p:
             check(T.evaluate("__T.RUN.st.log.length") >= 4, "snakes: 4 turns recorded once each (no double moves)")
         if name == "hilo":
             for _ in range(3):
-                who = "student" if T.evaluate("__T.RUN.st.players[__T.RUN.st.turn].name") == "Mia" else "teacher"; pg = S if who == "student" else T
-                btn = pg.locator("[data-a=hl-call]:not([disabled]), [data-a=hl-next]:not([disabled]), [data-a=hl-newround]:not([disabled])")
+                sel = "[data-a=hl-call]:not([disabled]), [data-a=hl-next]:not([disabled]), [data-a=hl-newround]:not([disabled])"
+                pg = S if S.locator(sel).count() else T; who = "student" if pg is S else "teacher"   # the next player taps "Now it's X's turn"
+                btn = pg.locator(sel)
                 if btn.count(): btn.first.click()
                 pg.wait_for_timeout(2500)
                 check(wait_same(T, S, name), "hilo: %s taps → both agree" % who)

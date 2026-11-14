@@ -24,8 +24,15 @@ with sync_playwright() as p:
             right = S if turn == "Mia" else T
             right.click("[data-a=%s]" % act + (":not([disabled])")); right.wait_for_timeout(3600 if name=="snakes" else 2600)
             if name == "hilo":
-                nx = right.locator("[data-a=hl-next]:not([disabled])")
-                if nx.count(): nx.click(); right.wait_for_timeout(800)
+                nxt = T.evaluate("(()=>{const s=__T.RUN.st; return s.phase==='result' && s.players.length>1 ? s.players[(s.turn+1)%s.players.length].name : ''})()")
+                passing = T.evaluate("!!document.querySelector('[data-a=hl-next]') && /Now it/.test(document.querySelector('[data-a=hl-next]').textContent)")
+                if passing:
+                    taker = S if nxt == "Mia" else T; other = T if taker is S else S
+                    check(taker.locator("[data-a=hl-next]:not([disabled])").count() == 1 and other.locator("[data-a=hl-next]:not([disabled])").count() == 0, "hilo: %s (whose turn it becomes) taps Now it's my turn, not the other screen" % nxt)
+                    taker.click("[data-a=hl-next]:not([disabled])"); taker.wait_for_timeout(800)
+                else:
+                    nx = right.locator("[data-a=hl-next]:not([disabled])")
+                    if nx.count(): nx.click(); right.wait_for_timeout(800)
             check(wait_same(T, S, name), name + ": still in step after %s plays" % turn)
         S.close(); T.wait_for_timeout(500)
         print("   after close: peers", T.evaluate("__T.LIVE.peers"), "notmine", T.locator(".notmine").count(), "phase", T.evaluate("__T.RUN.st.phase"), "turn", T.evaluate("__T.RUN.st.players[__T.RUN.st.turn].name"), [T.locator(".notmine").nth(i).get_attribute("data-a") for i in range(T.locator(".notmine").count())])

@@ -4844,6 +4844,8 @@ function liveMayAct(run, a){
     if(a === "sn-lucky" || a === "sn-fix") return !SMODE;
     if(a === "sn-roll" || a === "sn-place") return s.fix != null ? !SMODE : liveMine(s, s.turn);
   }
+  /* Higher or Lower: when the turn passes, the player whose turn it's becoming taps "Now it's X's turn" to take over. */
+  if(run.type === "hilo" && a === "hl-next" && s.idx < 52 && hlPass(s) && (s.players || []).length > 1) return liveMine(s, (s.turn + 1) % s.players.length);
   if(run.type === "hilo" && (a === "hl-call" || a === "hl-next")) return liveMine(s, s.turn);
   if(run.type === "bingo" && a === "bg-res") return !SMODE;
   if(liveSolo(run) && !liveSoloLocked(run)) return true;
