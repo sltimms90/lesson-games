@@ -4546,6 +4546,7 @@ function liveRecv(m){
   if(!prev || prev.gen !== m.gen ? (!prev || (m.t0 || 0) >= (prev.t0 || 0)) : (m.rev > prev.rev || (m.rev === prev.rev && m.from > (prev.from || LIVE.me)))) LIVE.last[m.g] = m;
   if(run && run.gameId === m.g && (SMODE || run.packId === m.p)){
     if(run.liveGen === m.gen){
+      if(liveRejects(run, m)){ run.st._rev = Math.max(run.st._rev || 0, m.rev || 0) + 1; LIVE.sent = ""; liveOut(true); return; }
       var mine = run.st._rev || 0;
       if(m.rev > mine || (m.rev === mine && m.from > LIVE.me && JSON.stringify(liveStrip(m.st)) !== JSON.stringify(liveStrip(run.st)))) liveApply(run, m);
     } else if((m.t0 || 0) > (run.liveT0 || 0)) liveApply(run, m);
@@ -4610,6 +4611,16 @@ function liveLockPaint(){
   });
   var el = document.getElementById("livePill"), nm = (run.type === "snakes" || run.type === "hilo") && run.st.players ? liveTurnName(run) : "";
   if(el && nm && !(run.st.phase === "over" || run.st.phase === "roundend")) el.textContent += " · " + (liveMine(run.st, run.st.turn) ? "your turn" : nm + "’s turn");
+}
+
+/* The teacher's app has the final say: a move made from the student's screen on the teacher's turn
+   (an old page, or a tap that slipped through) is undone by sending the teacher's game back. */
+function liveRejects(run, m){
+  if(SMODE || !liveLocked(run) || !m.st || (run.type !== "snakes" && run.type !== "hilo")) return false;
+  var s = run.st, waiting = run.type === "snakes" ? (s.phase === "roll" && s.fix == null) : s.phase === "call";
+  if(!waiting || !liveTeacherSlot(s, s.turn)) return false;
+  var moved = (m.st.log || []).length > (s.log || []).length || m.st.phase !== s.phase;
+  return moved;
 }
 
 function studentLinkData(p, g){
