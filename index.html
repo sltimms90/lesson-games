@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-foQz83pWUMTcWTcZoaXRO6DdNIpJb/UQ3znvJkYxMhk='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-qPddPdeiCzREOm29vDoQOGvemgJposUYOQxUsH2z4TI='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -4553,7 +4553,7 @@ function viewPlay(){
     (paused || SMODE || CH_TYPES.indexOf(run.type) === -1 ? "" : '<button class="btn ghost sm ic" data-a="challenge" aria-label="Challenge" title="Challenge: a quick language task before play carries on"' + (run.st.ch || run.st.phase === "over" || run.st.winner ? " disabled" : "") + '>⚡</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="pause" aria-label="Pause" title="Pause"' + (run.st.spinning ? " disabled" : "") + '>❚❚</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="settings" aria-label="Settings" title="Settings">⚙</button>') +
-    '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button></header>' +
+    (SMODE && SMODE.cls ? "" : '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button>') + '</header>' +
     '<main class="stage">' + (run.prev && !paused ? '<p class="lasttime">Last time: ' + esc(run.prev) + '</p>' : "") + (paused ? '<div class="pausebox"><h1>Paused</h1><p class="muted">The game and its timer are stopped, and paused time isn’t counted.</p><button class="btn big-btn" data-a="resume-run">Resume</button></div>' : (function(){ try{ return t.view(run); }catch(e){ run.broken = true; return '<p class="notice">Something went wrong drawing this game. Tap ✕ to save or quit it.</p>'; } })()) + '</main>';
   if(CLOCKT){ clearInterval(CLOCKT); CLOCKT = null; }
   if(!paused) CLOCKT = setInterval(function(){ var e = $("clock"); if(!e || UI.view !== "play" || UI.run !== run || run.paused){ clearInterval(CLOCKT); CLOCKT = null; return; } e.textContent = fmtClock(clockMs(run)); }, 1000);
@@ -4674,7 +4674,7 @@ function liveSolo(run){ return !!run && LIVE_TURNS.indexOf(run.type) === -1; }
 function liveMirror(run){ return !SMODE && liveSolo(run) && liveSoloLocked(run) && !run.liveOverride; }
 /* A solo game is only shared once the other screen is in it (a message about it has arrived, or a class link is
    connected and will open it). A student link for a different game left open doesn't lock the teacher's iPad. */
-function liveSoloLocked(run){ return liveLocked(run) && (!!run.peerIn || (!SMODE && LIVE.cls)); }
+function liveSoloLocked(run){ return liveLocked(run); }
 var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", cls:false, applyingFin:false, sent:"" };
 (function(){ var a = new Uint8Array(9); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function(_, i){ a[i] = Math.random() * 256; }); LIVE.me = Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); })();
 function liveNewRoom(){ var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); }
@@ -4711,7 +4711,8 @@ function liveJoin(room){
     ch.on("broadcast", { event:"m" }, function(m){ if(LIVE.chan === ch) liveRecv(m.payload || {}); });
     ch.on("presence", { event:"sync" }, function(){
       if(LIVE.chan !== ch) return;
-      var ps = ch.presenceState(), others = Object.keys(ps).filter(function(k){ return k !== LIVE.me; });
+      var ps = ch.presenceState(), want = SMODE ? "teacher" : "student";
+      var others = Object.keys(ps).filter(function(k){ return k !== LIVE.me && ((ps[k][0] || {}).role || "student") === want; });
       LIVE.peers = others.length;
       LIVE.peerName = others.length ? ((ps[others[0]][0] || {}).name || "") : "";
       LIVE.cls = others.some(function(k){ return !!(ps[k][0] || {}).cls; });
@@ -4731,7 +4732,7 @@ function liveStudentName(){
   if(d.g && (d.g.type === "snakes" || d.g.type === "hilo")){ var n = parseLines(d.g.block || "").map(function(x){ return x.trim(); }).filter(function(x){ return x && !snIsTeacher(x); }); if(n[0]) return n[0].slice(0, 40); }
   return "Student";
 }
-function liveSend(m){ if(!LIVE.chan) return; m.from = LIVE.me; try{ LIVE.chan.send({ type:"broadcast", event:"m", payload:m }); }catch(e){} }
+function liveSend(m){ if(!LIVE.chan) return; m.from = LIVE.me; m.r = SMODE ? "s" : "t"; try{ LIVE.chan.send({ type:"broadcast", event:"m", payload:m }); }catch(e){} }
 function liveOn(run){
   if(!run || !LIVE.room || LIVE_TYPES.indexOf(run.type) === -1 || !run.liveGen) return false;
   if(SMODE) return true;
@@ -4814,6 +4815,8 @@ function pubGame(g){
 }
 function liveMsgOk(m){
   if(["hello", "st", "fin", "stop", "ack"].indexOf(m.t) === -1) return false;
+  if(m.r !== undefined && m.r !== "s" && m.r !== "t") return false;
+  if(m.secs !== undefined && (typeof m.secs !== "number" || !isFinite(m.secs) || m.secs < 0)) return false;
   if(m.g !== undefined && !idOk(m.g)) return false;
   if(m.p !== undefined && !idOk(m.p)) return false;
   if(m.gen !== undefined && !idOk(m.gen)) return false;
@@ -4834,11 +4837,37 @@ function liveMsgOk(m){
 function liveRecv(m){
   if(!m || typeof m !== "object" || m.from === LIVE.me) return;
   if(!liveMsgOk(m)) return;
+  if(!SMODE && m.r === "t") return;   /* another of the teacher's own devices: not a student */
+  if(SMODE && m.r === "s") return;    /* another student page */
   var run = UI.run;
   if(m.t === "hello"){ if(run && liveOn(run)) liveOut(true); return; }
+  if(m.t === "ack"){
+    var lr = UI.lastResult;
+    if(SMODE && lr && lr.gen === m.gen && !lr.liveSaved){ lr.liveSaved = true; saveUI(); if(UI.view === "sdone") render(); }
+    return;
+  }
   if(m.t === "fin"){
-    if(LIVE.last[m.g] && LIVE.last[m.g].gen === m.gen) delete LIVE.last[m.g];
-    if(run && run.gameId === m.g && run.liveGen === m.gen){ LIVE.applyingFin = true; try{ UI.finishAsk = false; finishRun(); } finally{ LIVE.applyingFin = false; } }
+    var seen = LIVE.last[m.g] && LIVE.last[m.g].gen === m.gen;
+    if(seen) delete LIVE.last[m.g];
+    if(run && run.gameId === m.g && run.liveGen === m.gen){
+      if(!SMODE && m.st && liveDrawable(run, m.st)){ run.st = m.st; }
+      LIVE.applyingFin = true; try{ UI.finishAsk = false; finishRun(); } finally{ LIVE.applyingFin = false; }
+      return;
+    }
+    /* Teacher not on that game (home page, another game, left for later): save it from the student's final state,
+       as long as this screen saw the game being played in this lesson and it isn't saved already. */
+    if(!SMODE && seen && m.st && m.p === LIVE_PACK()){
+      var fp = getPack(m.p), fg = fp && (fp.games || []).filter(function(x){ return x.id === m.g; })[0];
+      if(fg && !RESULTS.some(function(x){ return x.liveGen === m.gen; })){
+        var k = m.p + "|" + m.g, pk = UI.parked && UI.parked[k], fr = { packId:m.p, gameId:m.g, type:fg.type, title: (pk && pk.title) || fg.title || TYPES[fg.type].label, student:fp.student || "", lp:fp.lp || null, st:m.st, act:(m.secs || 0) * 1000, resumedAt:Date.now(), paused:true, liveGen:m.gen };
+        if(liveDrawable(fr, m.st)){
+          if(pk && pk.liveGen === m.gen) delete UI.parked[k];
+          var res = resultFrom(fr);
+          STORE.saveResult(res).then(function(){ refresh(); liveSend({ t:"ack", g:m.g, gen:m.gen }); }).catch(saveErr);
+          toast("Saved " + (fp.student || "the student") + "’s " + (fg.title || TYPES[fg.type].label) + ".");
+        }
+      }
+    }
     return;
   }
   if(m.t === "stop"){
@@ -4853,7 +4882,7 @@ function liveRecv(m){
   var prev = LIVE.last[m.g];
   if(!prev || prev.gen !== m.gen ? (!prev || (m.t0 || 0) >= (prev.t0 || 0)) : (m.rev > prev.rev || (m.rev === prev.rev && m.from > (prev.from || LIVE.me)))) LIVE.last[m.g] = m;
   if(run && run.gameId === m.g && (SMODE || run.packId === m.p)){
-    if(run.liveGen === m.gen || (m.t0 || 0) > (run.liveT0 || 0)) run.peerIn = true;
+    if((run.liveGen === m.gen || (m.t0 || 0) > (run.liveT0 || 0)) && !run.peerIn){ run.peerIn = true; saveUI(); if(UI.view === "play" && !run.st._animating) setTimeout(function(){ if(UI.run === run && UI.view === "play") render(); }, 0); }
     if(run.liveGen === m.gen){
       if(liveRejects(run, m)){ run.st._rev = Math.max(run.st._rev || 0, m.rev || 0) + 1; LIVE.sent = ""; liveOut(true); return; }
       var mine = run.st._rev || 0;
@@ -4876,7 +4905,7 @@ function liveStart(run){
   if(!LIVE.room || LIVE_TYPES.indexOf(run.type) === -1) return;
   if(!SMODE){ var p = getPack(run.packId); if(!p || p.liveRoom !== LIVE.room) return; }
   var m = LIVE.last[run.gameId];
-  if(m && !(m.st.phase === "over" || m.st.winner) && !UI.liveFresh && liveDrawable(run, m.st)){ run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; run.peerIn = m.from !== LIVE.me; LIVE.sent = JSON.stringify(liveStrip(run.st)); }
+  if(m && !(m.st.phase === "over" || m.st.winner) && !UI.liveFresh && liveDrawable(run, m.st)){ run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; run.peerIn = m.from !== LIVE.me; LIVE.sent = JSON.stringify(liveStrip(run.st)); setTimeout(function(){ if(UI.run === run) liveOut(true); }, 0); /* tells the other screen we've joined */ }
   else { run.liveGen = shortId(); run.liveT0 = Date.now(); run.st._rev = 0; LIVE.sent = ""; setTimeout(function(){ if(UI.run === run) liveOut(true); }, 0); }
   UI.liveFresh = false;
   if(!SMODE){
@@ -4902,7 +4931,7 @@ function liveTeacherSlot(s, k){
   return anyT ? snIsTeacher(ps[k] && ps[k].name) : k > 0;
 }
 function liveMine(s, k){ return SMODE ? !liveTeacherSlot(s, k) : liveTeacherSlot(s, k); }
-function liveLocked(run){ return liveOn(run) && LIVE.peers > 0; }
+function liveLocked(run){ return liveOn(run) && LIVE.peers > 0 && (!!run.peerIn || (!SMODE && LIVE.cls)); }
 function liveMayAct(run, a){
   if(!liveLocked(run)) return true;
   if(a === "challenge" || a === "ch-mark") return !SMODE;
@@ -5506,10 +5535,7 @@ function startRun(p, g){
   liveStart(UI.run);
   go("play");
 }
-function finishRun(){
-  var run = UI.run; if(!run) return;
-  if(run.liveGen && LIVE.room && !LIVE.applyingFin){ liveSend({ t:"fin", g:run.gameId, gen:run.liveGen }); delete LIVE.last[run.gameId]; }
-  var liveSaved = !!(SMODE && run.liveGen && LIVE.room && LIVE.peers > 0);
+function resultFrom(run){
   var t = TYPES[run.type];
   if(t.beforeFinish) t.beforeFinish(run);
   var st = clone(run.st); delete st._animating;
@@ -5519,9 +5545,23 @@ function finishRun(){
   var r = { id: (run.packId + "_" + run.gameId + "_" + shortId()).replace(/[^A-Za-z0-9_\-.~:@+]/g, "-"), packId:run.packId, student:run.student, lp:run.lp, gameId:run.gameId,
     type:run.type, title:run.title, at:nowIso(), summary:sum, score:sc, items:its, activeSecs:secs, detail:st, points: gamePoints(run.type, run.st, sc) };
   if(run.retry) r.retry = true;
-  if(SMODE){ UI.run = null; UNDO = []; UI.lastResult = { id:r.id, summary:sum, packId:r.packId, gameId:r.gameId, type:r.type, title:r.title, at:r.at, score:sc, items:its, activeSecs:secs, points:r.points }; UI.lastResult.liveSaved = liveSaved; UI.sKey = SMODE.key; UI.sCode = null; makeSCode(UI.lastResult); go("sdone"); return; }
+  if(run.liveGen) r.liveGen = run.liveGen;
+  return r;
+}
+function finishRun(){
+  var run = UI.run; if(!run) return;
+  if(run.liveGen && LIVE.room && !LIVE.applyingFin){
+    var fm = { t:"fin", g:run.gameId, p:run.packId, gen:run.liveGen, secs: Math.round(clockMs(run) / 1000) };
+    if(SMODE) fm.st = liveStrip(run.st);
+    liveSend(fm); delete LIVE.last[run.gameId];
+  }
+  var liveSaved = !!(SMODE && LIVE.applyingFin);   /* the teacher tapped Save: it's saved there. Otherwise wait for "ack". */
+  var ackFor = !SMODE && LIVE.applyingFin ? { g:run.gameId, gen:run.liveGen } : null;
+  var t = TYPES[run.type];
+  var r = resultFrom(run), sc = r.score, its = r.items, sum = r.summary, secs = r.activeSecs;
+  if(SMODE){ UI.run = null; UNDO = []; UI.lastResult = { id:r.id, summary:sum, packId:r.packId, gameId:r.gameId, type:r.type, title:r.title, at:r.at, score:sc, items:its, activeSecs:secs, points:r.points }; UI.lastResult.liveSaved = liveSaved; UI.lastResult.gen = run.liveGen || null; UI.sKey = SMODE.key; UI.sCode = null; makeSCode(UI.lastResult); go("sdone"); return; }
   UI.run = null; UI.lastResult = { id:r.id, summary:r.summary, packId:r.packId, gameId:r.gameId, score:sc, items:its, activeSecs:secs, points:r.points }; UNDO = [];
-  STORE.saveResult(r).then(function(){ refresh(); }).catch(saveErr);
+  STORE.saveResult(r).then(function(){ refresh(); if(ackFor) liveSend({ t:"ack", g:ackFor.g, gen:ackFor.gen }); }).catch(saveErr);
   go("done");
 }
 
