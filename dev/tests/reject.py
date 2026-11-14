@@ -1,6 +1,5 @@
 exec(open("live.py").read().split("\nwith sync_playwright() as p:")[0])
 seed["packs"]["mia-lp9"]["data"]["games"][2]["options"] = {"turns":"each"}
-OLD = open("/home/claude/work/test/old_student.html").read() if False else None
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"]); ctx = b.new_context(viewport={"width":1180,"height":820})
     T = ctx.new_page(); terr=[]; T.on("pageerror", lambda e: terr.append(str(e))); route(T, [])

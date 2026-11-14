@@ -1,7 +1,7 @@
 import json, sys, time
 from playwright.sync_api import sync_playwright
 ROOT = __import__("os").path.abspath(__import__("os").path.join(__import__("os").path.dirname(__file__), "../.."))
-MOCK = open("/home/claude/work/test/mock-supabase.js").read()
+MOCK = open("mock-supabase.js").read()
 APP = open(ROOT + "/app/index.html", encoding="utf-8").read()
 HOOK = "window.__T={get STORE(){return STORE},get STUDENT_PAGE(){return STUDENT_PAGE},get SB_MODE(){return SB_MODE},packData:packData,studentLinkData:studentLinkData};\n"
 assert APP.count("if(STUDENT_PAGE) startStudent();") == 1
@@ -103,7 +103,7 @@ with sync_playwright() as p:
         check(not any(u.endswith("supabase.js") for u in reqs), url + " never loads Supabase")
         check("Sign in" not in pg.inner_text("body") and "Lessons" not in pg.inner_text("body"), url + " shows no teacher screens")
         check(not e3, url + " no page errors %s" % e3)
-        pg.screenshot(path="/home/claude/work/test/student_%d.png" % (1 if url.endswith("/") else 2))
+        pg.screenshot(path="student_%d.png" % (1 if url.endswith("/") else 2))
         pg.close()
     # end-to-end: link made by the teacher build, played on the student page at iPad landscape
     pg = ctx.new_page(); e4 = []; pg.on("pageerror", lambda e: e4.append(str(e)))
@@ -114,7 +114,7 @@ with sync_playwright() as p:
     pg.goto(url); pg.reload(); pg.wait_for_selector("[data-a=s-start]", timeout=5000)
     check("Hangman" in pg.inner_text("#app"), "student link opens the game")
     pg.click("[data-a=s-start]"); pg.wait_for_timeout(600)
-    pg.screenshot(path="/home/claude/work/test/student_play.png")
+    pg.screenshot(path="student_play.png")
     check(pg.evaluate("document.documentElement.scrollHeight <= innerHeight + 1 && document.documentElement.scrollWidth <= innerWidth"), "game fits iPad landscape without scrolling")
     check(not any("supabase" in u for u in reqs), "student game makes no Supabase requests")
     check(not e4, "student game no page errors %s" % e4)
