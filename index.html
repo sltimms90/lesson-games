@@ -710,6 +710,7 @@ span.od-tile{cursor:default}
   .rs-pages{padding-left:4px}
   .rs-nd{margin-left:0}
 }
+@media (max-width:440px){.bar{gap:6px;padding:8px 8px}.bar .lp{font-size:15px;padding:4px 7px}.bar .clock{font-size:15px}}
 .livepill{position:fixed;left:12px;bottom:12px;z-index:50;font:600 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:999px;background:var(--surface);border:2px solid var(--line);color:var(--muted,#667)}
 .livepill.on{border-color:#1E8A5A;color:#1E8A5A}
 .notmine{opacity:.45}
@@ -5340,7 +5341,35 @@ document.addEventListener("visibilitychange", function(){
 });
 if(UI.run && UI.run.away){ UI.run.away = false; UI.run.resumedAt = Date.now(); }
 if(UI.run && UI.run.st) UI.run.st._animating = false; /* resume a spin cut off by a reload */
-var _render0 = render; render = function(){ _render0(); try{ liveSync(); livePaint(); liveLockPaint(); }catch(e){} };
+/* Screen fit: a game screen never scrolls. If what's on the stage is taller (or wider) than the screen,
+   the stage is zoomed down until it fits (never below half size). Re-checked when the stage changes size
+   or the window turns, but not while the on-screen keyboard is up. */
+var FIT_RO = null, FIT_BUSY = false;
+function fitStage(){
+  var st = document.querySelector("#app main.stage"); if(!st || UI.view !== "play" || FIT_BUSY) return;
+  var a = document.activeElement; if(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && st.style.zoom) return;
+  FIT_BUSY = true;
+  try{
+    var de = document.documentElement, H = window.innerHeight, W = window.innerWidth, z = 1;
+    st.style.zoom = ""; st.style.maxWidth = "";
+    for(var i = 0; i < 6; i++){
+      var sh = de.scrollHeight, sw = de.scrollWidth;
+      if(sh <= H + 1 && sw <= W + 1) break;
+      var top = st.getBoundingClientRect().top + (window.scrollY || 0), used = Math.max(1, sh - top), room = Math.max(1, H - top);
+      var nz = Math.min(z * room / used, sw > W + 1 ? z * W / sw : z) * 0.995;
+      if(nz >= z) nz = z - 0.03;
+      z = Math.max(0.5, nz); st.style.zoom = String(Math.round(z * 1000) / 1000); st.style.maxWidth = Math.round(1180 / z) + "px";
+      if(z <= 0.5) break;
+    }
+    if(window.scrollY) window.scrollTo(0, 0);
+  } finally { FIT_BUSY = false; }
+  if(window.ResizeObserver){
+    if(!FIT_RO) FIT_RO = new ResizeObserver(function(){ if(!FIT_BUSY) requestAnimationFrame(fitStage); });
+    FIT_RO.disconnect(); FIT_RO.observe(st); if(st.firstElementChild) FIT_RO.observe(st.firstElementChild);
+  }
+}
+window.addEventListener("resize", function(){ requestAnimationFrame(fitStage); });
+var _render0 = render; render = function(){ _render0(); try{ liveSync(); livePaint(); liveLockPaint(); }catch(e){} try{ fitStage(); }catch(e){} };
 if(STUDENT_PAGE) startStudent(); else { render(); connect(); }
 
 })();
