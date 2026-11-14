@@ -58,7 +58,7 @@ with sync_playwright() as p:
         pg.wait_for_selector("[data-a=s-start]", timeout=6000); pg.click("[data-a=s-start]"); pg.wait_for_timeout(800)
         pg.screenshot(path="stu_%s_1.png" % name)
         if name == "snakes":
-            check(pg.locator("#snBoardEl img").count() == 1 and "game-pictures" in pg.get_attribute("#snBoardEl img", "src"), "student sees your board picture")
+            check(pg.locator("#snBoardEl > img").count() == 1 and "game-pictures" in pg.get_attribute("#snBoardEl > img", "src"), "student sees your board picture")
             check(any("game-pictures" in u for u in imgs), "board fetched from the picture folder")
             btns = pg.eval_on_selector_all("[data-a]", "els => els.map(e => e.getAttribute('data-a'))")
             print("  buttons:", sorted(set(btns)))

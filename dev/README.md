@@ -15,7 +15,12 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 cls.py                      # class link: teacher puts games on the student's screen; solo games mirrored
     python3 ch.py                       # Challenge button (Snakes & Ladders, Higher or Lower)
     python3 prog.py                     # missed-words warm-up and the student progress view
+    python3 hostile.py                  # crafted links and poisoned live messages never run code; the CSP holds
+    python3 review.py                   # review fixes: two teacher devices, save acknowledgement, class ✕, stale tabs
+
+**After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
+script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
+they inject a hook into the script; `hostile.py` checks the real, untouched page.
 
 Every script ends with "N failures". `fit.py` fails only on iPad and desktop; on phones it prints NOTE lines
-(very long content on a sideways phone hits the half-size floor). New scripts share helpers in `lg.py`. `links.py` has one known false failure ("student sees your
-board picture": wrong selector; the screenshot shows the board).
+(very long content on a sideways phone hits the half-size floor). New scripts share helpers in `lg.py`.

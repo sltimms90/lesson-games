@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-qPddPdeiCzREOm29vDoQOGvemgJposUYOQxUsH2z4TI='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-1GmIgYJ34imWz9FqGBYNfd5TvHpYDR+jAI7ocUCR6ro='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -629,6 +629,7 @@ span.se-w{cursor:default}
 .se-key{font-size:17px;max-width:560px} .se-key summary{cursor:pointer}
 .se-fix{font:700 clamp(20px,3vw,26px)/1.3 "Atkinson Hyperlegible",sans-serif;color:var(--ok);max-width:40ch}
 .od-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,40vw),1fr));gap:14px;width:min(96vw,860px)}
+.od-tile,.sd-die,.tcard .tgt{hyphens:auto;-webkit-hyphens:auto}
 .od-tile{border:0;border-radius:18px;background:var(--c-odd);color:#fff;font:800 clamp(24px,4vw,38px)/1.1 "Baloo 2",sans-serif;padding:18px 12px;min-height:clamp(84px,16vh,130px);display:grid;place-items:center;cursor:pointer;touch-action:manipulation;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18);overflow-wrap:anywhere}
 span.od-tile{cursor:default}
 .od-tile.no{background:transparent;color:var(--no);border:3px dashed var(--no);box-shadow:none;text-decoration:line-through}
@@ -5044,7 +5045,7 @@ function clsAdopt(m){
 }
 function clsLink(p){
   return liveEnsureRoom(p).then(function(r){
-    var first = String(p.student || "").trim().split(/\s+/)[0] || "";
+    var nm = String(p.student || "").trim(), first = /&| and |,/.test(nm) ? nm : (nm.split(/\s+/)[0] || "");
     return packData({ v:APP_V, r:r, n:first.slice(0, 40), k:lookFor(p) });
   }).then(function(c){ return (UI.studentBase || SLINK_BASE) + "#c=" + c; });
 }
@@ -5619,6 +5620,9 @@ function handle(a, el){
     if(leaks.length && UI.clueOk !== block){ UI.clueOk = block; $("err").textContent = "These clues give part of the answer away: " + leaks.join(", ") + ". Rewrite them, or tap Save again to keep them."; return; }
     UI.clueOk = null;
     var pp = clone(getPack(UI.packId)), game = { id:dg.id, type:dg.type, title:title, block:block, options:opts2 };
+    var was = (pp.games || []).filter(function(x){ return x.id === dg.id; })[0];
+    if(dg.isNew || (was && (was.app || was.spot))) game.app = true;   /* made in the app: a plan re-save keeps it */
+    if(was && was.spot) game.spot = true;
     pp.games = pp.games || [];
     var at = pp.games.map(function(x){ return x.id; }).indexOf(dg.id);
     if(at === -1) pp.games.push(game); else pp.games[at] = game;
@@ -5639,9 +5643,9 @@ function handle(a, el){
     if(qs === "today" && !parseBank(qp.bank).length && missedWords(qp).length){ qs = "missed"; qw = bankWords(qp, qs); }
     if(q.filter) qw = qw.filter(q.filter); else if(q.clue) qw = qw.filter(function(b){ return bankPrompt(b); });
     if(qw.length < q.min){ toast(q.label + " needs at least " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "."); return; }
-    var ids = (qp.games || []).map(function(x){ return x.id; }), qn = 1; while(ids.indexOf("g" + qn) !== -1) qn++;
+    var ids = (qp.games || []).map(function(x){ return x.id; }), qn = 1; while(ids.indexOf("q" + qn) !== -1) qn++;
     var qo = Object.assign({}, TYPES[q.t].defaults(qp), q.opts ? q.opts(qw) : {});
-    var qg = { id:"g" + qn, type:q.t, title:q.label + " · " + qScopeName(qs) + " (on the spot)", block:q.block(qw), options:qo, spot:true };
+    var qg = { id:"q" + qn, app:true, type:q.t, title:q.label + " · " + qScopeName(qs) + " (on the spot)", block:q.block(qw), options:qo, spot:true };
     var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
     var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
     UI.rsRet = null; UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
