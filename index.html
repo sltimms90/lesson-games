@@ -713,6 +713,12 @@ span.od-tile{cursor:default}
 .livepill{position:fixed;left:12px;bottom:12px;z-index:50;font:600 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:999px;background:var(--surface);border:2px solid var(--line);color:var(--muted,#667)}
 .livepill.on{border-color:#1E8A5A;color:#1E8A5A}
 .notmine{opacity:.45}
+.livepill{display:flex;align-items:center;gap:8px}.livepill .lo{font:inherit;font-size:18px;line-height:1;border:none;background:none;cursor:pointer;padding:0 2px}.livepill.ov{border-color:#C2397A;color:#C2397A}
+.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:12px}
+.folder{position:relative;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:4px 14px 14px 14px;padding:16px 14px 14px;display:flex;flex-direction:column;gap:4px;cursor:pointer;margin-top:10px}
+.folder .ftab{position:absolute;top:-10px;left:-2px;width:46%;height:12px;background:var(--surface);border:2px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0}
+.folder b{font-size:19px}.folder small{color:var(--muted,#667)}
+.folder:hover,.folder:focus-visible{border-color:var(--ink)}
 </style>
 </head>
 <body>
@@ -745,7 +751,7 @@ var AUTH = { need:false, sending:false, sent:"", err:"", notTeacher:false, email
 var LKEY = STUDENT_PAGE ? "lessonGames.student.v1" : "lessonGames.ui.v2";
 var APP_V = 20261113, SMODE = null;
 var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling", "build", "spot", "odd", "phon", "bingo", "hilo"];
-if(SB_MODE) SLINK_TYPES.push("snakes");
+if(SB_MODE) SLINK_TYPES.push("snakes", "taboo");
 var SLINK_BASE = "https://sltimms90.github.io/lesson-games/";
 function loadLocal(k){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
 function saveLocal(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -4213,7 +4219,41 @@ function dataSection(){
     (SB_MODE ? '<button class="btn ghost sm" data-a="sb-signout">Sign out</button>' : "") +
     '</div>' + (SB_MODE && AUTH.email ? '<p class="hint">Signed in as ' + esc(AUTH.email) + '</p>' : "") + '</section>';
 }
+/* ---------- home: one folder per student ---------- */
+function packItemHtml(p){
+  var played = resultsFor(p.id).length, n = (p.games || []).length;
+  return '<li><button class="item" data-a="open" data-id="' + esc(p.id) + '"><span><b>' + esc(packTitle(p)) + '</b><small>' + esc(fmtDate(p.date)) + ' · ' + n + (n === 1 ? " game" : " games") + (played ? " · " + played + " played" : "") + (p.source === "plan" ? " · from the plan" : "") + (rsSpec(p) ? " · run sheet" + (SHEETS[p.id] && SHEETS[p.id].finished ? " ✓" : "") : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
+}
+function packsByDate(list){ return list.slice().sort(function(a,b){ return String(b.date || "").localeCompare(String(a.date || "")) || (+b.lp || 0) - (+a.lp || 0) || String(b.updatedAt).localeCompare(String(a.updatedAt)); }); }
 function viewHome(){
+  var packs = packsByDate(PACKS), resume = inProgressHtml(false), groups = {}, names = [];
+  packs.forEach(function(p){ var k = p.student || ""; if(!groups[k]){ groups[k] = []; names.push(k); } groups[k].push(p); });
+  names.sort(function(a, b){ return !a ? 1 : !b ? -1 : a.localeCompare(b); });
+  var recent = packs.slice(0, 4);
+  var folders = names.length ? '<div class="folders">' + names.map(function(k){
+    var g = groups[k], last = g[0];
+    return '<button class="folder" data-a="student" data-s="' + esc(k) + '"><span class="ftab" aria-hidden="true"></span><b>' + esc(k || "No student") + '</b><small>' + g.length + (g.length === 1 ? " lesson" : " lessons") + (last ? " · " + esc(last.lp ? "LP" + last.lp : fmtDate(last.date)) : "") + '</small></button>';
+  }).join("") + '</div>' : '<p class="notice">No lessons yet. Lessons made by the planning chat appear here by themselves, or tap New lesson.</p>';
+  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>Lesson games</h1>' + statusPill() + '</div>' + resume +
+    (recent.length ? '<h3>Latest</h3><ul class="list">' + recent.map(packItemHtml).join("") + '</ul>' : "") +
+    '<div class="spread" style="margin-top:22px"><h3>Students</h3><button class="btn sm" data-a="newpack">New lesson</button></div>' + folders + dataSection() + '</div>';
+  var rf = $("restoreFile"); if(rf) rf.addEventListener("change", function(){ restoreFile(rf.files && rf.files[0]); rf.value = ""; });
+}
+function viewStudent(){
+  var s = UI.student || "", mine = packsByDate(PACKS.filter(function(p){ return (p.student || "") === s; }));
+  var rs = RESULTS.filter(function(r){ var p = getPack(r.packId); return p ? (p.student || "") === s : r.student === s; });
+  var byPack = {}, order = [];
+  rs.forEach(function(r){ if(!byPack[r.packId]){ byPack[r.packId] = []; order.push(r.packId); } byPack[r.packId].push(r); });
+  var hist = order.map(function(pid){
+    var p = getPack(pid), list = byPack[pid].slice().sort(function(a,b){ return String(a.at).localeCompare(String(b.at)); });
+    var head = p ? packTitle(p) + " · " + fmtDate(p.date) : (list[0].lp ? s + " · LP" + list[0].lp : s);
+    return '<li><b>' + esc(head) + '</b>' + list.map(function(r){ return '<div class="when">' + esc(fmtWhen(r.at)) + '</div><pre>' + esc(r.summary) + '</pre>'; }).join("") + '</li>';
+  }).join("");
+  $("app").innerHTML = '<div class="wrap"><div class="spread"><button class="btn ghost sm" data-a="home">‹ All students</button>' + statusPill() + '</div><div class="head"><h2>' + esc(s || "No student") + '</h2><p class="muted">' + mine.length + (mine.length === 1 ? " lesson" : " lessons") + ', newest first.</p></div>' +
+    (mine.length ? '<ul class="list">' + mine.map(packItemHtml).join("") + '</ul>' : '<p class="notice">No lessons yet.</p>') +
+    (hist ? '<details class="section"><summary><h3 style="display:inline">Every game played</h3></summary><ul class="hist">' + hist + '</ul></details>' : "") + '</div>';
+}
+function viewHomeOld(){
   var packs = PACKS.slice().sort(function(a,b){ return String(b.date || "").localeCompare(String(a.date || "")) || String(b.updatedAt).localeCompare(String(a.updatedAt)); });
   var shown = UI.showAll ? packs : packs.slice(0, 25);
   var resume = inProgressHtml(false);
@@ -4282,7 +4322,7 @@ function viewPack(){
   }).join("");
   var add = '<div class="add">' + TYPE_ORDER.map(function(t){ return '<button data-a="addgame" data-t="' + t + '">' + ball(t) + TYPES[t].label + '</button>'; }).join("") + '</div>';
   var hasRes = resultsFor(p.id).length;
-  $("app").innerHTML = '<div class="wrap"><div class="spread"><button class="btn ghost sm" data-a="home">All lessons</button>' + statusPill() + '</div>' +
+  $("app").innerHTML = '<div class="wrap"><div class="spread">' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">‹ ' + esc(p.student) + '</button>' : '<button class="btn ghost sm" data-a="home">‹ All students</button>') + statusPill() + '</div>' +
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
     rsPackCard(p) + (games || '<p class="notice">No games in this lesson yet.</p>') +
     bankSection(p) + '<section class="section"><h3>Add a game</h3>' + add + '</section>' + lookSection(p) +
@@ -4378,7 +4418,7 @@ function viewDone(){
     '<h3 style="margin-top:22px">For the after-class report</h3><textarea id="res" readonly>' + esc(r.summary) + '</textarea><p class="ok-msg" id="copied" role="status"></p>' +
     '<div class="actions"><button class="btn" data-a="backlesson">Back to the lesson</button>' + (missedItems(r).length && r.gameId ? '<button class="btn ghost" data-a="retry" data-r="' + esc(r.id) + '">Retry the ' + missedItems(r).length + (missedItems(r).length === 1 ? " miss" : " misses") + '</button>' : "") + '<button class="btn ghost" data-a="copyres">Copy</button></div></div>';
 }
-function viewStudent(){
+function viewStudentOld(){
   var s = UI.student, rs = RESULTS.filter(function(r){ return r.student === s; });
   var byPack = {}, order = [];
   rs.forEach(function(r){ if(!byPack[r.packId]){ byPack[r.packId] = []; order.push(r.packId); } byPack[r.packId].push(r); });
@@ -4440,6 +4480,7 @@ function snPublish(p, g){
 }
 function slinkData(p, g){
   var d = studentLinkData(p, g);
+  if(p.student) d.n = p.student;
   var live = SB_MODE && SB && LIVE_TYPES.indexOf(g.type) !== -1 ? liveEnsureRoom(p).then(function(r){ d.live = { r:r }; }) : Promise.resolve();
   return live.then(function(){ if(g.type !== "snakes") return d; return snPublish(p, g).then(function(x){ d.x = x; return d; }); });
 }
@@ -4450,7 +4491,7 @@ function slinkFail(e){ UI.slink = null; render(); toast("Couldn’t make the lin
    channel with that name: it only passes messages between the two screens and has no access to the database.
    Messages: hello · st (the whole game state, numbered) · fin (someone tapped Save results).
    ===================================================================== */
-var LIVE_TYPES = ["snakes", "hilo", "bingo"];
+var LIVE_TYPES = ["snakes", "hilo", "bingo", "taboo"];
 var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", applyingFin:false, sent:"" };
 (function(){ var a = new Uint8Array(9); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function(_, i){ a[i] = Math.random() * 256; }); LIVE.me = Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); })();
 function liveNewRoom(){ var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); }
@@ -4500,7 +4541,12 @@ function liveJoin(room){
     });
   }, function(){ LIVE.room = null; });
 }
-function liveStudentName(){ var g = SMODE && SMODE.d.g, n = g && g.block ? parseLines(g.block).map(function(x){ return x.trim(); }).filter(Boolean) : []; return n[0] || "Student"; }
+function liveStudentName(){
+  var d = SMODE && SMODE.d; if(!d) return "Student";
+  if(d.n) return String(d.n).slice(0, 40);
+  if(d.g && (d.g.type === "snakes" || d.g.type === "hilo")){ var n = parseLines(d.g.block || "").map(function(x){ return x.trim(); }).filter(function(x){ return x && !snIsTeacher(x); }); if(n[0]) return n[0].slice(0, 40); }
+  return "Student";
+}
 function liveSend(m){ if(!LIVE.chan) return; m.from = LIVE.me; try{ LIVE.chan.send({ type:"broadcast", event:"m", payload:m }); }catch(e){} }
 function liveOn(run){
   if(!run || !LIVE.room || LIVE_TYPES.indexOf(run.type) === -1 || !run.liveGen) return false;
@@ -4575,9 +4621,10 @@ function livePaint(){
   var el = document.getElementById("livePill"), run = UI.run, show = UI.view === "play" && liveOn(run);
   if(!show){ if(el) el.remove(); return; }
   if(!el){ el = document.createElement("div"); el.id = "livePill"; el.setAttribute("role", "status"); document.body.appendChild(el); }
-  var on = LIVE.peers > 0;
-  el.className = "livepill" + (on ? " on" : "");
-  el.textContent = on ? "● " + (SMODE ? "Teacher" : (LIVE.peerName || "Student")) + " connected" : "○ Waiting for " + (SMODE ? "your teacher" : "the student") + "…";
+  var on = LIVE.peers > 0, ov = !SMODE && run.liveOverride;
+  el.className = "livepill" + (on ? " on" : "") + (ov ? " ov" : "");
+  el.innerHTML = '<span>' + esc(on ? "● " + (SMODE ? "Teacher" : (LIVE.peerName || "Student")) + " connected" : "○ Waiting for " + (SMODE ? "your teacher" : "the student") + "…") + '</span>' +
+    (SMODE || !on ? "" : '<button class="lo" data-a="live-override" aria-pressed="' + !!ov + '" aria-label="' + (ov ? "Back to taking turns" : "Override: take any turn and see everything") + '" title="' + (ov ? "Override on: you can take any turn and see every card. Tap to go back to turns." : "Override: take any turn and see every card") + '">' + (ov ? "🔓" : "🔒") + '</button>');
 }
 /* Turns: with both screens connected, each side only plays its own turns. The teacher's turns are the players
    named Teacher / Sam (or, if nobody is, every player after the first); the student's screen takes the rest.
@@ -4591,7 +4638,13 @@ function liveMine(s, k){ return SMODE ? !liveTeacherSlot(s, k) : liveTeacherSlot
 function liveLocked(run){ return liveOn(run) && LIVE.peers > 0; }
 function liveMayAct(run, a){
   if(!liveLocked(run)) return true;
+  if(!SMODE && run.liveOverride) return true;
   var s = run.st;
+  if(run.type === "taboo"){
+    var desc = tbWho(s) === "student" ? "student" : "teacher", me = SMODE ? "student" : "teacher";
+    if(a === "tb-who" || a === "tb-cc" || a === "tb-clue") return !SMODE;
+    if(a === "tb-show" || a === "tb-out") return desc === me;
+  }
   if(run.type === "snakes"){
     if(a === "sn-lucky" || a === "sn-fix") return !SMODE;
     if(a === "sn-roll" || a === "sn-place") return s.fix != null ? !SMODE : liveMine(s, s.turn);
@@ -4610,7 +4663,9 @@ function liveLockPaint(){
     if(a === "sn-roll" || a === "hl-call") b.title = liveTurnName(run) + "’s turn";
   });
   var el = document.getElementById("livePill"), nm = (run.type === "snakes" || run.type === "hilo") && run.st.players ? liveTurnName(run) : "";
-  if(el && nm && !(run.st.phase === "over" || run.st.phase === "roundend")) el.textContent += " · " + (liveMine(run.st, run.st.turn) ? "your turn" : nm + "’s turn");
+  var sp = el && el.querySelector("span");
+  if(sp && !SMODE && run.liveOverride) sp.textContent += " · override on";
+  else if(sp && nm && !(run.st.phase === "over" || run.st.phase === "roundend")) sp.textContent += " · " + (liveMine(run.st, run.st.turn) ? "your turn" : nm + "’s turn");
 }
 
 /* The teacher's app has the final say: a move made from the student's screen on the teacher's turn
@@ -4622,6 +4677,33 @@ function liveRejects(run, m){
   var moved = (m.st.log || []).length > (s.log || []).length || m.st.phase !== s.phase;
   return moved;
 }
+
+/* Taboo on two screens: only the describer sees the card. The teacher keeps the clue count and chooses
+   who describes; with the override on, the teacher sees every card. */
+function tbLiveView(run, base){
+  var s = run.st;
+  if(!liveLocked(run) || s.i >= s.cards.length) return base(run);
+  var desc = tbWho(s) === "student" ? "student" : "teacher", me = SMODE ? "student" : "teacher";
+  var stu = run.student || "your student", other = desc === "student" ? (SMODE ? "You" : esc(run.student || "Your student")) : "Your teacher";
+  var ov = !SMODE && run.liveOverride, cc = s.clueCount !== false;
+  if(desc === me || ov){
+    var h = base(run);
+    if(s.phase === "cover") h = h.replace(/<p class="covermsg">[\s\S]*?<\/p>/, '<p class="covermsg">' + (desc === me ? "Your turn to describe. Tap Show the card when you’re ready." : esc(run.student || "Your student") + " describes this card (you can see it because the override is on).") + '</p>');
+    if(SMODE) h = h.replace(/<div class="seg"[\s\S]*?<\/div>/, "");
+    if(SMODE) h = h.replace(/<button class="btn ghost big-btn counter"[\s\S]*?<\/span><\/button>/, "").replace("Two clue sentences first, then Guessed unlocks.", "Say two clue sentences. Your teacher counts them, then Guessed unlocks.");
+    return h;
+  }
+  var got = s.log.filter(function(x){ return x.out === "got"; }).length;
+  var tally = '<div class="progress">' + got + ' guessed · ' + (s.log.length - got) + ' not guessed</div>';
+  var last = s.last ? '<p class="notice">' + esc(s.last.t) + ': ' + (s.last.out === "got" ? "guessed" : s.last.out === "buzz" ? "a forbidden word was said" : "passed") + '</p>' : "";
+  if(s.phase === "cover"){
+    var seg = SMODE ? "" : '<div class="seg" role="group" aria-label="Who describes this card"><button data-a="tb-who" data-w="student" aria-pressed="' + (desc === "student") + '">' + esc(run.student || "Student") + ' describes</button><button data-a="tb-who" data-w="teacher" aria-pressed="' + (desc === "teacher") + '">Teacher describes</button></div>';
+    return '<section class="center">' + tally + last + '<div class="cover"><div class="progress">Card ' + (s.i + 1) + ' of ' + s.cards.length + '</div>' + seg + '<p class="covermsg">' + other + ' will describe the next card. Get ready to guess!</p></div></section>';
+  }
+  var counter = !SMODE && desc === "student" && cc ? '<button class="btn ghost big-btn counter" data-a="tb-clue">Clue sentence <span class="dots">' + [0,1].map(function(n){ return '<i class="' + (s.clues > n ? "on" : "") + '"></i>'; }).join("") + (s.clues > 2 ? " +" + (s.clues - 2) : "") + '</span></button><p class="muted">Tap once for each clue sentence ' + esc(stu) + ' says.</p>' : "";
+  return '<section class="center">' + tally + '<div class="tcard"><div class="tgt">?</div><div class="tsay">' + other + (other === "You" ? " are" : " is") + ' describing</div></div><p class="covermsg">Guess the word!</p>' + counter + '</section>';
+}
+(function(){ var base = TYPES.taboo.view; TYPES.taboo.view = function(run){ return tbLiveView(run, base); }; })();
 
 function studentLinkData(p, g){
   var t = TYPES[g.type], o = Object.assign({}, t.defaults(p), g.options || {});
@@ -5089,6 +5171,7 @@ function finishRun(){
 function handle(a, el){
   var run = UI.run;
   if(a.indexOf("sb-") === 0 && SB_MODE && sbHandle(a)) return;
+  if(a === "live-override"){ if(UI.run){ UI.run.liveOverride = !UI.run.liveOverride; saveUI(); render(); } return; }
   if(a === "backup"){ backupDownload(); return; }
   if(a === "restore"){ var fi = $("restoreFile"); if(fi) fi.click(); return; }
   if(a.indexOf("rs-") === 0){ rsHandle(a, el); return; }
