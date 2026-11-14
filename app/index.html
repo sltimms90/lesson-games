@@ -715,6 +715,9 @@ span.od-tile{cursor:default}
 .livepill.on{border-color:#1E8A5A;color:#1E8A5A}
 .notmine{opacity:.45}
 .ro{pointer-events:none}
+.chpop{text-align:center;max-width:620px}
+.chtag{font:800 20px/1 "Baloo 2",sans-serif;color:var(--amber,#B07A12);letter-spacing:.02em}
+.chq{font:800 clamp(28px,4.4vw,44px)/1.2 "Baloo 2",sans-serif;margin:12px 0 14px}
 .stage.mirror{cursor:default}
 .clsbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 14px;margin:10px 0 14px;font-weight:600}
 .clsbar.on{border-color:#1E8A5A;color:#1E8A5A}
@@ -3526,6 +3529,48 @@ TYPES.hilo = {
 
 /* ------------------------------ SENTENCE BUILDER RACE ------------------------------ */
 /* "sentence / other accepted order | hint" per line. Tiles are the words of the first sentence. */
+
+/* ---------- Challenge (Snakes & Ladders, Higher or Lower) ----------
+   Never automatic: the teacher taps ⚡ whenever they like. One prompt goes up on the student's screen and play
+   waits until the teacher marks it Good or Not yet on theirs. Logged with the game's result. */
+var CH_TYPES = ["snakes", "hilo"];
+var CH_SPARE = ["Ask your teacher a question.", "Tell me one thing you did yesterday.", "Say a sentence about the weather today.", "Tell me about your favourite food in two sentences."];
+function chPool(run){
+  var s = run.st, used = {}, out = [], p = getPack(run.packId);
+  (s.chLog || []).forEach(function(x){ used[x.q] = 1; });
+  if(s.ch) used[s.ch.q] = 1;
+  if(p) bankWords(p, "recent").forEach(function(b){ out.push({ q:"Make a sentence with “" + b.w + "”.", w:b.w }); });
+  if(run.type === "hilo" && s.phase === "call") out.push({ q:"Higher or lower? Say which, and why.", w:"" });
+  var fresh = out.filter(function(x){ return !used[x.q]; });
+  if(!fresh.length) fresh = CH_SPARE.filter(function(q){ return !used[q]; }).map(function(q){ return { q:q, w:"" }; });
+  if(!fresh.length) fresh = out.length ? out : CH_SPARE.map(function(q){ return { q:q, w:"" }; });
+  return fresh;
+}
+function chAct(run, a, el){
+  var s = run.st;
+  if(a === "challenge"){ if(s.ch || s.phase === "over" || s.winner) return false; var pool = chPool(run); s.ch = pool[Math.floor(Math.random() * pool.length)]; return true; }
+  if(a !== "ch-mark" || !s.ch) return false;
+  var m = el.getAttribute("data-m");
+  if(m === "again"){ var pool2 = chPool(run); if(pool2.length) s.ch = pool2[Math.floor(Math.random() * pool2.length)]; return true; }
+  if(m === "cancel"){ s.ch = null; return true; }
+  s.chLog = s.chLog || []; s.chLog.push({ q:s.ch.q, w:s.ch.w || "", ok: m === "good", who: run.type === "snakes" || run.type === "hilo" ? ((s.players || [])[s.turn] || {}).name || "" : "" }); s.ch = null; return true;
+}
+function chView(run){
+  var s = run.st, c = s.ch; if(!c) return "";
+  var stu = SMODE ? "" : esc(run.student || "the student");
+  return '<div class="overlay chov" role="dialog" aria-modal="true" aria-label="Challenge"><div class="pop chpop"><div class="chtag">⚡ Challenge</div><div class="chq">' + esc(c.q) + '</div>' +
+    (SMODE ? '<p class="muted">Say it to your teacher. The game carries on when your teacher has heard it.</p>' :
+      '<div class="row" style="justify-content:center"><button class="btn ok big-btn" data-a="ch-mark" data-m="good">Good</button><button class="btn no big-btn" data-a="ch-mark" data-m="no">Not yet</button></div>' +
+      '<div class="row" style="justify-content:center;margin-top:8px"><button class="btn ghost sm" data-a="ch-mark" data-m="again">↻ Another one</button><button class="btn ghost sm" data-a="ch-mark" data-m="cancel">Cancel</button></div><p class="muted" style="margin-bottom:0">Play waits until you mark what ' + stu + ' says.</p>') + '</div></div>';
+}
+function chSummary(s){ var L = s.chLog || []; if(!L.length) return ""; return " · challenges: " + L.map(function(x){ return (x.w || trunc(x.q, 40)) + (x.ok ? " ✓" : " ✗"); }).join(", "); }
+CH_TYPES.forEach(function(ty){
+  var T = TYPES[ty], bView = T.view, bAct = T.act, bSum = T.summary, bItems = T.items;
+  T.view = function(run){ return bView(run) + chView(run); };
+  T.act = function(run, a, el){ if(a === "challenge" || a === "ch-mark") return chAct(run, a, el); if(run.st.ch) return false; return bAct(run, a, el); };
+  T.summary = function(run){ var t = bSum(run), add = chSummary(run.st); if(!add) return t; var nl = t.indexOf("\n"); return nl === -1 ? t + add : t.slice(0, nl) + add + t.slice(nl); };
+  T.items = function(run){ return (bItems ? bItems(run) : []).concat((run.st.chLog || []).map(function(x){ return { item:"Challenge: " + x.q, result: x.ok ? "good" : "not yet", ok:x.ok, note: x.w ? "word: " + x.w : "", w:x.w, challenge:true }; })); };
+});
 function parseBuild(text){
   var out = [], seen = {};
   parseLines(text).forEach(function(line){
@@ -4393,6 +4438,7 @@ function viewPlay(){
   var t = TYPES[run.type], paused = !!run.paused;
   $("app").innerHTML = '<header class="bar">' + (SMODE ? "" : '<button class="btn ghost sm ic" data-a="lesson" aria-label="Back to the lesson" title="Back to the lesson">‹</button>') + '<span class="clock" id="clock" title="Time played, not counting pauses">' + fmtClock(clockMs(run)) + '</span><div class="t">' + esc(run.title) + '</div>' +
     (SMODE ? "" : '<span class="lp" title="Lesson points so far">★ ' + fmtPts(lessonPoints(run.packId, { gameId:run.gameId, points: gamePoints(run.type, run.st, t.score ? t.score(run) : null) })) + '</span>') +
+    (paused || SMODE || CH_TYPES.indexOf(run.type) === -1 ? "" : '<button class="btn ghost sm ic" data-a="challenge" aria-label="Challenge" title="Challenge: a quick language task before play carries on"' + (run.st.ch || run.st.phase === "over" || run.st.winner ? " disabled" : "") + '>⚡</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="pause" aria-label="Pause" title="Pause"' + (run.st.spinning ? " disabled" : "") + '>❚❚</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="settings" aria-label="Settings" title="Settings">⚙</button>') +
     '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button></header>' +
@@ -4417,7 +4463,7 @@ function viewPlay(){
 }
 
 /* Items a result got wrong, for Retry the misses (games that log per item). */
-function missedItems(r){ return (r && r.items || []).filter(function(x){ return x.ok === false && x.item && x.item !== "Bonus round"; }).map(function(x){ return x.item; }).filter(function(v, i, a){ return a.indexOf(v) === i; }); }
+function missedItems(r){ return (r && r.items || []).filter(function(x){ return x.ok === false && x.item && x.item !== "Bonus round" && !x.challenge; }).map(function(x){ return x.item; }).filter(function(v, i, a){ return a.indexOf(v) === i; }); }
 function viewDone(){
   var r = UI.lastResult;
   if(!r){ go("home"); return; }
@@ -4509,7 +4555,7 @@ var LIVE_TYPES = ["bingo", "hangman", "anagrams", "cards", "typeit", "build", "s
 var LIVE_TEACH = { cards:["fc-ok", "fc-no"], wheel:["wh-mark"], slot:["sl-mark"], quiz:["qz-said"], auction:["au-mark", "au-explain"], spelling:["sp-flip"],
   typeit:["ty-accept"], match:["mp-good", "mp-not"], spot:["se-said", "se-accept"], odd:["od-why"], dice:["sd-mark"] };
 /* Taps that aren't moves in the game: always allowed on both screens. */
-var LIVE_FREE = ["lesson", "pause", "resume-run", "settings", "set-look", "undo", "finish-ask", "finish-cancel", "finish", "discard", "live-override", "resume", "s-start", "challenge", "ch-mark"];
+var LIVE_FREE = ["lesson", "pause", "resume-run", "settings", "set-look", "undo", "finish-ask", "finish-cancel", "finish", "discard", "live-override", "resume", "s-start"];
 function liveSolo(run){ return !!run && LIVE_TURNS.indexOf(run.type) === -1; }
 /* The teacher's screen only watches a solo game while the student is connected (unless the override is on). */
 function liveMirror(run){ return !SMODE && liveSolo(run) && liveLocked(run) && !run.liveOverride; }
@@ -4670,6 +4716,7 @@ function liveMine(s, k){ return SMODE ? !liveTeacherSlot(s, k) : liveTeacherSlot
 function liveLocked(run){ return liveOn(run) && LIVE.peers > 0; }
 function liveMayAct(run, a){
   if(!liveLocked(run)) return true;
+  if(a === "challenge" || a === "ch-mark") return !SMODE;
   if(!SMODE && run.liveOverride) return true;
   var s = run.st;
   if(run.type === "taboo"){
