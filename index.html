@@ -529,8 +529,8 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 .sn-board{position:relative;width:min(94vw,calc(72vh * var(--ar)),900px);user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .sn-board img{display:block;width:100%;height:auto;border-radius:10px;pointer-events:none}
 .sn-board.pickable{cursor:crosshair;outline:4px dashed var(--c-cross);outline-offset:3px;border-radius:10px}
-.sn-tok{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1;border-radius:50%;transition:left .16s linear,top .16s linear,opacity .2s;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))}
-.sn-tok.slide{transition:left .65s ease-in-out,top .65s ease-in-out}
+.sn-tok{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1;border-radius:50%;transition:left .3s ease-out,top .3s ease-out,opacity .2s;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))}
+.sn-tok.slide{transition:left 1.1s ease-in-out,top 1.1s ease-in-out}
 .sn-tok.off{opacity:0}
 .sn-tok img,.sn-tok span{width:100%;height:100%;border-radius:50%;object-fit:cover;display:grid;place-items:center;border:3px solid #fff;font:800 clamp(12px,2vw,22px)/1 "Baloo 2",sans-serif;color:#fff}
 .sn-tok.now img,.sn-tok.now span{border-color:#ffd23f;box-shadow:0 0 0 3px #1b1b1b}
@@ -3389,8 +3389,8 @@ TYPES.snakes = {
       if(tok) tok.classList.remove("off");
       (function hop(){
         if(!alive()) return;
-        if(i < path.length){ var c = snPos(g, path[i++]); if(tok){ tok.style.left = c.x + "%"; tok.style.top = c.y + "%"; } setTimeout(hop, reduce ? 40 : 190); return; }
-        if(jump){ setTimeout(function(){ if(!alive()) return; var c = snPos(g, jump); if(tok){ tok.classList.add("slide"); tok.style.left = c.x + "%"; tok.style.top = c.y + "%"; } setTimeout(done, reduce ? 60 : 720); }, reduce ? 40 : 260); }
+        if(i < path.length){ var c = snPos(g, path[i++]); if(tok){ tok.style.left = c.x + "%"; tok.style.top = c.y + "%"; } setTimeout(hop, reduce ? 260 : 420); return; }
+        if(jump){ setTimeout(function(){ if(!alive()) return; var c = snPos(g, jump); if(tok){ tok.classList.add("slide"); tok.style.left = c.x + "%"; tok.style.top = c.y + "%"; } setTimeout(done, reduce ? 300 : 1200); }, reduce ? 300 : 450); }
         else done();
       })();
       function done(){
