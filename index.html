@@ -714,6 +714,11 @@ span.od-tile{cursor:default}
 .livepill{position:fixed;left:12px;bottom:12px;z-index:50;font:600 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:999px;background:var(--surface);border:2px solid var(--line);color:var(--muted,#667)}
 .livepill.on{border-color:#1E8A5A;color:#1E8A5A}
 .notmine{opacity:.45}
+.ro{pointer-events:none}
+.stage.mirror{cursor:default}
+.clsbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 14px;margin:10px 0 14px;font-weight:600}
+.clsbar.on{border-color:#1E8A5A;color:#1E8A5A}
+.clsbar .muted{font-weight:400}
 .livepill{display:flex;align-items:center;gap:8px}.livepill .lo{font:inherit;font-size:18px;line-height:1;border:none;background:none;cursor:pointer;padding:0 2px}.livepill.ov{border-color:#C2397A;color:#C2397A}
 .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:12px}
 .folder{position:relative;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:4px 14px 14px 14px;padding:16px 14px 14px;display:flex;flex-direction:column;gap:4px;cursor:pointer;margin-top:10px}
@@ -746,7 +751,7 @@ span.od-tile{cursor:default}
    ===================================================================== */
 "use strict";
 var SB_MODE = /github\.io$/.test(location.hostname) && /\/app(\/|\/index\.html)?$/.test(location.pathname);
-var STUDENT_PAGE = /^#s=/.test(location.hash) || (/github\.io$/.test(location.hostname) && !SB_MODE);
+var STUDENT_PAGE = /^#[sc]=/.test(location.hash) || (/github\.io$/.test(location.hostname) && !SB_MODE);
 var SB_URL = "https://prglfopvovvxhzrejhzc.supabase.co", SB_KEY = "sb_publishable_iVsi1E8C4WNFXJAz6LfftQ_L4DBWJV0";
 var AUTH = { need:false, sending:false, sent:"", err:"", notTeacher:false, email:"" }, SB = null;
 var LKEY = STUDENT_PAGE ? "lessonGames.student.v1" : "lessonGames.ui.v2";
@@ -2929,6 +2934,10 @@ TYPES.whack = {
   view: function(run){
     var s = run.st, rd = s.rounds[s.r], last = s.r >= s.rounds.length - 1;
     var board = '<div class="score"><span><span class="n wh" id="whScore">' + s.score + '</span><small>points</small></span></div>';
+    if(s.phase === "play" && liveMirror(run)){
+      var hits = 0, wrong = 0; Object.keys(s.stats).forEach(function(k){ var x = s.stats[k]; if(x.correct) hits += x.hit; else wrong += x.hit; });
+      return '<section class="center">' + board + (s.rounds.length > 1 ? '<div class="progress">Round ' + (s.r + 1) + ' of ' + s.rounds.length + '</div>' : "") + '<div class="wh-prompt">' + esc(rd.prompt || "Hit the right ones!") + '</div><p class="notice">' + esc(run.student || "Your student") + ' is whacking moles on their screen. The score here updates with every tap.</p><p class="muted">' + hits + ' right taps · ' + wrong + ' wrong taps so far</p></section>';
+    }
     if(s.phase === "ready") return '<section class="center">' + board + (s.rounds.length > 1 ? '<div class="progress">Round ' + (s.r + 1) + ' of ' + s.rounds.length + '</div>' : "") + '<div class="wh-prompt">' + esc(rd.prompt || "Hit the right ones!") + '</div><button class="btn big-btn" data-a="wh-start">Start</button></section>';
     if(s.phase === "roundend"){
       var rl = s.roundLog[s.roundLog.length - 1] || { hit:0, wrong:0, missed:0 };
@@ -2948,7 +2957,7 @@ TYPES.whack = {
     function el(k){ return boardEl.querySelector('[data-k="' + k + '"]'); }
     function show(k, w, correct){ var m = el(k); holes[k] = { w:w, correct:correct, until: up, hit:false }; m.className = "wh-mole up"; m.firstChild.textContent = w; whStat(s, w, correct).shown++; }
     function hide(k){ var m = el(k); if(m) m.className = "wh-mole"; holes[k] = null; }
-    function score(){ var e = $("whScore"); if(e) e.textContent = s.score; }
+    function score(){ var e = $("whScore"); if(e) e.textContent = s.score; if(liveOn(run)) liveOut(); }
     boardEl.addEventListener("pointerdown", function(e){
       var m = e.target.closest(".wh-mole"); if(!m || !alive()) return;
       e.preventDefault();
@@ -4325,9 +4334,9 @@ function viewPack(){
   var hasRes = resultsFor(p.id).length;
   $("app").innerHTML = '<div class="wrap"><div class="spread">' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">‹ ' + esc(p.student) + '</button>' : '<button class="btn ghost sm" data-a="home">‹ All students</button>') + statusPill() + '</div>' +
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
-    rsPackCard(p) + (games || '<p class="notice">No games in this lesson yet.</p>') +
+    clsBarHtml(p) + rsPackCard(p) + (games || '<p class="notice">No games in this lesson yet.</p>') +
     bankSection(p) + '<section class="section"><h3>Add a game</h3>' + add + '</section>' + lookSection(p) +
-    '<section class="section"><h3>Online students</h3><p class="muted" style="margin-top:4px">Student link (on a game) sends the student that one game to play on their own device — nothing else in the app. At the end they send you a result message; paste it here.</p><button class="btn ghost" data-a="sres-open">Add a student’s result</button></section>' +
+    '<section class="section"><h3>Online students</h3><p class="muted" style="margin-top:4px">' + (SB_MODE ? 'Class link: one link for the whole lesson. The student opens it at the start of class and waits; then tap Play on any game here to put it on their screen, and its result saves itself. ' : '') + 'Student link (on a game) sends the student that one game to play on their own device — nothing else in the app.</p><button class="btn ghost" data-a="sres-open">Add a student’s result</button></section>' +
     (hasRes ? '<section class="section"><h3>Results</h3><p class="muted">Everything played in this lesson, ready for the after-class report.</p><div class="row"><button class="btn" data-a="copylesson">Copy lesson results</button></div><p class="ok-msg" id="copied" role="status"></p></section>' : "") +
     '<section class="section"><div class="row"><button class="btn ghost sm" data-a="editpack">Edit lesson details</button>' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">All of ' + esc(p.student) + '’s results</button>' : "") +
     '<button class="btn danger sm" data-a="delpack">' + (UI.confirmDel === p.id ? "Tap again to delete this lesson" : "Delete lesson") + '</button></div></section></div>';
@@ -4340,6 +4349,7 @@ function viewPack(){
       '<details style="margin-top:12px"><summary class="muted">Student page address</summary><input id="slinkBase" value="' + esc(UI.studentBase || SLINK_BASE) + '" style="width:100%;margin-top:6px;font:inherit;padding:8px;border-radius:8px;border:2px solid var(--line);background:var(--surface);color:var(--ink)"></details></div></div>');
     var bi = $("slinkBase"); if(bi) bi.addEventListener("change", function(){ var v = bi.value.trim(); if(v && !/\/$/.test(v)) v += "/"; UI.studentBase = v && v !== SLINK_BASE ? v : ""; saveUI(); if(UI.slink){ var g2 = (p.games || []).filter(function(x){ return x.id === UI.slink.gid; })[0]; UI.slink.url = ""; render(); slinkData(p, g2).then(packData).then(function(c){ if(UI.slink){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }, slinkFail); } });
   }
+  if(UI.clink) $("app").insertAdjacentHTML("beforeend", clsOverlay(p));
   if(UI.sres){
     $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Add a student’s result"><div class="pop setpop"><h3 style="margin-bottom:8px">Add a student’s result</h3><p class="muted" style="margin-top:0">Paste the whole message the student sent from their game.</p><textarea id="sresIn" style="min-height:120px"></textarea><p class="err" id="sresErr" role="alert"></p><div class="row"><button class="btn" data-a="sres-add">Add</button><button class="btn ghost" data-a="sres-close">Cancel</button></div></div></div>');
   }
@@ -4403,7 +4413,7 @@ function viewPlay(){
     '<div class="row" style="margin-top:18px"><button class="btn" data-a="settings">Done</button></div></div></div>');
   var note = document.querySelector("[data-note]");
   if(note) note.addEventListener("input", function(){ t.note(run, note.value.trim()); saveRun(); });
-  if(t.after) t.after(run);
+  if(t.after && !liveMirror(run)) t.after(run);
 }
 
 /* Items a result got wrong, for Retry the misses (games that log per item). */
@@ -4492,8 +4502,18 @@ function slinkFail(e){ UI.slink = null; render(); toast("Couldn’t make the lin
    channel with that name: it only passes messages between the two screens and has no access to the database.
    Messages: hello · st (the whole game state, numbered) · fin (someone tapped Save results).
    ===================================================================== */
-var LIVE_TYPES = ["snakes", "hilo", "bingo", "taboo"];
-var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", applyingFin:false, sent:"" };
+var LIVE_TURNS = ["snakes", "hilo", "bingo", "taboo"];
+var LIVE_TYPES = ["bingo", "hangman", "anagrams", "cards", "typeit", "build", "spot", "match", "odd", "phon", "whack", "cross", "snakes", "hilo", "wheel", "slot", "dice", "quiz", "taboo", "auction", "spelling"];
+/* Solo games: the student plays and the teacher's screen watches. These taps are the teacher's own judging,
+   so they stay on the teacher's screen (audit, Nov 2026). Everything else in a solo game is the student's. */
+var LIVE_TEACH = { cards:["fc-ok", "fc-no"], wheel:["wh-mark"], slot:["sl-mark"], quiz:["qz-said"], auction:["au-mark", "au-explain"], spelling:["sp-flip"],
+  typeit:["ty-accept"], match:["mp-good", "mp-not"], spot:["se-said", "se-accept"], odd:["od-why"], dice:["sd-mark"] };
+/* Taps that aren't moves in the game: always allowed on both screens. */
+var LIVE_FREE = ["lesson", "pause", "resume-run", "settings", "set-look", "undo", "finish-ask", "finish-cancel", "finish", "discard", "live-override", "resume", "s-start", "challenge", "ch-mark"];
+function liveSolo(run){ return !!run && LIVE_TURNS.indexOf(run.type) === -1; }
+/* The teacher's screen only watches a solo game while the student is connected (unless the override is on). */
+function liveMirror(run){ return !SMODE && liveSolo(run) && liveLocked(run) && !run.liveOverride; }
+var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", cls:false, applyingFin:false, sent:"" };
 (function(){ var a = new Uint8Array(9); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function(_, i){ a[i] = Math.random() * 256; }); LIVE.me = Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); })();
 function liveNewRoom(){ var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); }
 function liveEnsureRoom(p){
@@ -4532,11 +4552,12 @@ function liveJoin(room){
       var ps = ch.presenceState(), others = Object.keys(ps).filter(function(k){ return k !== LIVE.me; });
       LIVE.peers = others.length;
       LIVE.peerName = others.length ? ((ps[others[0]][0] || {}).name || "") : "";
-      if(UI.view === "play" && UI.run && !UI.run.st._animating) render(); else livePaint();
+      LIVE.cls = others.some(function(k){ return !!(ps[k][0] || {}).cls; });
+      if(UI.view === "play" && UI.run && !UI.run.st._animating) render(); else { livePaint(); clsPaint(); }
     });
     ch.subscribe(function(s){
       if(LIVE.chan !== ch || s !== "SUBSCRIBED") return;
-      ch.track({ role: SMODE ? "student" : "teacher", name: SMODE ? liveStudentName() : "Teacher" });
+      ch.track({ role: SMODE ? "student" : "teacher", name: SMODE ? liveStudentName() : "Teacher", cls: !!(SMODE && SMODE.cls) });
       liveSend({ t:"hello" });
       if(UI.run && liveOn(UI.run)) liveOut(true);
     });
@@ -4563,6 +4584,7 @@ function liveOut(force){
   LIVE.sent = body;
   var st = JSON.parse(body); st._rev = run.st._rev;
   var m = { t:"st", g:run.gameId, p:run.packId, gen:run.liveGen, t0:run.liveT0, rev:run.st._rev, st:st, title:run.title };
+  if(!SMODE && run.gd) m.gd = run.gd;
   LIVE.last[run.gameId] = m;
   liveSend(m);
 }
@@ -4586,8 +4608,13 @@ function liveRecv(m){
     if(run && run.gameId === m.g && run.liveGen === m.gen){ LIVE.applyingFin = true; try{ UI.finishAsk = false; finishRun(); } finally{ LIVE.applyingFin = false; } }
     return;
   }
+  if(m.t === "stop"){
+    if(SMODE && run && run.gameId === m.g && run.liveGen === m.gen){ UI.run = null; UNDO = []; UI.finishAsk = false; UI.settingsOpen = false; saveUI(); go("sready"); }
+    return;
+  }
   if(m.t !== "st" || !m.st || !m.gen) return;
-  if(SMODE && m.g !== SMODE.d.g.id) return;
+  if(SMODE && SMODE.cls && m.gd && !(m.st.phase === "over" || m.st.winner) && (!SMODE.d.g || SMODE.d.g.id !== m.g || SMODE.d.p !== m.p)){ clsAdopt(m); run = UI.run; }
+  if(SMODE && (!SMODE.d.g || m.g !== SMODE.d.g.id)) return;
   if(!SMODE && m.p && m.p !== LIVE_PACK()) return;
   var prev = LIVE.last[m.g];
   if(!prev || prev.gen !== m.gen ? (!prev || (m.t0 || 0) >= (prev.t0 || 0)) : (m.rev > prev.rev || (m.rev === prev.rev && m.from > (prev.from || LIVE.me)))) LIVE.last[m.g] = m;
@@ -4603,7 +4630,7 @@ function liveRecv(m){
   if(m.st.phase === "over" || m.st.winner) return;
   var gg = liveGame(m.g); if(!gg) return;
   if(!run){
-    if(SMODE ? (UI.view === "sready" || UI.view === "sdone") : ["pack", "sheet", "done", "student"].indexOf(UI.view) !== -1){
+    if(SMODE ? (UI.view === "sready" || UI.view === "sdone" || SMODE.cls) : ["pack", "sheet", "done", "student"].indexOf(UI.view) !== -1){
       startRun(gg.p, gg.g);
       if(!SMODE) toast((LIVE.peerName || "Your student") + " is playing " + (gg.g.title || TYPES[gg.g.type].label) + ".");
     }
@@ -4617,6 +4644,10 @@ function liveStart(run){
   if(m && !(m.st.phase === "over" || m.st.winner) && !UI.liveFresh){ run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; LIVE.sent = JSON.stringify(liveStrip(run.st)); }
   else { run.liveGen = shortId(); run.liveT0 = Date.now(); run.st._rev = 0; LIVE.sent = ""; setTimeout(function(){ if(UI.run === run) liveOut(true); }, 0); }
   UI.liveFresh = false;
+  if(!SMODE){
+    var pk = getPack(run.packId), gm = pk && (pk.games || []).filter(function(x){ return x.id === run.gameId; })[0];
+    if(gm) clsGameDef(pk, Object.assign({}, gm, run.gflags || {})).then(function(gd){ run.gd = gd; if(UI.run === run) liveOut(true); }, function(e){ if(UI.run === run && LIVE.cls) toast("Couldn’t send this game to the student: " + ((e && e.message) || "check the connection")); });
+  }
 }
 function livePaint(){
   var el = document.getElementById("livePill"), run = UI.run, show = UI.view === "play" && liveOn(run);
@@ -4652,13 +4683,25 @@ function liveMayAct(run, a){
   }
   if(run.type === "hilo" && (a === "hl-call" || a === "hl-next")) return liveMine(s, s.turn);
   if(run.type === "bingo" && a === "bg-res") return !SMODE;
+  if(liveSolo(run) && LIVE_FREE.indexOf(a) === -1){ var teach = (LIVE_TEACH[run.type] || []).indexOf(a) !== -1; return SMODE ? !teach : teach; }
   return true;
 }
 function liveTurnName(run){ var s = run.st, p = s.players && s.players[s.turn]; return p ? p.name : ""; }
 function liveLockPaint(){
   var run = UI.run; if(UI.view !== "play" || !liveLocked(run)) return;
+  var mirror = liveMirror(run), solo = liveSolo(run);
+  if(solo){
+    var stg = document.querySelector("#app main.stage"); if(stg && mirror) stg.classList.add("mirror");
+    document.querySelectorAll("#app main.stage input, #app main.stage textarea").forEach(function(i){
+      var isNote = i.hasAttribute("data-note");
+      if(SMODE && isNote){ var box = i.closest(".claims") || i; box.style.display = "none"; }
+      else if(mirror && !isNote){ i.readOnly = true; i.tabIndex = -1; }
+    });
+  }
   document.querySelectorAll("#app [data-a]").forEach(function(b){
     var a = b.getAttribute("data-a"); if(liveMayAct(run, a)) return;
+    if(solo && mirror){ b.classList.add("ro"); b.tabIndex = -1; return; }
+    if(solo && SMODE){ b.disabled = true; b.classList.add("notmine"); b.title = "Your teacher marks this"; return; }
     if(run.type === "bingo"){ var row = b.closest(".claim"); if(row && SMODE){ row.innerHTML = '<div class="who">Say your sentence to your teacher…</div>'; } return; }
     b.disabled = true; b.classList.add("notmine");
     if(a === "sn-roll" || a === "hl-call") b.title = liveTurnName(run) + "’s turn";
@@ -4666,6 +4709,7 @@ function liveLockPaint(){
   var el = document.getElementById("livePill"), nm = (run.type === "snakes" || run.type === "hilo") && run.st.players ? liveTurnName(run) : "";
   var sp = el && el.querySelector("span");
   if(sp && !SMODE && run.liveOverride) sp.textContent += " · override on";
+  else if(sp && mirror) sp.textContent += " · watching";
   else if(sp && nm && !(run.st.phase === "over" || run.st.phase === "roundend")) sp.textContent += " · " + (liveMine(run.st, run.st.turn) ? "your turn" : nm + "’s turn");
 }
 
@@ -4706,6 +4750,55 @@ function tbLiveView(run, base){
 }
 (function(){ var base = TYPES.taboo.view; TYPES.taboo.view = function(run){ return tbLiveView(run, base); }; })();
 
+
+/* ---------- class link: one link per lesson ----------
+   The student opens it once at the start of an online class (#c= carries the lesson's live room, their first name
+   and the look) and waits. Any game the teacher starts in that lesson goes onto the student's screen: every
+   live message from the teacher carries the game itself (gd), so the student's page needs nothing else.
+   Per-game links (#s=) work as before. */
+function clsGameDef(p, g){
+  var d = studentLinkData(p, g), gd = { g:d.g, l:d.l, k:d.k };
+  ["_challenge", "_only", "_replay"].forEach(function(k){ if(g[k]) gd.g[k] = g[k]; });
+  if(g.type !== "snakes") return Promise.resolve(gd);
+  return snPublish(p, g).then(function(x){ gd.x = x; return gd; });
+}
+function clsApply(gd, pid){
+  SMODE.d.g = gd.g; SMODE.d.p = pid; SMODE.d.l = gd.l || null;
+  if(gd.x && gd.x.board && gd.x.board.id) BOARDS[gd.x.board.id] = gd.x.board;
+  if(gd.x && gd.x.tokens) Object.keys(gd.x.tokens).forEach(function(nm){ STUDENTS[slug(nm)] = { id:slug(nm), name:nm, token:gd.x.tokens[nm] }; });
+  var k = gd.k || SMODE.d.k;
+  PACKS = [{ id:pid || "class", student:"", lp:gd.l || null, look: k && k !== "bright" ? k : "", games:[gd.g] }];
+}
+function clsAdopt(m){
+  if(UI.run && UI.run.gameId !== m.g){ UI.run = null; UNDO = []; UI.finishAsk = false; UI.settingsOpen = false; }
+  clsApply(m.gd, m.p);
+  UI.clsG = { key:SMODE.key, p:m.p, gd:m.gd }; saveUI();
+}
+function clsLink(p){
+  return liveEnsureRoom(p).then(function(r){
+    var first = String(p.student || "").trim().split(/\s+/)[0] || "";
+    return packData({ v:APP_V, r:r, n:first.slice(0, 40), k:lookFor(p) });
+  }).then(function(c){ return (UI.studentBase || SLINK_BASE) + "#c=" + c; });
+}
+/* The lesson page's class-link bar: who's connected right now. */
+function clsBarHtml(p){
+  if(!SB_MODE || !SB) return "";
+  var on = !!p.liveRoom && LIVE.room === p.liveRoom && LIVE.cls && LIVE.peers > 0, nm = LIVE.peerName || p.student || "Your student";
+  var btn = '<button class="btn sm' + (on ? " ghost" : "") + '" data-a="clink">Class link</button>';
+  return '<div class="clsbar' + (on ? " on" : "") + '" id="clsBar" role="status">' + (on ? '<span>● ' + esc(nm) + ' is on the class link. <span class="muted">Tap Play on any game to put it on ' + esc(nm) + '’s screen.</span></span>' : !p.liveRoom ? '<span>Online class? <span class="muted">Send the class link once; then every game you start appears on the student’s screen.</span></span>' : '<span>○ Class link: nobody connected. <span class="muted">When the student opens it, they wait for your first game.</span></span>') + btn + '</div>';
+}
+function clsOverlay(p){
+  if(!UI.clink) return "";
+  var cu = UI.clink.url;
+  return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Class link"><div class="pop setpop"><h3 style="margin-bottom:8px">Class link · ' + esc(packTitle(p)) + '</h3><p class="muted" style="margin-top:0">Send this once at the start of the lesson. ' + esc(p.student || "The student") + ' opens it and waits; every game you start from this lesson then appears on their screen, and its result saves itself.</p>' +
+    (cu ? '<textarea id="slinkUrl" readonly style="min-height:70px">' + esc(cu) + '</textarea>' : '<p class="notice">Making the link…</p>') +
+    '<p class="ok-msg" id="slinkMsg" role="status"></p><div class="row"><button class="btn" data-a="clink-copy"' + (cu ? "" : " disabled") + '>Copy link</button><button class="btn ghost" data-a="clink-close">Close</button></div></div></div>';
+}
+function clsPaint(){
+  var el = document.getElementById("clsBar"); if(!el || (UI.view !== "pack" && UI.view !== "sheet")) return;
+  var p = getPack(UI.packId); if(!p) return;
+  var w = document.createElement("div"); w.innerHTML = clsBarHtml(p); if(w.firstChild) el.replaceWith(w.firstChild);
+}
 function studentLinkData(p, g){
   var t = TYPES[g.type], o = Object.assign({}, t.defaults(p), g.options || {});
   if(g.type === "match") o.claim = false;
@@ -4713,7 +4806,13 @@ function studentLinkData(p, g){
   return { v:APP_V, p:p.id, l:p.lp || null, k:lookFor(p), g:{ id:g.id, type:g.type, title:g.title || t.label, block:g.block, options:o } };
 }
 function viewSReady(){
-  var d = SMODE.d, t = TYPES[d.g.type];
+  var d = SMODE.d;
+  if(SMODE.cls){
+    var res = UI.run ? '<div class="row" style="justify-content:center;margin-top:18px"><button class="btn big-btn" data-a="resume">Carry on playing</button></div>' : "";
+    $("app").innerHTML = '<div class="wrap" style="text-align:center;padding-top:10vh"><h1 style="margin:0 0 6px">' + (d.n ? "Hi " + esc(d.n) + "!" : "Hi!") + '</h1><p class="notice" style="font-size:22px">Waiting for your teacher…</p><p class="muted">Keep this page open. Your games will appear here.</p>' + res + '</div>';
+    return;
+  }
+  var t = TYPES[d.g.type];
   var resume = UI.run && UI.runKey === SMODE.key ? '<button class="btn big-btn" data-a="resume">Carry on playing</button>' : "";
   $("app").innerHTML = '<div class="wrap" style="text-align:center;padding-top:8vh"><div style="display:flex;justify-content:center">' + ball(d.g.type) + '</div><h1 style="margin:14px 0 6px">' + esc(d.g.title || t.label) + '</h1><p class="muted">' + esc(t.label) + '</p>' +
     (d.v > APP_V ? '<p class="notice">This game page is older than your teacher’s app. If anything looks wrong, tell your teacher.</p>' : "") +
@@ -4725,13 +4824,25 @@ function viewSDone(){
   $("app").innerHTML = '<div class="wrap results"><h2>Well done!</h2>' + (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") + itemsTable(r.items) +
     (r.liveSaved ? '<p class="notice" style="margin-top:22px">Your teacher has your score already.</p><details><summary class="muted">Result code (only if your teacher asks)</summary>' : '') +
     '<h3 style="margin-top:22px">' + (r.liveSaved ? 'Result code' : 'Send this to your teacher') + '</h3><p class="muted">Tap Copy, then paste it in the Meet chat (or LINE).</p><textarea id="res" readonly>' + esc(code || "Getting it ready…") + '</textarea><p class="ok-msg" id="copied" role="status"></p>' +
-    '<div class="actions"><button class="btn" data-a="copyres"' + (code ? "" : " disabled") + '>Copy</button><button class="btn ghost" data-a="s-start">Play again</button></div>' + (r.liveSaved ? '</details>' : '') + '</div>';
+    '<div class="actions"><button class="btn" data-a="copyres"' + (code ? "" : " disabled") + '>Copy</button>' + (SMODE.cls ? "" : '<button class="btn ghost" data-a="s-start">Play again</button>') + '</div>' + (r.liveSaved ? '</details>' : '') + (SMODE.cls ? '<p class="muted" style="margin-top:18px">Keep this page open. Your teacher will send the next game.</p>' : "") + '</div>';
 }
 async function startStudent(){
   STATUS = "student"; LOADED.packs = true; LOADED.results = true;
   STORE = { saveResult:function(){ return Promise.resolve(); }, savePack:function(){ return Promise.resolve(); }, saveStudent:function(){ return Promise.resolve(); }, saveBoard:function(){ return Promise.resolve(); }, saveSheet:function(){ return Promise.resolve(); } };
-  var m = location.hash.match(/^#s=([A-Za-z0-9_\-]+)$/);
+  var mc = location.hash.match(/^#c=([A-Za-z0-9_\-]+)$/), m = location.hash.match(/^#s=([A-Za-z0-9_\-]+)$/);
   function msg(t){ $("app").innerHTML = '<div class="wrap" style="text-align:center;padding-top:12vh"><h2>Lesson Games</h2><p class="notice">' + esc(t) + '</p></div>'; }
+  if(mc){
+    var dc; try{ dc = await unpackData(mc[1]); }catch(e){ dc = null; }
+    if(!dc || !dc.r){ msg("This class link looks broken. Ask your teacher to send it again."); return; }
+    SMODE = { cls:true, key:"c" + hash(mc[1]), d:{ v:dc.v, n:dc.n || "", k:dc.k || "", live:{ r:String(dc.r) }, g:null, p:null } };
+    PACKS = [{ id:"class", student:"", look: dc.k && dc.k !== "bright" ? dc.k : "", games:[] }];
+    if(UI.clsG && UI.clsG.key === SMODE.key && UI.clsG.gd) clsApply(UI.clsG.gd, UI.clsG.p);
+    if(UI.run && (UI.runKey !== SMODE.key || !SMODE.d.g || UI.run.gameId !== SMODE.d.g.id)) UI.run = null;
+    if(UI.view === "sdone" && UI.sKey !== SMODE.key) UI.view = "sready";
+    if(UI.view !== "sdone" && !(UI.view === "play" && UI.run)) UI.view = "sready";
+    if(UI.view === "sdone" && UI.lastResult && !UI.sCode) makeSCode(UI.lastResult);
+    render(); return;
+  }
   if(!m){ msg("Ask your teacher for a game link."); return; }
   var d; try{ d = await unpackData(m[1]); }catch(e){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
   if(!d || !d.g || !TYPES[d.g.type]){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
@@ -5028,8 +5139,9 @@ function viewSheet(){
     (spec.spine ? '<p class="rs-spine"><b>Spine:</b> ' + esc(spec.spine) + '</p>' : "") +
     '<div class="rs-state"><span class="pill" id="rsState"><i></i></span>' + (isToday ? '<span class="pill">Now ' + rsNow() + (nowBlk ? " · " + esc(nowBlk.label) : nowM >= endM ? " · lesson time over" : "") + '</span>' : "") + '</div>' +
     '<p class="muted" style="font-size:15px;margin:4px 0 0">Tap once for ✓ ran, again for ✗ didn’t run, again to clear. Nothing marked = asked at Phase B.</p>' +
-    resume + blocks + (spec.flex ? '<p class="rs-info"><b>If long:</b> ' + esc(spec.flex) + '</p>' : "") + end + '</main>';
+    clsBarHtml(p) + resume + blocks + (spec.flex ? '<p class="rs-info"><b>If long:</b> ' + esc(spec.flex) + '</p>' : "") + end + '</main>';
   rsPaintState();
+  if(UI.clink) $("app").insertAdjacentHTML("beforeend", clsOverlay(p));
   if(UI.rsFinish){
     var gaps = info.gaps;
     $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Finish the run sheet"><div class="pop setpop"><h3 style="margin-bottom:8px">' + (gaps.length ? gaps.length + " still unmarked" : "Everything is marked") + '</h3>' +
@@ -5085,7 +5197,7 @@ function rsHandle(a, el){
     var gm = (p.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0]; if(!gm) return;
     var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}));
     if(bad){ toast("This game needs fixing first: " + bad); return; }
-    rsFlush(pid); UI.rsRet = pid;
+    rsFlush(pid); UI.rsRet = pid; UI.clsPlay = true;
     if(findRun(pid, gm.id)){ resumeRun(pid + "|" + gm.id); return; }
     startRun(p, Object.assign({}, gm, { options: Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}), _replay: resultsFor(p.id, gm.id).length > 0 })); return;
   }
@@ -5128,7 +5240,7 @@ function resumeRun(k){
     var r = (UI.parked || {})[k]; if(!r) return false;
     parkRun(); delete UI.parked[k]; UI.run = r;
   }
-  UI.settingsOpen = false; UI.finishAsk = false; UI.packId = UI.run.packId; startClock(UI.run); go("play"); return true;
+  UI.settingsOpen = false; UI.finishAsk = false; UI.packId = UI.run.packId; startClock(UI.run); UI.clsPlay = false; go("play"); if(liveOn(UI.run)) liveOut(true); return true;
 }
 function inProgress(){ var out = []; if(UI.run) out.push(UI.run); Object.keys(UI.parked || {}).forEach(function(k){ out.push(UI.parked[k]); }); return out.filter(function(r){ return getPack(r.packId); }); }
 function inProgressHtml(small, pid){
@@ -5145,7 +5257,9 @@ function startRun(p, g){
   UNDO = []; UI.settingsOpen = false; UI.finishAsk = false;
   var prev = resultsFor(p.id, g.id).filter(function(x){ return x.score && x.score.text && !x.retry; })[0];
   UI.runKey = SMODE ? SMODE.key : null;
-  UI.run = { packId:p.id, gameId:g.id, type:g.type, title:(g.title || t.label) + (g._challenge ? " (challenge)" : "") + (g._only ? " (misses)" : ""), retry: !!g._only, prev: prev && !g._only ? prev.score.text : "", student:p.student || "", lp:p.lp || null, startedAt:nowIso(), act:0, resumedAt:Date.now(), lapAt:0, paused:false, st:t.start(g, p) };
+  if(!SMODE && LIVE.cls && LIVE.peers > 0 && UI.clsPlay) UI.liveFresh = true;
+  UI.clsPlay = false;
+  UI.run = { gflags: (function(){ var f = {}; ["_challenge", "_only", "_replay"].forEach(function(k){ if(g[k]) f[k] = g[k]; }); return f; })(), packId:p.id, gameId:g.id, type:g.type, title:(g.title || t.label) + (g._challenge ? " (challenge)" : "") + (g._only ? " (misses)" : ""), retry: !!g._only, prev: prev && !g._only ? prev.score.text : "", student:p.student || "", lp:p.lp || null, startedAt:nowIso(), act:0, resumedAt:Date.now(), lapAt:0, paused:false, st:t.start(g, p) };
   liveStart(UI.run);
   go("play");
 }
@@ -5246,10 +5360,10 @@ function handle(a, el){
     var qg = { id:"g" + qn, type:q.t, title:q.label + " · " + (qs === "recent" ? "recent words" : "today’s words") + " (on the spot)", block:q.block(qw), options:qo, spot:true };
     var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
     var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
-    UI.rsRet = null; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
+    UI.rsRet = null; UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
   }
   if(a === "play" || a === "play-ch"){
-    UI.rsRet = null;
+    UI.rsRet = null; UI.clsPlay = true;
     var pk2 = getPack(UI.packId), gm = (pk2.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
     var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(pk2), gm.options || {}));
     if(bad){ toast("This game needs fixing first: " + bad); return; }
@@ -5266,7 +5380,7 @@ function handle(a, el){
     var g5 = Object.assign({}, g4, { options: Object.assign({}, TYPES[g4.type].defaults(pk4), g4.options || {}), _replay:true, _only:miss4 });
     var t5 = TYPES[g4.type], st5 = t5.start(g5, pk4);
     if(st5 && st5.order && !st5.order.length || st5 && st5.words && !st5.words.length || st5 && st5.q && !st5.q.length){ toast("Those items aren’t in the game any more."); return; }
-    UI.packId = pk4.id; startRun(pk4, g5); return;
+    UI.packId = pk4.id; UI.clsPlay = true; startRun(pk4, g5); return;
   }
   if(a === "print"){
     var pk3 = getPack(UI.packId), gp = (pk3.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
@@ -5278,11 +5392,15 @@ function handle(a, el){
   if(a === "copylesson"){ var pc = getPack(UI.packId); copyText(lessonResultsText(pc)).then(function(ok){ var c = $("copied"); if(c) c.textContent = ok ? "Copied." : "Copying is blocked here."; }); return; }
   if(a === "copyres"){ copyText($("res").value).then(function(ok){ $("copied").textContent = ok ? "Copied." : "Copying is blocked here. Select the text and copy it."; if(!ok){ $("res").focus(); $("res").select(); } }); return; }
   if(a === "backlesson"){ var blp = UI.lastResult ? UI.lastResult.packId : UI.packId; go(lessonView(blp), { packId: blp }); return; }
-  if(a === "s-start"){ if(SMODE && UI.view === "sdone") UI.liveFresh = true; if(SMODE){ startRun(PACKS[0], PACKS[0].games[0]); } return; }
+  if(a === "s-start"){ if(SMODE && SMODE.cls) return; if(SMODE && UI.view === "sdone") UI.liveFresh = true; if(SMODE){ startRun(PACKS[0], PACKS[0].games[0]); } return; }
   if(a === "slink"){ var spk = getPack(UI.packId), sg = (spk.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0]; if(!sg) return;
     var se = TYPES[sg.type].validate(sg.block, Object.assign({}, TYPES[sg.type].defaults(spk), sg.options || {})); if(se){ toast(se); return; }
     UI.slink = { gid:sg.id, url:"" }; render();
     slinkData(spk, sg).then(packData).then(function(c){ if(UI.slink && UI.slink.gid === sg.id){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }, slinkFail); return; }
+  if(a === "clink"){ var cpk = getPack(UI.packId); if(!cpk) return; UI.clink = { url:"" }; render();
+    clsLink(cpk).then(function(u){ if(UI.clink){ UI.clink.url = u; render(); } }, function(e){ UI.clink = null; render(); toast("Couldn’t make the link: " + ((e && e.message) || "check the connection")); }); return; }
+  if(a === "clink-close"){ UI.clink = null; render(); return; }
+  if(a === "clink-copy"){ var cu2 = UI.clink && UI.clink.url; if(!cu2) return; copyText(cu2).then(function(ok){ var c = $("slinkMsg"); if(c) c.textContent = ok ? "Copied. Paste it in the Meet chat or LINE." : "Copying is blocked here. Select the link and copy it."; if(!ok){ $("slinkUrl").focus(); $("slinkUrl").select(); } }); return; }
   if(a === "slink-close" || a === "sres-close"){ UI.slink = null; UI.sres = false; render(); return; }
   if(a === "slink-copy"){ var su = UI.slink && UI.slink.url; if(!su) return; copyText(su).then(function(ok){ var c = $("slinkMsg"); if(c) c.textContent = ok ? "Copied. Paste it in the Meet chat or LINE." : "Copying is blocked here. Select the link and copy it."; if(!ok){ $("slinkUrl").focus(); $("slinkUrl").select(); } }); return; }
   if(a === "sres-open"){ UI.sres = true; UI.slink = null; render(); var ta = $("sresIn"); if(ta) ta.focus(); return; }
@@ -5291,7 +5409,7 @@ function handle(a, el){
   if(a === "finish-ask"){ if(run){ UI.finishAsk = true; render(); } return; }
   if(a === "finish-cancel"){ UI.finishAsk = false; render(); return; }
   if(a === "discard" && SMODE){ UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go("sready"); return; }
-  if(a === "discard"){ var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go(lessonView(pid0), { packId: pid0 }); return; }
+  if(a === "discard"){ if(run && run.liveGen && LIVE.room) liveSend({ t:"stop", g:run.gameId, gen:run.liveGen }); var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go(lessonView(pid0), { packId: pid0 }); return; }
   if(a === "finish"){ UI.finishAsk = false; if(run) finishRun(); return; }
   if(a === "undo"){ UI.settingsOpen = false; saveUI(); if(run && UNDO.length){ run.st = JSON.parse(UNDO.pop()); run.st._animating = false; run.st.spinning = false; saveRun(); render(); } return; }
   if(a === "showres"){ var rr = RESULTS.filter(function(x){ return x.id === el.getAttribute("data-r"); })[0]; if(rr){ UI.lastResult = { id:rr.id, summary:rr.summary, packId:rr.packId, gameId:rr.gameId, type:rr.type, score:rr.score || null, items:rr.items || [], activeSecs:rr.activeSecs || 0 }; go("done"); } return; }
@@ -5300,7 +5418,7 @@ function handle(a, el){
   if(a === "pause"){ if(run && !run.paused && !run.st.spinning){ run.act = clockMs(run); run.paused = true; run.st._animating = false; saveRun(); render(); } return; }
   if(a === "resume-run"){ if(run && run.paused){ clockMs(run); run.resumedAt = Date.now(); run.paused = false; saveRun(); render(); } return; }
   if(run && run.paused) return;
-  if(run && TYPES[run.type] && !liveMayAct(run, a)){ toast(run.type === "bingo" ? "Your teacher marks the sentence." : "It’s " + liveTurnName(run) + "’s turn."); return; }
+  if(run && TYPES[run.type] && !liveMayAct(run, a)){ if(!(el && el.nodeType)) return; toast(liveSolo(run) ? (SMODE ? "Your teacher marks this one." : "You’re watching " + (LIVE.peerName || "your student") + " play. Tap 🔒 to take over.") : run.type === "bingo" ? "Your teacher marks the sentence." : "It’s " + liveTurnName(run) + "’s turn."); return; }
   if(run && TYPES[run.type]){
     var snap = JSON.stringify(run.st), nl = (run.st.log || []).length, nb = (run.st.bonusLog || []).length;
     var r = TYPES[run.type].act(run, a, el);
