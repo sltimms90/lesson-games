@@ -4660,7 +4660,10 @@ var LIVE_TEACH = { cards:["fc-ok", "fc-no"], wheel:["wh-mark"], slot:["sl-mark"]
 var LIVE_FREE = ["lesson", "pause", "resume-run", "settings", "set-look", "undo", "finish-ask", "finish-cancel", "finish", "discard", "live-override", "resume", "s-start"];
 function liveSolo(run){ return !!run && LIVE_TURNS.indexOf(run.type) === -1; }
 /* The teacher's screen only watches a solo game while the student is connected (unless the override is on). */
-function liveMirror(run){ return !SMODE && liveSolo(run) && liveLocked(run) && !run.liveOverride; }
+function liveMirror(run){ return !SMODE && liveSolo(run) && liveSoloLocked(run) && !run.liveOverride; }
+/* A solo game is only shared once the other screen is in it (a message about it has arrived, or a class link is
+   connected and will open it). A student link for a different game left open doesn't lock the teacher's iPad. */
+function liveSoloLocked(run){ return liveLocked(run) && (!!run.peerIn || (!SMODE && LIVE.cls)); }
 var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", cls:false, applyingFin:false, sent:"" };
 (function(){ var a = new Uint8Array(9); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function(_, i){ a[i] = Math.random() * 256; }); LIVE.me = Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); })();
 function liveNewRoom(){ var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); }
@@ -4757,6 +4760,7 @@ function liveRecv(m){
     return;
   }
   if(m.t === "stop"){
+    if(LIVE.last[m.g] && LIVE.last[m.g].gen === m.gen) delete LIVE.last[m.g];
     if(SMODE && run && run.gameId === m.g && run.liveGen === m.gen){ UI.run = null; UNDO = []; UI.finishAsk = false; UI.settingsOpen = false; saveUI(); go("sready"); }
     return;
   }
@@ -4767,6 +4771,7 @@ function liveRecv(m){
   var prev = LIVE.last[m.g];
   if(!prev || prev.gen !== m.gen ? (!prev || (m.t0 || 0) >= (prev.t0 || 0)) : (m.rev > prev.rev || (m.rev === prev.rev && m.from > (prev.from || LIVE.me)))) LIVE.last[m.g] = m;
   if(run && run.gameId === m.g && (SMODE || run.packId === m.p)){
+    if(run.liveGen === m.gen || (m.t0 || 0) > (run.liveT0 || 0)) run.peerIn = true;
     if(run.liveGen === m.gen){
       if(liveRejects(run, m)){ run.st._rev = Math.max(run.st._rev || 0, m.rev || 0) + 1; LIVE.sent = ""; liveOut(true); return; }
       var mine = run.st._rev || 0;
@@ -4789,7 +4794,7 @@ function liveStart(run){
   if(!LIVE.room || LIVE_TYPES.indexOf(run.type) === -1) return;
   if(!SMODE){ var p = getPack(run.packId); if(!p || p.liveRoom !== LIVE.room) return; }
   var m = LIVE.last[run.gameId];
-  if(m && !(m.st.phase === "over" || m.st.winner) && !UI.liveFresh){ run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; LIVE.sent = JSON.stringify(liveStrip(run.st)); }
+  if(m && !(m.st.phase === "over" || m.st.winner) && !UI.liveFresh){ run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; run.peerIn = m.from !== LIVE.me; LIVE.sent = JSON.stringify(liveStrip(run.st)); }
   else { run.liveGen = shortId(); run.liveT0 = Date.now(); run.st._rev = 0; LIVE.sent = ""; setTimeout(function(){ if(UI.run === run) liveOut(true); }, 0); }
   UI.liveFresh = false;
   if(!SMODE){
@@ -4832,13 +4837,14 @@ function liveMayAct(run, a){
   }
   if(run.type === "hilo" && (a === "hl-call" || a === "hl-next")) return liveMine(s, s.turn);
   if(run.type === "bingo" && a === "bg-res") return !SMODE;
+  if(liveSolo(run) && !liveSoloLocked(run)) return true;
   if(liveSolo(run) && LIVE_FREE.indexOf(a) === -1){ var teach = (LIVE_TEACH[run.type] || []).indexOf(a) !== -1; return SMODE ? !teach : teach; }
   return true;
 }
 function liveTurnName(run){ var s = run.st, p = s.players && s.players[s.turn]; return p ? p.name : ""; }
 function liveLockPaint(){
   var run = UI.run; if(UI.view !== "play" || !liveLocked(run)) return;
-  var mirror = liveMirror(run), solo = liveSolo(run);
+  var mirror = liveMirror(run), solo = liveSolo(run) && liveSoloLocked(run);
   if(solo){
     var stg = document.querySelector("#app main.stage"); if(stg && mirror) stg.classList.add("mirror");
     document.querySelectorAll("#app main.stage input, #app main.stage textarea").forEach(function(i){
@@ -5559,7 +5565,7 @@ function handle(a, el){
   if(a === "finish-ask"){ if(run){ UI.finishAsk = true; render(); } return; }
   if(a === "finish-cancel"){ UI.finishAsk = false; render(); return; }
   if(a === "discard" && SMODE){ UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go("sready"); return; }
-  if(a === "discard"){ if(run && run.liveGen && LIVE.room) liveSend({ t:"stop", g:run.gameId, gen:run.liveGen }); var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go(lessonView(pid0), { packId: pid0 }); return; }
+  if(a === "discard"){ if(run && run.liveGen && LIVE.room){ liveSend({ t:"stop", g:run.gameId, gen:run.liveGen }); delete LIVE.last[run.gameId]; } var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go(lessonView(pid0), { packId: pid0 }); return; }
   if(a === "finish"){ UI.finishAsk = false; if(run) finishRun(); return; }
   if(a === "undo"){ UI.settingsOpen = false; saveUI(); if(run && UNDO.length){ run.st = JSON.parse(UNDO.pop()); run.st._animating = false; run.st.spinning = false; saveRun(); render(); } return; }
   if(a === "showres"){ var rr = RESULTS.filter(function(x){ return x.id === el.getAttribute("data-r"); })[0]; if(rr){ UI.lastResult = { id:rr.id, summary:rr.summary, packId:rr.packId, gameId:rr.gameId, type:rr.type, score:rr.score || null, items:rr.items || [], activeSecs:rr.activeSecs || 0 }; go("done"); } return; }
