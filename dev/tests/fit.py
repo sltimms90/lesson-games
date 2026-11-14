@@ -32,6 +32,11 @@ only = sys.argv[1:]  # e.g. python3 fit.py quiz taboo
 games = [{"id":"g_" + t, "type":t, "title":t.title() + " with a very long title for " + LONG, "block":b, "options":({"boardId":"b1"} if t == "snakes" else {"show":"all", "cards":"Maximilian-Alexander", "tk":0} if t == "bingo" else {})} for t, b in blocks.items() if not only or t in only]
 pack = {"id":"fit","student":"Maximilian-Alexander","lp":3,"title":"Fit","date":"2026-11-14","updatedAt":"x","games":games}
 os.makedirs(os.path.join(HERE, "shots"), exist_ok=True)
+def fit_check(view, ok, msg):
+    """iPad and desktop must fit (Sam's rule). Phones get as close as half size allows: reported, not failed."""
+    if view.startswith("phone"):
+        print(("PASS " if ok else "NOTE ") + msg[:160])
+    else: check(ok, msg)
 def steps(pg, t):
     """A couple of taps into each game, so later screens are checked too."""
     tap = {"hangman":["[data-a=hm-show]"], "anagrams":["[data-a=an-show]"], "cards":["[data-a=fc-flip]"], "quiz":["[data-a=qz-ans]"],
@@ -54,9 +59,9 @@ with sync_playwright() as p:
             if pg.evaluate("__T.UI.view") != "play":
                 check(False, "%s %s didn't start: %s" % (name, g["type"], pg.evaluate("(document.querySelector('.toast')||{}).textContent"))); continue
             o = overflow(pg); pg.screenshot(path=os.path.join(HERE, "shots", "%s-%s-1.png" % (name, g["type"])))
-            check(not o, "%s %s start fits %s" % (name, g["type"], o))
+            fit_check(name, not o, "%s %s start fits %s" % (name, g["type"], o))
             steps(pg, g["type"]); o = overflow(pg); pg.screenshot(path=os.path.join(HERE, "shots", "%s-%s-2.png" % (name, g["type"])))
-            check(not o, "%s %s after a move fits %s" % (name, g["type"], o))
+            fit_check(name, not o, "%s %s after a move fits %s" % (name, g["type"], o))
             pg.evaluate("UI => { __T.UI.finishAsk=false; __T.UI.settingsOpen=false; }")
             if pg.evaluate("__T.UI.view") == "play":
                 pg.click("[data-a=finish-ask]"); pg.wait_for_timeout(150); pg.click("[data-a=discard]"); pg.wait_for_timeout(250)

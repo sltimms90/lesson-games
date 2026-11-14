@@ -1,0 +1,49 @@
+"""Missed-words warm-up (Quick game from the last three lessons' misses) and the progress view in a student folder."""
+from lg import *
+def pk(i, date, bank=""):
+    return {"id":"mia-lp%d" % i, "student":"Mia", "lp":i, "title":"Mia · LP%d" % i, "date":date, "updatedAt":"x", "games":[], "bank":bank}
+packs = [pk(5, "2026-10-20"), pk(6, "2026-10-27", "castle | a king lives here\nbridge | you cross a river on it"), pk(7, "2026-11-03"), pk(8, "2026-11-10"), pk(9, "2026-11-17", "garden | flowers grow here")]
+def res(rid, pid, ty, at, items):
+    return {"id":rid, "packId":pid, "gameId":"g1", "type":ty, "title":ty, "at":at, "summary":ty + " — test", "items":items}
+I = lambda item, ok, note="": {"item":item, "ok":ok, "note":note}
+results = [
+  res("r1", "mia-lp5", "hangman", "2026-10-20T03:00:00Z", [I("castle", False), I("tower", True)]),   # LP5 is too old for the warm-up
+  res("r2", "mia-lp6", "spelling", "2026-10-27T03:00:00Z", [I("castle", False, "should be “castle”"), I("bridge", False), I("market", False)]),
+  res("r3", "mia-lp7", "cards", "2026-11-03T03:00:00Z", [I("a big old house for a king", False, "answer: castle"), I("you cross a river on it", False, "answer: bridge · 2 tries")]),
+  res("r4", "mia-lp8", "quiz", "2026-11-10T03:00:00Z", [I("Which word is a verb?", False, "answer “happy”"), I("Pick the noun", True)]),
+  res("r5", "mia-lp8", "hangman", "2026-11-10T04:00:00Z", [I("bridge", True), I("castle", False, "wrong letters: e")]),
+  res("r6", "mia-lp8", "whack", "2026-11-10T05:00:00Z", [I("went", False, "a right answer · appeared 3"), I("goed", False, "a wrong answer · appeared 2")]),
+  res("r7", "mia-lp8", "snakes", "2026-11-10T06:00:00Z", [{"item":"Challenge: Make a sentence with “river”.", "ok":False, "note":"word: river", "w":"river", "challenge":True}]),
+]
+with sync_playwright() as p:
+    b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+    ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
+    t = teacher(ctx, seed_db(packs, results=results), errs); t.wait_for_selector("text=Mia · LP9", timeout=8000)
+    t.click("text=Mia · LP9"); t.wait_for_timeout(300)
+    btn = t.locator("[data-a=qscope][data-v=missed]")
+    check(btn.count() == 1, "Quick game offers Missed lately")
+    words = t.evaluate("(() => { const p = __T.PACKS.find(x => x.id === 'mia-lp9'); return null; })()")
+    t.click("[data-a=qscope][data-v=missed]"); t.wait_for_timeout(200)
+    txt = t.inner_text(".section >> nth=0") if False else t.inner_text("#app")
+    import re
+    m = re.search(r"Warm-up: ([^\n]*)", txt); wl = m.group(1) if m else ""
+    check("castle" in wl and "bridge" in wl and "market" in wl and "went" in wl and "river" in wl, "warm-up words from the last 3 lessons: %s" % wl)
+    check("goed" not in wl and "tower" not in wl and "verb" not in wl, "leaves out distractors, right answers and sentences")
+    check("Missed lately (5)" in btn.inner_text(), "count on the button: %s" % btn.inner_text())
+    t.click("[data-a=quick][data-q=hangman]"); t.wait_for_timeout(400)
+    check(t.evaluate("__T.UI.view") == "play" and "missed words" in t.evaluate("__T.UI.run.title"), "Hangman built from the missed words: %s" % t.evaluate("__T.UI.run.title"))
+    ws = t.evaluate("__T.UI.run.st.words.map(w => w.w + '|' + (w.c||''))")
+    check(any(x.startswith("castle|a king lives here") for x in ws), "clue taken from the word bank: %s" % ws)
+    t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(200)
+    # progress view
+    t.click("[data-a=student][data-s=Mia] >> nth=0"); t.wait_for_timeout(300)
+    check(t.locator(".pg").count() == 1, "student folder has a Progress section")
+    pg = t.inner_text(".pg")
+    check(t.locator(".pg-row").count() == 4, "one bar per lesson with results (%d)" % t.locator(".pg-row").count())
+    keeps = pg.split("Keeps coming up")[1] if "Keeps coming up" in pg else ""
+    check("castle" in keeps and "4 lessons" in keeps, "castle keeps coming up across 4 lessons: %s" % keeps[:200])
+    check("bridge" not in keeps.split("Got right last time")[0], "bridge (right last time) isn't in Keeps coming up")
+    check("Got right last time (1)" in pg, "bridge counted as got right last time")
+    t.screenshot(path=HERE + "/shots/prog.png", full_page=True)
+    check(not errs, "no page errors %s" % errs[:3])
+done()

@@ -715,6 +715,15 @@ span.od-tile{cursor:default}
 .livepill.on{border-color:#1E8A5A;color:#1E8A5A}
 .notmine{opacity:.45}
 .ro{pointer-events:none}
+.pg-row{display:grid;grid-template-columns:72px minmax(80px,1fr) 52px auto;gap:10px;align-items:center;margin:6px 0;font-size:16px}
+.pg-l{font-weight:700}
+.pg-bar{height:14px;border-radius:7px;background:var(--soft);overflow:hidden}
+.pg-bar i{display:block;height:100%;background:var(--ok);border-radius:7px}
+.pg-v{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.pg h4{margin:16px 0 4px}
+.pg-w{margin:6px 0;padding-left:22px}
+.pg-w li{margin:3px 0}
+@media (max-width:560px){.pg-row{grid-template-columns:56px 1fr 44px}.pg-s{display:none}}
 .chpop{text-align:center;max-width:620px}
 .chtag{font:800 20px/1 "Baloo 2",sans-serif;color:var(--amber,#B07A12);letter-spacing:.02em}
 .chq{font:800 clamp(28px,4.4vw,44px)/1.2 "Baloo 2",sans-serif;margin:12px 0 14px}
@@ -4294,6 +4303,52 @@ function viewHome(){
     '<div class="spread" style="margin-top:22px"><h3>Students</h3><button class="btn sm" data-a="newpack">New lesson</button></div>' + folders + dataSection() + '</div>';
   var rf = $("restoreFile"); if(rf) rf.addEventListener("change", function(){ restoreFile(rf.files && rf.files[0]); rf.value = ""; });
 }
+
+/* ---------- progress: patterns across a student's games and lessons (all from results.items) ---------- */
+function progressData(name){
+  var packs = packsByDate(PACKS.filter(function(p){ return (p.student || "") === name; })), byPack = {};
+  packs.forEach(function(p){ byPack[p.id] = p; });
+  var rs = RESULTS.filter(function(r){ return byPack[r.packId]; });
+  var lessons = packs.map(function(p){
+    var right = 0, tot = 0, games = 0;
+    rs.forEach(function(r){ if(r.packId !== p.id) return; games++; (r.items || []).forEach(function(x){ if(x.ok === true){ right++; tot++; } else if(x.ok === false) tot++; }); });
+    return { p:p, right:right, tot:tot, games:games, pts:lessonPoints(p.id) };
+  }).filter(function(x){ return x.games; });
+  var words = {};
+  rs.slice().sort(function(a, b){ return String(a.at).localeCompare(String(b.at)); }).forEach(function(r){
+    var L = TYPES[r.type] ? TYPES[r.type].label : r.type;
+    itemWords(r).forEach(function(x){
+      var k = itemKey(x.w); if(!k) return;
+      var o = words[k] || (words[k] = { w:x.w, word:x.word, miss:0, ok:0, missLessons:{}, missGames:{}, last:null, lastAt:"" });
+      if(x.ok){ o.ok++; } else { o.miss++; o.missLessons[r.packId] = 1; o.missGames[L] = 1; }
+      o.last = x.ok; o.lastAt = r.at;
+    });
+  });
+  var list = Object.keys(words).map(function(k){ var o = words[k]; o.nl = Object.keys(o.missLessons).length; o.ng = Object.keys(o.missGames).length; return o; });
+  var stuck = list.filter(function(o){ return o.miss && (o.nl >= 2 || o.ng >= 2) && o.last === false; }).sort(function(a, b){ return b.nl - a.nl || b.miss - a.miss; });
+  var better = list.filter(function(o){ return o.miss && (o.nl >= 2 || o.ng >= 2) && o.last === true; }).sort(function(a, b){ return b.nl - a.nl || b.miss - a.miss; });
+  var once = list.filter(function(o){ return o.miss && o.nl < 2 && o.ng < 2 && o.last === false; });
+  return { lessons:lessons, stuck:stuck, better:better, once:once };
+}
+function progressHtml(name){
+  var d = progressData(name); if(!d.lessons.length) return "";
+  var rows = d.lessons.slice(0, 8).reverse().map(function(x){
+    var pc = x.tot ? Math.round(100 * x.right / x.tot) : null;
+    return '<div class="pg-row"><span class="pg-l">' + esc(x.p.lp ? "LP" + x.p.lp : fmtDate(x.p.date)) + '</span><span class="pg-bar" title="' + (pc == null ? "nothing scored item by item" : x.right + " of " + x.tot + " right") + '"><i style="width:' + (pc == null ? 0 : pc) + '%"></i></span><span class="pg-v">' + (pc == null ? "—" : pc + "%") + '</span><span class="pg-s muted">' + x.games + (x.games === 1 ? " game" : " games") + ' · ★ ' + fmtPts(x.pts) + '</span></div>';
+  }).join("");
+  var first = d.lessons[d.lessons.length - 1], last = d.lessons[0], trend = "";
+  if(d.lessons.length >= 3 && first.tot && last.tot){
+    var recent = d.lessons.slice(0, 3).filter(function(x){ return x.tot; }), older = d.lessons.slice(3, 6).filter(function(x){ return x.tot; });
+    function avg(a){ var r = 0, t = 0; a.forEach(function(x){ r += x.right; t += x.tot; }); return t ? 100 * r / t : null; }
+    var a1 = avg(recent), a0 = avg(older);
+    if(a1 != null && a0 != null){ var dd = Math.round(a1 - a0); trend = '<p class="muted" style="margin:6px 0 0">Last three lessons: ' + Math.round(a1) + '% right, ' + (Math.abs(dd) < 3 ? "about the same as" : dd > 0 ? dd + " points up on" : -dd + " points down on") + ' the ' + (older.length === 1 ? "lesson" : older.length + " lessons") + ' before.</p>'; }
+  }
+  function wline(o){ return '<li><b>' + esc(o.w) + '</b> <span class="muted">— missed ' + o.miss + (o.miss === 1 ? " time" : " times") + ' in ' + o.nl + (o.nl === 1 ? " lesson" : " lessons") + ' (' + esc(Object.keys(o.missGames).join(", ")) + ')' + (o.ok ? ', right ' + o.ok + (o.ok === 1 ? " time" : " times") : "") + '</span></li>'; }
+  return '<section class="section pg"><h3>Progress</h3><p class="muted" style="margin-top:4px">Share of items right in each lesson’s games, oldest on top (last 8 lessons).</p>' + rows + trend +
+    (d.stuck.length ? '<h4>Keeps coming up</h4><p class="muted" style="margin-top:0">Missed in more than one lesson or game, and still missed last time.</p><ul class="pg-w">' + d.stuck.slice(0, 15).map(wline).join("") + '</ul>' : '<p class="muted">Nothing missed in more than one lesson or game yet.</p>') +
+    (d.better.length ? '<details><summary class="muted">Got right last time (' + d.better.length + ')</summary><ul class="pg-w">' + d.better.slice(0, 15).map(wline).join("") + '</ul></details>' : "") +
+    (d.once.length ? '<details><summary class="muted">Missed once (' + d.once.length + ')</summary><p class="muted" style="margin:6px 0">' + esc(d.once.slice(0, 40).map(function(o){ return o.w; }).join(" · ")) + '</p></details>' : "") + '</section>';
+}
 function viewStudent(){
   var s = UI.student || "", mine = packsByDate(PACKS.filter(function(p){ return (p.student || "") === s; }));
   var rs = RESULTS.filter(function(r){ var p = getPack(r.packId); return p ? (p.student || "") === s : r.student === s; });
@@ -4305,7 +4360,7 @@ function viewStudent(){
     return '<li><b>' + esc(head) + '</b>' + list.map(function(r){ return '<div class="when">' + esc(fmtWhen(r.at)) + '</div><pre>' + esc(r.summary) + '</pre>'; }).join("") + '</li>';
   }).join("");
   $("app").innerHTML = '<div class="wrap"><div class="spread"><button class="btn ghost sm" data-a="home">‹ All students</button>' + statusPill() + '</div><div class="head"><h2>' + esc(s || "No student") + '</h2><p class="muted">' + mine.length + (mine.length === 1 ? " lesson" : " lessons") + ', newest first.</p></div>' +
-    (mine.length ? '<ul class="list">' + mine.map(packItemHtml).join("") + '</ul>' : '<p class="notice">No lessons yet.</p>') +
+    (mine.length ? '<ul class="list">' + mine.map(packItemHtml).join("") + '</ul>' : '<p class="notice">No lessons yet.</p>') + progressHtml(s) +
     (hist ? '<details class="section"><summary><h3 style="display:inline">Every game played</h3></summary><ul class="hist">' + hist + '</ul></details>' : "") + '</div>';
 }
 function viewHomeOld(){
@@ -4336,7 +4391,50 @@ function bankPacks(p, scope){
   if(scope !== "recent" || !p.student) return p.bank ? [p] : [];
   return PACKS.filter(function(x){ return x.bank && x.student === p.student && (x.id === p.id || (+x.lp || 0) <= (+p.lp || 0)); }).sort(function(a, b){ return (+b.lp || 0) - (+a.lp || 0); }).slice(0, 3);
 }
-function bankWords(p, scope){ var out = [], seen = {}; bankPacks(p, scope).forEach(function(x){ parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!seen[k]){ seen[k] = 1; out.push(b); } }); }); return out; }
+
+/* ---------- missed-words warm-up ----------
+   Words the student got wrong in their last three lessons (results.items with ok false), as a third word source for
+   Quick game. Word games give the word itself; Flash Cards, Type the Answer, Crossword and Match Up give the word and
+   its clue; Challenge words count too. Sentences (Quiz, Spot the Error…) aren't words, so they're left out. */
+function noteVal(note, key){ var m = new RegExp("(?:^| · )" + key + ": ([^·]+)").exec(String(note || "")); return m ? m[1].trim() : ""; }
+function wordish(t){ t = String(t || "").trim(); return !!t && t.length <= 32 && t.split(/\s+/).length <= 3 && !/[.?!_]/.test(t); }
+function missedFrom(r){ return itemWords(r).filter(function(x){ return x.ok === false && x.word; }); }
+function itemWords(r){
+  var out = [];
+  (r.items || []).forEach(function(x){
+    if((x.ok !== false && x.ok !== true) || !x.item || x.item === "Bonus round") return;
+    var w = "", c = "", ty = r.type;
+    if(x.challenge) w = x.w || "";
+    else if(ty === "hangman" || ty === "spelling" || ty === "phon" || ty === "anagrams") w = x.item;
+    else if(ty === "whack"){ if(/^a right answer/.test(x.note || "")) w = x.item; }
+    else if(ty === "cross"){ w = x.item; c = noteVal(x.note, "clue"); }
+    else if(ty === "cards"){ w = noteVal(x.note, "answer"); c = x.item; }
+    else if(ty === "typeit"){ w = noteVal(x.note, "answer").split(" / ")[0]; c = x.item; }
+    else if(ty === "match"){ w = x.item; c = noteVal(x.note, "pair"); }
+    if(wordish(w)) out.push({ w:String(w).trim(), c:c, ok:x.ok, word:true });
+    else if(!x.challenge) out.push({ w:String(x.item).trim(), c:"", ok:x.ok, word:false });
+  });
+  return out;
+}
+function missedPacks(p){
+  if(!p || !p.student) return [];
+  return packsByDate(PACKS.filter(function(x){ return x.student === p.student && x.id !== p.id && (String(x.date || "") < String(p.date || "") || (x.date === p.date && (+x.lp || 0) < (+p.lp || 0))); })).slice(0, 3);
+}
+function missedWords(p){
+  var packs = missedPacks(p), ids = {}, bank = {}, out = [], seen = {};
+  [p].concat(packs).forEach(function(x){ ids[x.id] = x !== p; parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!bank[k]) bank[k] = b; }); });
+  RESULTS.filter(function(r){ return ids[r.packId]; }).sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); }).forEach(function(r){
+    missedFrom(r).forEach(function(m){
+      var k = m.w.toLowerCase(); if(seen[k]) return; seen[k] = 1;
+      var b = bank[k], c = b && bankPrompt(b) ? (b.c || "") : m.c;
+      if(c && clueLeaks(m.w, c)) c = "";
+      out.push({ w:m.w, c:c, ex: b ? b.ex : "" });
+    });
+  });
+  return out;
+}
+function bankWords(p, scope){ if(scope === "missed") return missedWords(p); return bankWords0(p, scope); }
+function bankWords0(p, scope){ var out = [], seen = {}; bankPacks(p, scope).forEach(function(x){ parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!seen[k]){ seen[k] = 1; out.push(b); } }); }); return out; }
 function qWordClue(ws){ return ws.map(function(b){ var c = bankPrompt(b); return b.w + (c ? " | " + c : ""); }).join("\n"); }
 function qClueEq(ws){ return ws.map(function(b){ return bankPrompt(b) + " = " + b.w; }).join("\n"); }
 var QUICK = [
@@ -4352,12 +4450,16 @@ var QUICK = [
   { k:"cross", t:"cross", label:"Crossword", min:6, clue:true, block:qClueEq },
   { k:"bingo", t:"bingo", label:"Bingo", min:9, block:function(ws){ var all = ws.every(function(b){ return bankPrompt(b); }); return ws.map(function(b){ return b.w + (all ? " = " + bankPrompt(b) : ""); }).join("\n"); }, opts:function(ws){ var n = ws.length, all = ws.every(function(b){ return bankPrompt(b); }); return { size: n >= 24 ? 5 : n >= 16 ? 4 : 3, call: all ? "definition" : "word" }; } }
 ];
+function qScopeName(qs){ return qs === "recent" ? "recent words" : qs === "missed" ? "missed words" : "today’s words"; }
 function bankSection(p){
-  var mine = parseBank(p.bank), scope = UI.qScope === "recent" ? "recent" : "today", ws = bankWords(p, scope), rp = bankPacks(p, "recent");
+  var mine = parseBank(p.bank), rp = bankPacks(p, "recent"), mw = missedWords(p);
+  var scope = UI.qScope === "recent" && rp.length > 1 ? "recent" : UI.qScope === "missed" && mw.length ? "missed" : mine.length ? "today" : mw.length ? "missed" : "today";
+  var ws = bankWords(p, scope);
   var withClue = ws.filter(function(b){ return bankPrompt(b); }).length;
-  var quick = ws.length ? '<div class="row" style="margin:8px 0"><button class="btn sm' + (scope === "today" ? "" : " ghost") + '" data-a="qscope" data-v="today">Today’s words (' + mine.length + ')</button>' + (rp.length > 1 ? '<button class="btn sm' + (scope === "recent" ? "" : " ghost") + '" data-a="qscope" data-v="recent">Last ' + rp.length + ' lessons (' + bankWords(p, "recent").length + ')</button>' : "") + '</div>' +
+  var quick = ws.length ? '<div class="row" style="margin:8px 0">' + (mine.length ? '<button class="btn sm' + (scope === "today" ? "" : " ghost") + '" data-a="qscope" data-v="today">Today’s words (' + mine.length + ')</button>' : "") + (rp.length > 1 ? '<button class="btn sm' + (scope === "recent" ? "" : " ghost") + '" data-a="qscope" data-v="recent">Last ' + rp.length + ' lessons (' + bankWords(p, "recent").length + ')</button>' : "") + (mw.length ? '<button class="btn sm' + (scope === "missed" ? "" : " ghost") + '" data-a="qscope" data-v="missed" title="Words missed in the last ' + missedPacks(p).length + ' lessons">Missed lately (' + mw.length + ')</button>' : "") + '</div>' +
+    (scope === "missed" ? '<p class="muted" style="margin:0 0 8px;font-size:15px">Warm-up: ' + esc(trunc(mw.map(function(b){ return b.w; }).join(", "), 120)) + '</p>' : "") +
     '<div class="add">' + QUICK.map(function(q){ var n = q.filter ? ws.filter(q.filter).length : q.clue ? withClue : ws.length, ok = n >= q.min; return '<button data-a="quick" data-q="' + q.k + '"' + (ok ? "" : " disabled title=\"Needs " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "\"") + '>' + ball(q.t) + q.label + '</button>'; }).join("") + '</div>' : "";
-  return '<section class="section"><h3>Quick game</h3><p class="muted" style="margin-top:4px">' + (mine.length ? "Tap a game to build it from the word bank and start it straight away. It’s saved to this lesson, so its results go in the after-class report." : "No word bank yet. The planner saves each lesson’s key words here; you can also add them below.") + '</p>' + quick +
+  return '<section class="section"><h3>Quick game</h3><p class="muted" style="margin-top:4px">' + (mine.length || mw.length ? "Tap a game to build it from the word bank and start it straight away. It’s saved to this lesson, so its results go in the after-class report." : "No word bank yet. The planner saves each lesson’s key words here; you can also add them below.") + '</p>' + quick +
     '<details style="margin-top:10px"' + (mine.length ? "" : " open") + '><summary class="muted">' + (mine.length ? "Word bank: " + esc(trunc(mine.map(function(b){ return b.w; }).join(", "), 90)) : "Add the word bank") + '</summary><textarea id="bankIn" style="min-height:140px;margin-top:8px" placeholder="kitchen | you cook dinner in this room | Mom is cooking in the kitchen.">' + esc(p.bank || "") + '</textarea><div class="hint">One word per line: word | clue (its meaning, never part of the word) | an example sentence with the word in it. Clue and sentence are optional.</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="bank-save">Save word bank</button></div></details></section>';
 }
 
@@ -5399,12 +5501,13 @@ function handle(a, el){
   if(a === "bank-save"){ var bp = getPack(UI.packId), bt = $("bankIn"); if(!bp || !bt) return; var bpp = clone(bp); bpp.bank = bt.value.trim(); if(!bpp.bank) delete bpp.bank; touchPack(bpp); PACKS = PACKS.map(function(x){ return x.id === bpp.id ? bpp : x; }); render(); toast("Word bank saved: " + parseBank(bpp.bank).length + " words."); return; }
   if(a === "quick"){
     var qp = getPack(UI.packId), q = QUICK.filter(function(x){ return x.k === el.getAttribute("data-q"); })[0]; if(!qp || !q) return;
-    var qs = UI.qScope === "recent" ? "recent" : "today", qw = bankWords(qp, qs);
+    var qs = UI.qScope === "recent" ? "recent" : UI.qScope === "missed" ? "missed" : "today", qw = bankWords(qp, qs);
+    if(qs === "today" && !parseBank(qp.bank).length && missedWords(qp).length){ qs = "missed"; qw = bankWords(qp, qs); }
     if(q.filter) qw = qw.filter(q.filter); else if(q.clue) qw = qw.filter(function(b){ return bankPrompt(b); });
     if(qw.length < q.min){ toast(q.label + " needs at least " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "."); return; }
     var ids = (qp.games || []).map(function(x){ return x.id; }), qn = 1; while(ids.indexOf("g" + qn) !== -1) qn++;
     var qo = Object.assign({}, TYPES[q.t].defaults(qp), q.opts ? q.opts(qw) : {});
-    var qg = { id:"g" + qn, type:q.t, title:q.label + " · " + (qs === "recent" ? "recent words" : "today’s words") + " (on the spot)", block:q.block(qw), options:qo, spot:true };
+    var qg = { id:"g" + qn, type:q.t, title:q.label + " · " + qScopeName(qs) + " (on the spot)", block:q.block(qw), options:qo, spot:true };
     var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
     var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
     UI.rsRet = null; UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
