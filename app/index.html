@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-vvpkjufhQoIz9wBjqs/OhG6mxn8+aSmxWAicDZNTklY='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-0EUuYeS0lbHNWDsteK6dTg7DBCqqLizkD/PeTSBk8R0='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -62,6 +62,7 @@ button{font:inherit;color:inherit}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:15px;border:1px solid var(--line);border-radius:999px;padding:3px 11px;color:var(--muted);background:var(--surface)}
 .pill i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
 .pill.ok i{background:var(--ok)} .pill.warn i{background:var(--amber)} .pill.bad i{background:var(--no)}
+.toast.undo{display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px} .toast.undo button{font:inherit;font-size:24px;line-height:1;min-width:48px;min-height:44px;border:0;border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--surface);padding:12px 18px;border-radius:12px;max-width:90vw;font-weight:700}
 
 /* lists */
@@ -847,6 +848,25 @@ function fmtWhen(iso){ try{ var d = new Date(iso); return d.toLocaleDateString("
 function trunc(s, n){ s = String(s); return s.length > n ? s.slice(0, n-1) + "…" : s; }
 function prefersReduced(){ return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
 
+/* Undo. A restored state keeps the current live revision (+1 when it goes out), so the other screen takes it
+   instead of treating it as old. After a judging tap (Good / Not yet …) a 3-second toast offers ↶ for that tap only. */
+function judgeTap(a){ if(a === "sp-flip") return false; if(["ch-mark", "bg-res", "tb-out"].indexOf(a) !== -1) return true; return Object.keys(LIVE_TEACH).some(function(k){ return LIVE_TEACH[k].indexOf(a) !== -1; }); }
+var UNDO_TOAST = {};
+function undoMove(run){
+  if(!run || !UNDO.length) return;
+  var rev = run.st._rev; run.st = JSON.parse(UNDO.pop()); run.st._animating = false; run.st.spinning = false;
+  if(rev != null) run.st._rev = rev;
+  dropUndoToast(); saveRun(); render();
+}
+function dropUndoToast(){ var t = document.querySelector(".toast.undo"); if(t) t.remove(); clearTimeout(UNDO_TOAST.timer); UNDO_TOAST = {}; }
+function undoToast(run, snap, el){
+  dropUndoToast(); var o = document.querySelector(".toast"); if(o) o.remove();
+  var what = String((el && el.textContent) || "").replace(/\s+/g, " ").trim().slice(0, 40);
+  var t = document.createElement("div"); t.className = "toast undo"; t.setAttribute("role", "status");
+  t.innerHTML = '<span>' + esc(what ? "Marked: " + what : "Marked") + '</span><button data-a="undo-toast" aria-label="Undo" title="Undo">↶</button>';
+  document.body.appendChild(t);
+  UNDO_TOAST = { run:run, snap:snap, timer: setTimeout(function(){ if(UNDO_TOAST.snap === snap) dropUndoToast(); }, 3000) };
+}
 function toast(msg){
   var t = document.querySelector(".toast"); if(t) t.remove();
   t = document.createElement("div"); t.className = "toast"; t.setAttribute("role","status"); t.textContent = msg;
@@ -4686,7 +4706,7 @@ var LIVE_TYPES = ["bingo", "hangman", "anagrams", "cards", "typeit", "build", "s
 var LIVE_TEACH = { cards:["fc-ok", "fc-no"], wheel:["wh-mark"], slot:["sl-mark"], quiz:["qz-said"], auction:["au-mark", "au-explain"], spelling:["sp-flip"],
   typeit:["ty-accept"], match:["mp-good", "mp-not"], spot:["se-said", "se-accept"], odd:["od-why"], dice:["sd-mark"] };
 /* Taps that aren't moves in the game: always allowed on both screens. */
-var LIVE_FREE = ["lesson", "pause", "resume-run", "settings", "set-look", "undo", "finish-ask", "finish-cancel", "finish", "discard", "live-override", "resume", "s-start"];
+var LIVE_FREE = ["lesson", "pause", "resume-run", "settings", "set-look", "undo", "undo-toast", "finish-ask", "finish-cancel", "finish", "discard", "live-override", "resume", "s-start"];
 function liveSolo(run){ return !!run && LIVE_TURNS.indexOf(run.type) === -1; }
 /* The teacher's screen only watches a solo game while the student is connected (unless the override is on). */
 function liveMirror(run){ return !SMODE && liveSolo(run) && liveSoloLocked(run) && !run.liveOverride; }
@@ -4780,7 +4800,7 @@ function liveDrawable(run, st){
   try{ t.view(Object.assign({}, run, { st: clone(st), liveOverride:true })); return true; }catch(e){ return false; }
 }
 function liveApply(run, m){
-  run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0;
+  run.st = clone(m.st); run.st._rev = m.rev; run.liveGen = m.gen; run.liveT0 = m.t0; if(UNDO_TOAST.snap) dropUndoToast();
   LIVE.sent = JSON.stringify(liveStrip(run.st));
   saveUI(); if(UI.view === "play") render();
 }
@@ -5586,6 +5606,7 @@ function finishRun(){
 /* ---------- events ---------- */
 function handle(a, el){
   var run = UI.run;
+  if(a !== "undo-toast" && UNDO_TOAST.snap) dropUndoToast();
   if(a.indexOf("sb-") === 0 && SB_MODE && sbHandle(a)) return;
   if(a === "live-override"){ if(UI.run){ UI.run.liveOverride = !UI.run.liveOverride; saveUI(); render(); } return; }
   if(a === "backup"){ backupDownload(); return; }
@@ -5716,7 +5737,8 @@ function handle(a, el){
   if(a === "discard" && SMODE){ UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go("sready"); return; }
   if(a === "discard"){ if(run && run.liveGen && LIVE.room){ liveSend({ t:"stop", g:run.gameId, gen:run.liveGen }); delete LIVE.last[run.gameId]; } var pid0 = run ? run.packId : UI.packId; UI.finishAsk = false; UI.run = null; UNDO = []; saveUI(); go(lessonView(pid0), { packId: pid0 }); return; }
   if(a === "finish"){ UI.finishAsk = false; if(run) finishRun(); return; }
-  if(a === "undo"){ UI.settingsOpen = false; saveUI(); if(run && UNDO.length){ run.st = JSON.parse(UNDO.pop()); run.st._animating = false; run.st.spinning = false; saveRun(); render(); } return; }
+  if(a === "undo"){ UI.settingsOpen = false; saveUI(); undoMove(run); return; }
+  if(a === "undo-toast"){ var ut = document.querySelector(".toast.undo"); if(ut) ut.remove(); if(run && UNDO.length && UNDO[UNDO.length-1] === UNDO_TOAST.snap && run === UNDO_TOAST.run) undoMove(run); UNDO_TOAST = {}; return; }
   if(a === "showres"){ var rr = RESULTS.filter(function(x){ return x.id === el.getAttribute("data-r"); })[0]; if(rr){ UI.lastResult = { id:rr.id, summary:rr.summary, packId:rr.packId, gameId:rr.gameId, type:rr.type, score:rr.score || null, items:rr.items || [], activeSecs:rr.activeSecs || 0 }; go("done"); } return; }
   if(a === "settings"){ UI.settingsOpen = !UI.settingsOpen; saveUI(); render(); return; }
   if(a === "set-look"){ var lpk = run && getPack(run.packId); if(lpk){ var pp = clone(lpk), lv = el.getAttribute("data-v"); if(lv) pp.look = lv; else delete pp.look; touchPack(pp); PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; }); } render(); return; }
@@ -5732,7 +5754,8 @@ function handle(a, el){
       if(L.length > nl) L[L.length-1].secs = lap(run);
       else if(B.length > nb) B[B.length-1].secs = lap(run);
       else if(LAP_START.indexOf(a) !== -1) lap(run);
-      UNDO.push(snap); if(UNDO.length > 40) UNDO.shift(); saveRun(); render(); }
+      UNDO.push(snap); if(UNDO.length > 40) UNDO.shift(); saveRun(); render();
+      if(!SMODE && judgeTap(a)) undoToast(run, snap, el); else dropUndoToast(); }
   }
 }
 document.addEventListener("click", function(e){
