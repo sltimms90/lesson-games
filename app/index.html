@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-OAUkd59/vBvSfMLHDTfouBCJYhgoQ7rki++bmdKu40k='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-KV5/IYcER/M9JkIvIhsK62LFgUtKUdn+DcUhRT807kE='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -2231,7 +2231,7 @@ TYPES.quiz = {
       if(x.life && x.life.length) note.push("lifeline: " + x.life.map(function(l){ return LIFE_NAMES[l]; }).join(", "));
       if(x.decision) note.push(x.decision);
       if(x.said != null) note.push(x.said ? "said it right first" : "didn’t say it right first");
-      rows.push({ item:x.q, result: x.ok ? "right" : x.timeout ? "time ran out" : "chose “" + x.chose + "”", ok:x.ok, note:note.join(" · "), points:x.points, secs:x.secs });
+      rows.push({ item:x.q, ans:x.answer, result: x.ok ? "right" : x.timeout ? "time ran out" : "chose “" + x.chose + "”", ok:x.ok, note:note.join(" · "), points:x.points, secs:x.secs });
       bonusAt(n + 1);
     });
     return rows;
@@ -4393,7 +4393,8 @@ function progressData(name){
     var L = TYPES[r.type] ? TYPES[r.type].label : r.type;
     itemWords(r).forEach(function(x){
       var k = itemKey(x.w); if(!k) return;
-      var o = words[k] || (words[k] = { w:x.w, word:x.word, miss:0, ok:0, missLessons:{}, missGames:{}, last:null, lastAt:"" });
+      var o = words[k] || (words[k] = { w:x.w, word:x.word, q:!!x.q, c:x.c || "", miss:0, ok:0, missLessons:{}, missGames:{}, last:null, lastAt:"" });
+      if(x.word) o.word = true; if(!x.q) o.q = false; if(x.c) o.c = x.c;
       if(x.ok){ o.ok++; } else { o.miss++; o.missLessons[r.packId] = 1; o.missGames[L] = 1; }
       o.last = x.ok; o.lastAt = r.at;
     });
@@ -4417,9 +4418,9 @@ function progressHtml(name){
     var a1 = avg(recent), a0 = avg(older);
     if(a1 != null && a0 != null){ var dd = Math.round(a1 - a0); trend = '<p class="muted" style="margin:6px 0 0">Last three lessons: ' + Math.round(a1) + '% right, ' + (Math.abs(dd) < 3 ? "about the same as" : dd > 0 ? dd + " points up on" : -dd + " points down on") + ' the ' + (older.length === 1 ? "lesson" : older.length + " lessons") + ' before.</p>'; }
   }
-  function wline(o){ return '<li><b>' + esc(o.w) + '</b> <span class="muted">— missed ' + o.miss + (o.miss === 1 ? " time" : " times") + ' in ' + o.nl + (o.nl === 1 ? " lesson" : " lessons") + ' (' + esc(Object.keys(o.missGames).join(", ")) + ')' + (o.ok ? ', right ' + o.ok + (o.ok === 1 ? " time" : " times") : "") + '</span></li>'; }
+  function wline(o){ return '<li><b>' + esc(o.w) + '</b>' + (o.q && o.c ? ' <span class="muted">(“' + esc(trunc(o.c, 50)) + '”)</span>' : "") + ' <span class="muted">— missed ' + o.miss + (o.miss === 1 ? " time" : " times") + ' in ' + o.nl + (o.nl === 1 ? " lesson" : " lessons") + ' (' + esc(Object.keys(o.missGames).join(", ")) + ')' + (o.ok ? ', right ' + o.ok + (o.ok === 1 ? " time" : " times") : "") + '</span></li>'; }
   return '<section class="section pg"><h3>Progress</h3><p class="muted" style="margin-top:4px">Share of items right in each lesson’s games, oldest on top (last 8 lessons).</p>' + rows + trend +
-    (d.stuck.length ? '<h4>Keeps coming up</h4><p class="muted" style="margin-top:0">Missed in more than one lesson or game, and still missed last time.</p><ul class="pg-w">' + d.stuck.slice(0, 15).map(wline).join("") + '</ul>' : '<p class="muted">Nothing missed in more than one lesson or game yet.</p>') +
+    (d.stuck.length ? '<h4>Keeps coming up</h4><p class="muted" style="margin-top:0">Missed in more than one lesson or game, and still missed last time.</p><ul class="pg-w">' + d.stuck.slice(0, 15).map(wline).join("") + '</ul>' + (stuckWords0(d).length >= 3 ? '<button class="btn sm" style="margin:4px 0 12px" data-a="pg-quick" data-s="' + esc(name) + '">▶ Quick game from these</button>' : "") : '<p class="muted">Nothing missed in more than one lesson or game yet.</p>') +
     (d.better.length ? '<details><summary class="muted">Got right last time (' + d.better.length + ')</summary><ul class="pg-w">' + d.better.slice(0, 15).map(wline).join("") + '</ul></details>' : "") +
     (d.once.length ? '<details><summary class="muted">Missed once (' + d.once.length + ')</summary><p class="muted" style="margin:6px 0">' + esc(d.once.slice(0, 40).map(function(o){ return o.w; }).join(" · ")) + '</p></details>' : "") + '</section>';
 }
@@ -4485,6 +4486,7 @@ function itemWords(r){
     else if(ty === "cards"){ w = noteVal(x.note, "answer"); c = x.item; }
     else if(ty === "typeit"){ w = noteVal(x.note, "answer").split(" / ")[0]; c = x.item; }
     else if(ty === "match"){ w = x.item; c = noteVal(x.note, "pair"); }
+    else if(ty === "quiz"){ var qa = x.ans || ((/answer “([^”]+)”/.exec(x.note || "") || [])[1] || ""); if(wordish(qa)){ out.push({ w:String(qa).trim(), c:String(x.item), ok:x.ok, word:false, q:true }); return; } }
     if(wordish(w)) out.push({ w:String(w).trim(), c:c, ok:x.ok, word:true });
     else if(!x.challenge) out.push({ w:String(x.item).trim(), c:"", ok:x.ok, word:false });
   });
@@ -4507,7 +4509,19 @@ function missedWords(p){
   });
   return out;
 }
-function bankWords(p, scope){ if(scope === "missed") return missedWords(p); return bankWords0(p, scope); }
+function bankWords(p, scope){ if(scope === "missed") return missedWords(p); if(scope === "stuck") return stuckWords(p); return bankWords0(p, scope); }
+/* "Keeps coming up" (student folder → Progress) as a Quick game source: words only (quiz answers included),
+   clue from the word bank where there is one, otherwise the clue or question it was missed on, unless that gives it away. */
+function stuckWords0(d){ return d.stuck.filter(function(o){ return o.word || o.q; }); }
+function stuckWords(p){
+  if(!p || !p.student) return [];
+  var bank = {}; [p].concat(missedPacks(p)).forEach(function(x){ parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!bank[k]) bank[k] = b; }); });
+  return stuckWords0(progressData(p.student)).slice(0, 15).map(function(o){
+    var b = bank[o.w.toLowerCase()], c = b && bankPrompt(b) ? (b.c || "") : o.c;
+    if(c && clueLeaks(o.w, c)) c = "";
+    return { w:o.w, c:c, ex: b ? b.ex : "" };
+  });
+}
 function bankWords0(p, scope){ var out = [], seen = {}; bankPacks(p, scope).forEach(function(x){ parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!seen[k]){ seen[k] = 1; out.push(b); } }); }); return out; }
 function qWordClue(ws){ return ws.map(function(b){ var c = bankPrompt(b); return b.w + (c ? " | " + c : ""); }).join("\n"); }
 function qClueEq(ws){ return ws.map(function(b){ return bankPrompt(b) + " = " + b.w; }).join("\n"); }
@@ -4524,16 +4538,16 @@ var QUICK = [
   { k:"cross", t:"cross", label:"Crossword", min:6, clue:true, block:qClueEq },
   { k:"bingo", t:"bingo", label:"Bingo", min:9, block:function(ws){ var all = ws.every(function(b){ return bankPrompt(b); }); return ws.map(function(b){ return b.w + (all ? " = " + bankPrompt(b) : ""); }).join("\n"); }, opts:function(ws){ var n = ws.length, all = ws.every(function(b){ return bankPrompt(b); }); return { size: n >= 24 ? 5 : n >= 16 ? 4 : 3, call: all ? "definition" : "word" }; } }
 ];
-function qScopeName(qs){ return qs === "recent" ? "recent words" : qs === "missed" ? "missed words" : "today’s words"; }
+function qScopeName(qs){ return qs === "recent" ? "recent words" : qs === "missed" ? "missed words" : qs === "stuck" ? "words that keep coming up" : "today’s words"; }
 function bankSection(p){
-  var mine = parseBank(p.bank), rp = bankPacks(p, "recent"), mw = missedWords(p);
-  var scope = UI.qScope === "recent" && rp.length > 1 ? "recent" : UI.qScope === "missed" && mw.length ? "missed" : mine.length ? "today" : mw.length ? "missed" : "today";
+  var mine = parseBank(p.bank), rp = bankPacks(p, "recent"), mw = missedWords(p), sw = stuckWords(p);
+  var scope = UI.qScope === "recent" && rp.length > 1 ? "recent" : UI.qScope === "missed" && mw.length ? "missed" : UI.qScope === "stuck" && sw.length ? "stuck" : mine.length ? "today" : mw.length ? "missed" : "today";
   var ws = bankWords(p, scope);
   var withClue = ws.filter(function(b){ return bankPrompt(b); }).length;
-  var quick = ws.length ? '<div class="row" style="margin:8px 0">' + (mine.length ? '<button class="btn sm' + (scope === "today" ? "" : " ghost") + '" data-a="qscope" data-v="today">Today’s words (' + mine.length + ')</button>' : "") + (rp.length > 1 ? '<button class="btn sm' + (scope === "recent" ? "" : " ghost") + '" data-a="qscope" data-v="recent">Last ' + rp.length + ' lessons (' + bankWords(p, "recent").length + ')</button>' : "") + (mw.length ? '<button class="btn sm' + (scope === "missed" ? "" : " ghost") + '" data-a="qscope" data-v="missed" title="Words missed in the last ' + missedPacks(p).length + ' lessons">Missed lately (' + mw.length + ')</button>' : "") + '</div>' +
-    (scope === "missed" ? '<p class="muted" style="margin:0 0 8px;font-size:15px">Warm-up: ' + esc(trunc(mw.map(function(b){ return b.w; }).join(", "), 120)) + '</p>' : "") +
+  var quick = ws.length ? '<div class="row" style="margin:8px 0">' + (mine.length ? '<button class="btn sm' + (scope === "today" ? "" : " ghost") + '" data-a="qscope" data-v="today">Today’s words (' + mine.length + ')</button>' : "") + (rp.length > 1 ? '<button class="btn sm' + (scope === "recent" ? "" : " ghost") + '" data-a="qscope" data-v="recent">Last ' + rp.length + ' lessons (' + bankWords(p, "recent").length + ')</button>' : "") + (mw.length ? '<button class="btn sm' + (scope === "missed" ? "" : " ghost") + '" data-a="qscope" data-v="missed" title="Words missed in the last ' + missedPacks(p).length + ' lessons">Missed lately (' + mw.length + ')</button>' : "") + (sw.length ? '<button class="btn sm' + (scope === "stuck" ? "" : " ghost") + '" data-a="qscope" data-v="stuck" title="From the student folder: missed in more than one lesson or game, and still missed last time">Keeps coming up (' + sw.length + ')</button>' : "") + '</div>' +
+    (scope === "missed" || scope === "stuck" ? '<p class="muted" style="margin:0 0 8px;font-size:15px">' + (scope === "stuck" ? "Keeps coming up: " : "Warm-up: ") + esc(trunc((scope === "stuck" ? sw : mw).map(function(b){ return b.w; }).join(", "), 120)) + '</p>' : "") +
     '<div class="add">' + QUICK.map(function(q){ var n = q.filter ? ws.filter(q.filter).length : q.clue ? withClue : ws.length, ok = n >= q.min; return '<button data-a="quick" data-q="' + q.k + '"' + (ok ? "" : " disabled title=\"Needs " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "\"") + '>' + ball(q.t) + q.label + '</button>'; }).join("") + '</div>' : "";
-  return '<section class="section" id="quickSec" style="margin-top:14px"><h3>Quick game</h3>' + (mine.length || mw.length ? helpTip("Tap a game to build it from the word bank and start it straight away. It’s saved to this lesson, so its results go in the after-class report. Missed lately uses the words this student got wrong in their last three lessons.") : '<p class="muted" style="margin-top:4px">No word bank yet. The planner saves each lesson’s key words here; you can also add them below.</p>') + quick +
+  return '<section class="section" id="quickSec" style="margin-top:14px"><h3>Quick game</h3>' + (mine.length || mw.length ? helpTip("Tap a game to build it from the word bank and start it straight away. It’s saved to this lesson, so its results go in the after-class report. Missed lately uses the words this student got wrong in their last three lessons; Keeps coming up, the ones their folder says keep being missed.") : '<p class="muted" style="margin-top:4px">No word bank yet. The planner saves each lesson’s key words here; you can also add them below.</p>') + quick +
     '<details style="margin-top:10px"' + (mine.length ? "" : " open") + '><summary class="muted">' + (mine.length ? "Word bank: " + esc(trunc(mine.map(function(b){ return b.w; }).join(", "), 90)) : "Add the word bank") + '</summary><textarea id="bankIn" style="min-height:140px;margin-top:8px" placeholder="kitchen | you cook dinner in this room | Mom is cooking in the kitchen.">' + esc(p.bank || "") + '</textarea><div class="hint">One word per line: word | clue (its meaning, never part of the word) | an example sentence with the word in it. Clue and sentence are optional.</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="bank-save">Save word bank</button></div></details></section>';
 }
 
@@ -5710,10 +5724,11 @@ function handle(a, el){
     UI.confirmDel = null; touchPack(p2); PACKS = PACKS.map(function(x){ return x.id === p2.id ? p2 : x; }); go("pack"); return;
   }
   if(a === "qscope"){ UI.qScope = el.getAttribute("data-v"); saveUI(); render(); return; }
+  if(a === "pg-quick"){ var pgs = el.getAttribute("data-s"), pgp = packsByDate(PACKS.filter(function(x){ return (x.student || "") === pgs; }))[0]; if(!pgp) return; UI.qScope = "stuck"; UI.confirmDel = null; UI.rsGaps = false; UI.rsFinish = false; go("pack", { packId: pgp.id }); setTimeout(function(){ var q = $("quickSec"); if(q) q.scrollIntoView({ block:"start" }); }, 0); return; }
   if(a === "bank-save"){ var bp = getPack(UI.packId), bt = $("bankIn"); if(!bp || !bt) return; var bpp = clone(bp); bpp.bank = bt.value.trim(); if(!bpp.bank) delete bpp.bank; touchPack(bpp); PACKS = PACKS.map(function(x){ return x.id === bpp.id ? bpp : x; }); render(); toast("Word bank saved: " + parseBank(bpp.bank).length + " words."); return; }
   if(a === "quick"){
     var qp = getPack(UI.packId), q = QUICK.filter(function(x){ return x.k === el.getAttribute("data-q"); })[0]; if(!qp || !q) return;
-    var qs = UI.qScope === "recent" ? "recent" : UI.qScope === "missed" ? "missed" : "today", qw = bankWords(qp, qs);
+    var qs = UI.qScope === "recent" ? "recent" : UI.qScope === "missed" ? "missed" : UI.qScope === "stuck" && stuckWords(qp).length ? "stuck" : "today", qw = bankWords(qp, qs);
     if(qs === "today" && !parseBank(qp.bank).length && missedWords(qp).length){ qs = "missed"; qw = bankWords(qp, qs); }
     if(q.filter) qw = qw.filter(q.filter); else if(q.clue) qw = qw.filter(function(b){ return bankPrompt(b); });
     if(qw.length < q.min){ toast(q.label + " needs at least " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "."); return; }
