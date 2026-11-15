@@ -7,7 +7,7 @@ BW = "\n".join("castle bridge garden market tower river forest island village mu
 bank = "castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here\nmarket | you buy food here"
 packs = [{"id":"mia-lp8", "student":"Mia", "lp":8, "title":"Mia · LP8", "date":"2026-11-10", "updatedAt":"x", "games":[], "bank":"castle | a king lives here"},
          {"id":"mia-lp9", "student":"Mia", "lp":9, "title":"Mia · LP9", "date":"2026-11-17", "updatedAt":"x", "bank":bank,
-          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW)), G(8, "quiz", "Quiz", {"sayFirst":True, "timer":0}, block="Which is a verb?\nhappy\n*climb\ntable\n\nPick the noun\n*table\nrun\nblue"), G(7, "wheel", "Talk", {"remove":True}, block="favourite food | What food could you eat every day, and why?\nweekend | What is the most interesting thing you did last weekend, and who were you with?\n! dream job | If you could do any job in the world when you grow up, what would it be and why?\nWhat is your favourite food?")]}]
+          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW)), G(8, "quiz", "Quiz", {"sayFirst":True, "timer":0}, block="Which is a verb?\nhappy\n*climb\ntable\n\nPick the noun\n*table\nrun\nblue"), G(9, "snakes", "Race", {"boardId":"b1", "auto":True, "exact":True}, block="Demo\nSam"), G(7, "wheel", "Talk", {"remove":True}, block="favourite food | What food could you eat every day, and why?\nweekend | What is the most interesting thing you did last weekend, and who were you with?\n! dream job | If you could do any job in the world when you grow up, what would it be and why?\nWhat is your favourite food?")]}]
 results = [{"id":"r1", "packId":"mia-lp8", "gameId":"g1", "type":"hangman", "title":"h", "at":"2026-11-10T03:00:00Z", "summary":"h", "items":[{"item":"castle", "ok":False}]}]
 def top(pg, sel): return pg.evaluate("s => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1 }", sel)
 with sync_playwright() as p:
@@ -75,6 +75,28 @@ with sync_playwright() as p:
     btns = t.locator(".overlay .btn").all_inner_texts()
     check(btns == ["Save results", "Quit without saving", "Keep playing"], "Finish dialog: %s" % btns)
     t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    # --- Edit a game left part-way: Play starts fresh with the new names (it used to Resume the old players)
+    t.click("[data-a=play][data-g=g9]"); t.wait_for_timeout(500)
+    check(t.evaluate("__T.UI.run.st.players.map(p => p.name)") == ["Demo", "Sam"], "Snakes starts with Demo and Sam")
+    t.click("[data-a=lesson]"); t.wait_for_timeout(300)
+    check(t.locator("[data-a=play-resume][data-k='mia-lp9|g9']").count() == 1, "left part-way: the card offers Resume")
+    t.click("[data-a=editgame][data-g=g9]"); t.wait_for_timeout(300)
+    t.fill("#gBlock", "Hannah\nKaylee"); t.click("[data-a=savegame]"); t.wait_for_timeout(400)
+    check(t.locator("[data-a=play-resume][data-k='mia-lp9|g9']").count() == 0 and "starts fresh" in t.inner_text("body"), "after changing the names the half-played game is cleared (and says so)")
+    t.click("[data-a=play][data-g=g9]"); t.wait_for_timeout(500)
+    check(t.evaluate("__T.UI.run.st.players.map(p => p.name)") == ["Hannah", "Kaylee"], "Play now starts with Hannah and Kaylee: %s" % t.evaluate("__T.UI.run.st.players.map(p => p.name)"))
+    check(t.evaluate("__T.UI.run.st.exact") is True, "a game saved with Land exactly keeps it")
+    t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    # a saved game that wasn't changed keeps its half-played copy
+    t.click("[data-a=play][data-g=g9]"); t.wait_for_timeout(400); t.click("[data-a=lesson]"); t.wait_for_timeout(300)
+    t.click("[data-a=editgame][data-g=g9]"); t.wait_for_timeout(300); t.click("[data-a=savegame]"); t.wait_for_timeout(400)
+    check(t.locator("[data-a=play-resume][data-k='mia-lp9|g9']").count() == 1, "saving without changes keeps Resume")
+    t.click("[data-a=play-resume][data-k='mia-lp9|g9']"); t.wait_for_timeout(300); t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    # a new Snakes & Ladders game defaults to Reach it or go past
+    t.click("#addSec > summary") if not t.evaluate("document.getElementById('addSec').open") else None
+    t.click("[data-a=addgame][data-t=snakes]"); t.wait_for_timeout(300)
+    check(t.evaluate("document.querySelector('input[name=snExact]:checked').value") == "0" and "Reach it or go past" in t.inner_text("label:has(input[name=snExact]:checked)"), "new Snakes & Ladders: Reach it or go past is the default")
+    t.click("[data-a=cancelgame]"); t.wait_for_timeout(300)
     # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
     hb = t.locator(".game [data-a=play-ch]")
     check(hb.count() == 2 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
