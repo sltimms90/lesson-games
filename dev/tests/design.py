@@ -1,10 +1,11 @@
 """Design changes from the review: lesson page layout (Quick game on top, folded sections), Hard mode name, Undo toast."""
 from lg import *
 G = lambda i, ty, title, opts=None, block="castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here": {"id":"g%d" % i, "type":ty, "title":title, "block":block, "opts":opts or {}}
+BW = "\n".join("castle bridge garden market tower river forest island village museum library station kitchen bedroom bathroom garage".split())
 bank = "castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here\nmarket | you buy food here"
 packs = [{"id":"mia-lp8", "student":"Mia", "lp":8, "title":"Mia · LP8", "date":"2026-11-10", "updatedAt":"x", "games":[], "bank":"castle | a king lives here"},
          {"id":"mia-lp9", "student":"Mia", "lp":9, "title":"Mia · LP9", "date":"2026-11-17", "updatedAt":"x", "bank":bank,
-          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up")]}]
+          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW)]}]
 results = [{"id":"r1", "packId":"mia-lp8", "gameId":"g1", "type":"hangman", "title":"h", "at":"2026-11-10T03:00:00Z", "summary":"h", "items":[{"item":"castle", "ok":False}]}]
 def top(pg, sel): return pg.evaluate("s => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1 }", sel)
 with sync_playwright() as p:
@@ -29,6 +30,17 @@ with sync_playwright() as p:
     check("Midnight bats (this lesson only)" in t.inner_text("#lookSec summary"), "summary shows a one-off look")
     t.click("#lookSec > summary"); t.click("[data-a=qscope][data-v=today]"); t.wait_for_timeout(200)
     check(not t.evaluate("document.getElementById('lookSec').open") and t.evaluate("document.getElementById('addSec').open"), "a folded section stays folded after a re-render")
+    # --- A. Bingo cards fill the landscape screen
+    for show in ("student", "all"):
+        t.click("[data-a=play][data-g=g4]"); t.wait_for_selector(".grid .cell", timeout=5000)
+        if show == "all": t.click("[data-a=settings]"); t.click("[data-a=bg-show][data-v=all]"); t.wait_for_timeout(200); t.evaluate("__T.UI.settingsOpen && document.querySelector('[data-a=settings]').click()"); t.wait_for_timeout(300)
+        t.click("[data-a=bg-next]"); t.wait_for_timeout(1500)
+        hs = t.evaluate("[...document.querySelectorAll('.cards .card')].map(c => Math.round(c.getBoundingClientRect().height))")
+        sc = t.evaluate("[document.documentElement.scrollHeight, innerHeight, document.querySelector('main.stage').style.zoom || '1']")
+        cell = t.evaluate("(() => { const c = document.querySelector('.grid .cell').getBoundingClientRect(); return [Math.round(c.width), Math.round(c.height), parseFloat(getComputedStyle(document.querySelector('.grid .cell')).fontSize)] })()")
+        check(all(h > 620 for h in hs) and sc[0] <= sc[1] + 1 and sc[2] == "1", "bingo (%s) cards fill the iPad height: %s, page %s, cell %s" % (show, hs, sc, cell))
+        t.screenshot(path=HERE + "/shots/bingo_%s.png" % show)
+        t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
     # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
     hb = t.locator(".game [data-a=play-ch]")
     check(hb.count() == 2 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
