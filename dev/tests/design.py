@@ -29,6 +29,13 @@ with sync_playwright() as p:
     check("Midnight bats (this lesson only)" in t.inner_text("#lookSec summary"), "summary shows a one-off look")
     t.click("#lookSec > summary"); t.click("[data-a=qscope][data-v=today]"); t.wait_for_timeout(200)
     check(not t.evaluate("document.getElementById('lookSec').open") and t.evaluate("document.getElementById('addSec').open"), "a folded section stays folded after a re-render")
+    # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
+    hb = t.locator(".game [data-a=play-ch]")
+    check(hb.count() == 2 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
+    check("Challenge" not in t.inner_text("#app"), "no 'Challenge' left on the lesson page")
+    hb.first.click(); t.wait_for_timeout(400)
+    check(t.evaluate("__T.UI.run.title").endswith("(hard mode)") and "Hard mode · Word 1" in t.inner_text("#app"), "Hard mode run: %s" % t.evaluate("__T.UI.run.title"))
+    t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(200)
     np = [{"id":"new-lp1", "student":"Ned", "lp":1, "title":"Ned · LP1", "date":"2026-11-17", "updatedAt":"x", "games":[]}]
     ctx2 = b.new_context(viewport={"width":1180, "height":820}); t2 = teacher(ctx2, seed_db(np), errs); t2.wait_for_selector("text=Ned · LP1", timeout=8000); t2.click("text=Ned · LP1"); t2.wait_for_timeout(300)
     check(t2.evaluate("document.getElementById('addSec').open"), "a lesson with no games opens Add a game")

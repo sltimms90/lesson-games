@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-1a2Qa5HKULzPnuJYBhPcVaDuFqUMaV0uecatzDM+3ic='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-vvpkjufhQoIz9wBjqs/OhG6mxn8+aSmxWAicDZNTklY='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -1424,12 +1424,12 @@ function hmWordPts(s){ return s.points == null ? 0 : Math.max(0, s.points - s.pe
 function notReached(st){ return st.words.slice(st.i + (st.status === "playing" ? 0 : 1)).map(function(x){ return x.w; }); }
 TYPES.hangman = {
   label: "Hangman", letter: "H",
-  blurb: "One word at a time, with lives drawn in the lesson’s look. Records the wrong letters for each word. Challenge mode hides the clues and gives fewer lives.",
+  blurb: "One word at a time, with lives drawn in the lesson’s look. Records the wrong letters for each word. Hard mode hides the clues and gives fewer lives.",
   blockHint: "One word per line, as in the plan’s Hangman block. Add “| clue” to give a clue: a short meaning, example or opposite in words the student already knows. Never letters or part of the word.",
   placeholder: "castle | a king and queen live here\nbeautiful | very, very pretty\nbridge",
   defaults: function(){ return { lives:8, chLives:4, points:100, perPop:10 }; },
   optionsHtml: function(o){ return '<div class="field"><span class="legend">Lives (wrong guesses allowed)</span><div class="choice">' + [6,8,10].map(function(n){ return radio("hmLives", n, String(n), +o.lives === n); }).join("") + '</div></div>' +
-    '<div class="field"><span class="legend">Lives in challenge mode</span><div class="choice">' + [3,4,5].map(function(n){ return radio("hmChLives", n, String(n), +(o.chLives || 4) === n); }).join("") + '</div><div class="hint">Challenge mode has no clues. The student can still buy a clue for one life.</div></div>' +
+    '<div class="field"><span class="legend">Lives in Hard mode</span><div class="choice">' + [3,4,5].map(function(n){ return radio("hmChLives", n, String(n), +(o.chLives || 4) === n); }).join("") + '</div><div class="hint">Hard mode has no clues. The student can still buy a clue for one life.</div></div>' +
     '<div class="two"><div class="field"><label for="hmPts">Points for a solved word</label><input type="number" id="hmPts" min="0" step="10" inputmode="numeric" value="' + esc(o.points == null ? 100 : o.points) + '" style="max-width:140px"></div>' +
     '<div class="field"><label for="hmPop">Minus for each popped balloon</label><input type="number" id="hmPop" min="0" step="5" inputmode="numeric" value="' + esc(o.perPop == null ? 10 : o.perPop) + '" style="max-width:140px"></div></div><div class="hint">A word not solved, or shown, scores 0.</div>'; },
   wireOptions: function(){},
@@ -1458,7 +1458,7 @@ TYPES.hangman = {
     else bottom = '<div class="verdict ' + (s.status === "won" ? "ok" : "no") + '">' + (s.status === "won" ? "Solved!" + (s.points != null ? " +" + ((s.log[s.log.length - 1] || {}).pts || 0) : "") : "Not this time") + '</div><button class="btn big-btn" data-a="hm-next">' + (s.i < s.words.length - 1 ? "Next word" : "Finish") + '</button>';
     var pts = s.points == null ? null : (s.status === "playing" ? hmWordPts(s, true) : (s.log[s.log.length - 1] || {}).pts || 0);
     var board = s.points == null ? "" : '<div class="score"><span><span class="n">' + (s.total || 0) + '</span><small>points</small></span><span><span class="n">' + pts + '</span><small>' + (s.status === "playing" ? "this word" : "won") + '</small></span></div>';
-    return '<section class="center hm"><div class="hm-side">' + lives + '</div><div class="hm-main">' + board + '<div class="progress">' + (s.ch ? "Challenge · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' +
+    return '<section class="center hm"><div class="hm-side">' + lives + '</div><div class="hm-main">' + board + '<div class="progress">' + (s.ch ? "Hard mode · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' +
       '<div class="word" aria-live="polite">' + slots + '</div>' + clue +
       '<div class="wrong">' + (s.wrong.length ? 'Wrong: <b>' + esc(s.wrong.join(" ")) + '</b>' : '&nbsp;') + '</div>' + bottom + '</div></section>';
   },
@@ -1512,14 +1512,14 @@ function anSetup(s){
   s.slots = letters.map(function(){ return null; });
   s.tries = 0; s.wrongs = []; s.status = "playing"; s.clue = false; s.bought = false; s.shake = false;
 }
-/* Points for the current word: full points, minus each wrong try, minus a bought clue (challenge). */
+/* Points for the current word: full points, minus each wrong try, minus a bought clue (Hard mode). */
 function anWordPts(s){ return s.points == null ? 0 : Math.max(0, s.points - s.perTry * s.tries - (s.bought ? s.clueCost : 0)); }
 /* Whack-a-Mole speed levels → ms each word stays up. Old saved speeds (3 slow, 5 medium, 7, 9) map to the nearest level. */
 var WH_UP = { 2:4000, 4:3000, 6:2000, 8:1500 };
 function whLevel(v){ v = +v || 4; return v <= 2 ? 2 : v <= 5 ? 4 : v <= 7 ? 6 : 8; }
 TYPES.anagrams = {
   label: "Anagrams", letter: "A",
-  blurb: "Tap or drag the letter tiles into order, for points. Practice only: the letters are given, so it doesn’t test spelling. Challenge mode hides the clue and the gaps between words, and allows two wrong tries.",
+  blurb: "Tap or drag the letter tiles into order, for points. Practice only: the letters are given, so it doesn’t test spelling. Hard mode hides the clue and the gaps between words, and allows two wrong tries.",
   blockHint: "One word per line, as in the plan’s Anagrams block. Add “| clue” to give a clue: a short meaning, example or opposite in words the student already knows. Never letters or part of the word.",
   placeholder: "castle | a big old house for a king\nbridge\nmarket",
   defaults: function(){ return { points:100, perTry:25, clueCost:25, chTries:2 }; },
@@ -1527,9 +1527,9 @@ TYPES.anagrams = {
     function n(v, d){ return esc(v == null ? d : v); }
     return '<div class="two"><div class="field"><label for="anPts">Points for a word</label><input type="number" id="anPts" min="0" step="10" inputmode="numeric" value="' + n(o.points, 100) + '" style="max-width:140px"></div>' +
       '<div class="field"><label for="anTry">Minus for each wrong try</label><input type="number" id="anTry" min="0" step="5" inputmode="numeric" value="' + n(o.perTry, 25) + '" style="max-width:140px"></div></div><div class="hint">Set the minus to 0 for young learners. A word shown scores 0.</div>' +
-      '<div class="two"><div class="field"><label for="anClue">Challenge: cost of a clue</label><input type="number" id="anClue" min="0" step="5" inputmode="numeric" value="' + n(o.clueCost, 25) + '" style="max-width:140px"></div>' +
-      '<div class="field"><span class="legend">Challenge: wrong tries allowed</span><div class="choice">' + [1,2,3].map(function(k){ return radio("anChT", k, String(k), +(o.chTries || 2) === k); }).join("") + '</div></div></div>' +
-      '<div class="hint">Normal mode: clues are free. Challenge mode: no clue unless bought, no gaps shown between words, and the word is shown after the allowed wrong tries.</div>';
+      '<div class="two"><div class="field"><label for="anClue">Hard mode: cost of a clue</label><input type="number" id="anClue" min="0" step="5" inputmode="numeric" value="' + n(o.clueCost, 25) + '" style="max-width:140px"></div>' +
+      '<div class="field"><span class="legend">Hard mode: wrong tries allowed</span><div class="choice">' + [1,2,3].map(function(k){ return radio("anChT", k, String(k), +(o.chTries || 2) === k); }).join("") + '</div></div></div>' +
+      '<div class="hint">Normal mode: clues are free. Hard mode: no clue unless bought, no gaps shown between words, and the word is shown after the allowed wrong tries.</div>';
   },
   wireOptions: function(){},
   readOptions: function(){ function n(id, d){ var v = parseInt($(id).value, 10); return isNaN(v) ? d : Math.max(0, v); } return { points:n("anPts", 100), perTry:n("anTry", 25), clueCost:n("anClue", 25), chTries: +checkedVal("anChT", 2) }; },
@@ -1554,7 +1554,7 @@ TYPES.anagrams = {
     var bottom = s.status === "playing" ?
       '<div class="tiles">' + tiles + '</div><div class="row" style="justify-content:center"><button class="btn ghost sm" data-a="an-clear">Clear</button><button class="btn ghost sm" data-a="an-show">Show the word</button></div>' + (s.tries ? '<div class="notice">Not quite. Try again.</div>' : "") + triesLeft :
       '<div class="verdict ' + (s.status === "solved" ? "ok" : "no") + '">' + (s.status === "solved" ? (s.tries ? "Got it!" : "First try!") + (hasPts ? " +" + wpts : "") : "Here it is") + '</div><button class="btn big-btn" data-a="an-next">' + (s.i < s.words.length - 1 ? "Next word" : "Finish") + '</button>';
-    return '<section class="center" id="anStage">' + board + '<div class="progress">' + (s.ch ? "Challenge · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' + clue + '<div class="' + cls + '" aria-live="polite">' + slots + '</div>' + bottom + '</section>';
+    return '<section class="center" id="anStage">' + board + '<div class="progress">' + (s.ch ? "Hard mode · " : "") + 'Word ' + (s.i+1) + ' of ' + s.words.length + '</div>' + clue + '<div class="' + cls + '" aria-live="polite">' + slots + '</div>' + bottom + '</section>';
   },
   after: function(run){
     var s = run.st, stage = $("anStage"); if(!stage || s.status !== "playing") return;
@@ -1670,7 +1670,7 @@ TYPES.anagrams = {
     if(shown.length) parts.push("shown: " + shown.join(", "));
     var nr = notReached(s.status === "playing" ? s : { words:s.words, i:s.i, status:"x" }); if(nr.length) parts.push("not reached: " + nr.join(", "));
     var bought = s.log.filter(function(x){ return x.bought; }).map(function(x){ return x.w; }); if(bought.length) parts.push("clue bought: " + bought.join(", "));
-    return head(run, "Anagrams") + (s.ch ? " (challenge)" : "") + " (practice: letters given) — " + first + "/" + s.log.length + " first try" + (s.points != null ? ", " + (s.total || 0) + " points" : "") + (parts.length ? " · " + parts.join(" · ") : "");
+    return head(run, "Anagrams") + (s.ch ? " (hard mode)" : "") + " (practice: letters given) — " + first + "/" + s.log.length + " first try" + (s.points != null ? ", " + (s.total || 0) + " points" : "") + (parts.length ? " · " + parts.join(" · ") : "");
   }
 };
 
@@ -4494,7 +4494,7 @@ function viewPack(){
       (last ? '<div class="sum">' + esc(last.summary) + '</div>' : "") +
       (leakyClues(g).length ? '<div class="cluewarn">Clues that give the answer away: ' + esc(leakyClues(g).join(", ")) + '. Tap Edit to rewrite them.</div>' : "") +
       (function(){ var lr = findRun(p.id, g.id); return lr ? '<div class="inprog">Left part-way' + (lr.st && lr.st.log ? " · " + lr.st.log.length + " done" : "") + ' — Resume carries on where you stopped.</div>' : ""; })() +
-      '<div class="row">' + (findRun(p.id, g.id) ? '<button class="btn sm" data-a="play-resume" data-k="' + esc(p.id + "|" + g.id) + '">▶ Resume</button><button class="btn ghost sm" data-a="play" data-g="' + esc(g.id) + '">Start over</button>' : '<button class="btn sm" data-a="play" data-g="' + esc(g.id) + '">' + (rs.length ? "Play again" : "Play") + '</button>') + (g.type === "hangman" || g.type === "anagrams" ? '<button class="btn ghost sm" data-a="play-ch" data-g="' + esc(g.id) + '">Challenge</button>' : "") + '<button class="btn ghost sm" data-a="editgame" data-g="' + esc(g.id) + '">Edit</button>' + (last ? '<button class="btn ghost sm" data-a="showres" data-r="' + esc(last.id) + '">Details</button>' : "") + (last && missedItems(last).length ? '<button class="btn ghost sm" data-a="retry" data-r="' + esc(last.id) + '">Retry ' + missedItems(last).length + (missedItems(last).length === 1 ? " miss" : " misses") + '</button>' : "") +
+      '<div class="row">' + (findRun(p.id, g.id) ? '<button class="btn sm" data-a="play-resume" data-k="' + esc(p.id + "|" + g.id) + '">▶ Resume</button><button class="btn ghost sm" data-a="play" data-g="' + esc(g.id) + '">Start over</button>' : '<button class="btn sm" data-a="play" data-g="' + esc(g.id) + '">' + (rs.length ? "Play again" : "Play") + '</button>') + (g.type === "hangman" || g.type === "anagrams" ? '<button class="btn ghost sm" data-a="play-ch" data-g="' + esc(g.id) + '" title="Hard mode: no free clues, fewer lives or tries">Hard mode</button>' : "") + '<button class="btn ghost sm" data-a="editgame" data-g="' + esc(g.id) + '">Edit</button>' + (last ? '<button class="btn ghost sm" data-a="showres" data-r="' + esc(last.id) + '">Details</button>' : "") + (last && missedItems(last).length ? '<button class="btn ghost sm" data-a="retry" data-r="' + esc(last.id) + '">Retry ' + missedItems(last).length + (missedItems(last).length === 1 ? " miss" : " misses") + '</button>' : "") +
       (t.print ? '<button class="btn ghost sm" data-a="print" data-g="' + esc(g.id) + '">' + (t.printLabel || "Print") + '</button>' : "") +
       (SLINK_TYPES.indexOf(g.type) !== -1 ? '<button class="btn ghost sm" data-a="slink" data-g="' + esc(g.id) + '">Student link</button>' : "") + '</div></div></div>';
   }).join("");
@@ -5249,7 +5249,7 @@ function rsFlush(pid){
 function rsFlushAll(){ Object.keys(RS_DIRTY).forEach(function(pid){ if(RS_DIRTY[pid]) rsFlush(pid); }); }
 
 /* which game an app line is, and its newest result */
-function rsTitleKey(s){ return itemKey(s).replace(/\s*\((misses|challenge|on the spot)\)$/, "").replace(/^\d+[a-z]?\s+/, ""); }
+function rsTitleKey(s){ return itemKey(s).replace(/\s*\((misses|challenge|hard mode|on the spot)\)$/i, "").replace(/^\d+[a-z]?\s+/, ""); }
 function rsAppGame(p, ln){
   var gs = p.games || [];
   if(ln.game){ var g = gs.filter(function(x){ return x.id === ln.game; })[0]; if(g) return g; }
@@ -5549,7 +5549,7 @@ function startRun(p, g){
   UI.runKey = SMODE ? SMODE.key : null;
   if(!SMODE && LIVE.cls && LIVE.peers > 0 && UI.clsPlay) UI.liveFresh = true;
   UI.clsPlay = false;
-  UI.run = { gflags: (function(){ var f = {}; ["_challenge", "_only", "_replay"].forEach(function(k){ if(g[k]) f[k] = g[k]; }); return f; })(), packId:p.id, gameId:g.id, type:g.type, title:(g.title || t.label) + (g._challenge ? " (challenge)" : "") + (g._only ? " (misses)" : ""), retry: !!g._only, prev: prev && !g._only ? prev.score.text : "", student:p.student || "", lp:p.lp || null, startedAt:nowIso(), act:0, resumedAt:Date.now(), lapAt:0, paused:false, st:t.start(g, p) };
+  UI.run = { gflags: (function(){ var f = {}; ["_challenge", "_only", "_replay"].forEach(function(k){ if(g[k]) f[k] = g[k]; }); return f; })(), packId:p.id, gameId:g.id, type:g.type, title:(g.title || t.label) + (g._challenge ? " (hard mode)" : "") + (g._only ? " (misses)" : ""), retry: !!g._only, prev: prev && !g._only ? prev.score.text : "", student:p.student || "", lp:p.lp || null, startedAt:nowIso(), act:0, resumedAt:Date.now(), lapAt:0, paused:false, st:t.start(g, p) };
   liveStart(UI.run);
   go("play");
 }
