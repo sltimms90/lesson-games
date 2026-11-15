@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-KV5/IYcER/M9JkIvIhsK62LFgUtKUdn+DcUhRT807kE='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-bO9mbEgJDozxWWjAQpcFRBx6fsiQzAGh21pKKM3GjWQ='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -5174,6 +5174,13 @@ function viewSReady(){
 function viewSDone(){
   var r = UI.lastResult; if(!r){ UI.view = "sready"; return viewSReady(); }
   var code = UI.sCode ? "Lesson Games result · " + (r.title || "") + (r.score ? " · " + r.score.text : "") + "\nLGR1." + UI.sCode : "";
+  /* Class link, score already with the teacher: a light "next game coming" screen. The answers fold away; no result code needed. */
+  if(SMODE.cls && r.liveSaved){
+    $("app").innerHTML = '<div class="wrap" style="text-align:center;padding-top:9vh"><h1 style="margin:0 0 6px">Well done' + (SMODE.d && SMODE.d.n ? ", " + esc(SMODE.d.n) : "") + '!</h1>' + (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") +
+      '<p class="notice" style="font-size:22px;margin-top:18px">Your teacher has your score already.</p><p class="muted">Your next game is coming… keep this page open.</p>' +
+      ((r.items || []).length ? '<details style="margin:22px auto 0;max-width:720px;text-align:left"><summary class="muted" style="text-align:center">See your answers</summary>' + itemsTable(r.items) + '</details>' : "") + '</div>';
+    return;
+  }
   $("app").innerHTML = '<div class="wrap results"><h2>Well done!</h2>' + (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") + itemsTable(r.items) +
     (r.liveSaved ? '<p class="notice" style="margin-top:22px">Your teacher has your score already.</p><details><summary class="muted">Result code (only if your teacher asks)</summary>' : '') +
     '<h3 style="margin-top:22px">' + (r.liveSaved ? 'Result code' : 'Send this to your teacher') + '</h3><p class="muted">Tap Copy, then paste it in the Meet chat (or LINE).</p><textarea id="res" readonly>' + esc(code || "Getting it ready…") + '</textarea><p class="ok-msg" id="copied" role="status"></p>' +

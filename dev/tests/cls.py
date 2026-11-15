@@ -46,6 +46,8 @@ with sync_playwright() as p:
     check(t.evaluate("__T.RESULTS.filter(r => r.gameId === 'g1').length") == 1, "result saved by itself on the teacher's side")
     check("Your teacher has your score" in s.inner_text("#app") and s.locator("[data-a=s-start]").count() == 0, "student told the teacher has the score, no Play again")
     check("next game" in s.inner_text("#app"), "student told to wait for the next game")
+    check(s.locator("#res").count() == 0 and s.locator("details summary").inner_text() == "See your answers" and "Well done, Mia!" in s.inner_text("#app"), "light between-games screen: no result code, answers folded away")
+    s.screenshot(path=HERE + "/shots/cls_between.png")
     # 2. flash cards: flip is the student's, Got it is the teacher's
     t.click("[data-a=backlesson]"); t.wait_for_timeout(300); t.click("[data-a=play][data-g=g2]"); s.wait_for_selector("[data-a=fc-flip]", timeout=5000)
     s.click("[data-a=fc-flip]"); s.wait_for_timeout(400)
