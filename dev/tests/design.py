@@ -7,7 +7,7 @@ BW = "\n".join("castle bridge garden market tower river forest island village mu
 bank = "castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here\nmarket | you buy food here"
 packs = [{"id":"mia-lp8", "student":"Mia", "lp":8, "title":"Mia · LP8", "date":"2026-11-10", "updatedAt":"x", "games":[], "bank":"castle | a king lives here"},
          {"id":"mia-lp9", "student":"Mia", "lp":9, "title":"Mia · LP9", "date":"2026-11-17", "updatedAt":"x", "bank":bank,
-          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW)), G(8, "quiz", "Quiz", {"sayFirst":True, "timer":0}, block="Which is a verb?\nhappy\n*climb\ntable\n\nPick the noun\n*table\nrun\nblue"), G(7, "wheel", "Talk", {"remove":True}, block="weekend | What is the most interesting thing you did last weekend, and who were you with?\n! dream job | If you could do any job in the world when you grow up, what would it be and why?\nWhat is your favourite food?")]}]
+          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW)), G(8, "quiz", "Quiz", {"sayFirst":True, "timer":0}, block="Which is a verb?\nhappy\n*climb\ntable\n\nPick the noun\n*table\nrun\nblue"), G(7, "wheel", "Talk", {"remove":True}, block="favourite food | What food could you eat every day, and why?\nweekend | What is the most interesting thing you did last weekend, and who were you with?\n! dream job | If you could do any job in the world when you grow up, what would it be and why?\nWhat is your favourite food?")]}]
 results = [{"id":"r1", "packId":"mia-lp8", "gameId":"g1", "type":"hangman", "title":"h", "at":"2026-11-10T03:00:00Z", "summary":"h", "items":[{"item":"castle", "ok":False}]}]
 def top(pg, sel): return pg.evaluate("s => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1 }", sel)
 with sync_playwright() as p:
@@ -56,6 +56,8 @@ with sync_playwright() as p:
     t.click("[data-a=play][data-g=g7]"); t.wait_for_timeout(600)
     segs = t.evaluate("[...document.querySelectorAll('#wheel text')].map(x => x.textContent)")
     chips = t.locator("[data-a=wh-pick]").all_inner_texts()
+    check("favourite food" in segs, "a label a bit over 12 letters shrinks to fit instead of being cut: %s" % segs)
+    segs = [x for x in segs if x != "favourite food"]
     check(segs[:2] == ["weekend", "dream job"] and segs[2].startswith("What is") and "weekend" in chips and "dream job" in chips, "wheel and chips show the labels: %s / %s" % (segs, chips))
     t.click("[data-a=wh-spin]"); t.wait_for_timeout(4300); t.screenshot(path=HERE + "/shots/wheel_landed.png")
     txt = t.inner_text(".prompt")

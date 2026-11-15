@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-tcGzW9bzz+THJFrCg0rv1e8fxaeUnHcOPFyFi8/ftMM='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-7duIe7PAjaaMv7U5an08X7R+PegETa70SMUT6gBWI4c='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -1727,8 +1727,11 @@ function wheelSvg(s){
     if(n === 1) out.push('<circle r="100" fill="' + col + '"/>');
     else out.push('<path d="M0 0 L' + pt(100, a0) + ' A100 100 0 ' + (step > 180 ? 1 : 0) + ' 1 ' + pt(100, a1) + ' Z" fill="' + col + '" stroke="#fff" stroke-width="1"/>');
     var mid = n === 1 ? 0 : a0 + step/2, flip = mid > 180;
+    /* A label a little too long shrinks to fit (down to 70% of the usual size); only past that is it cut short with "…". */
+    var lt = String(wheelLabel(s, pi)), lf = lt.length > maxc ? Math.max(fs * 0.7, fs * maxc / lt.length) : fs, lmax = Math.max(6, Math.floor(70 / (lf * 0.56)));
+    lf = Math.round(lf * 10) / 10;
     var tf = 'rotate(' + mid.toFixed(2) + ') translate(0,-90) rotate(' + (flip ? 90 : -90) + ')';
-    out.push('<text transform="' + tf + '" text-anchor="' + (flip ? "start" : "end") + '" dominant-baseline="middle" font-size="' + fs + '" font-weight="700" fill="#fff" font-family="Atkinson Hyperlegible, Arial, sans-serif">' + esc(trunc(wheelLabel(s, pi), maxc)) + '</text>');
+    out.push('<text transform="' + tf + '" text-anchor="' + (flip ? "start" : "end") + '" dominant-baseline="middle" font-size="' + lf + '" font-weight="700" fill="#fff" font-family="Atkinson Hyperlegible, Arial, sans-serif">' + esc(trunc(lt, lmax)) + '</text>');
   });
   out.push('<circle r="14" fill="#fff" stroke="rgba(0,0,0,.15)" stroke-width="2"/>');
   return '<svg class="wheel" id="wheel" viewBox="-104 -104 208 208" style="transform:rotate(' + (+s.rotFrom || 0) + 'deg)">' + out.join("") + '</svg>';
