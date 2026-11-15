@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-0EUuYeS0lbHNWDsteK6dTg7DBCqqLizkD/PeTSBk8R0='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-12MXIbluRpR0tvQYL0Qt3v7KR2sJz/x9cJsp/k3gSvc='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -526,6 +526,14 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 .cw-layout{display:grid;grid-template-columns:auto minmax(240px,1fr);gap:22px;align-items:start;width:100%;max-width:1000px;text-align:left}
 @media (max-width:780px){.cw-layout{grid-template-columns:1fr;justify-items:center}}
 .cw-grid{display:grid;gap:2px}
+.cw-left{min-width:0}
+/* Wide landscape: entry under the grid, Across and Down side by side, so many long clues don't shrink the page. */
+@media (min-width:900px) and (min-aspect-ratio:5/4){
+  .cw-layout{grid-template-columns:auto minmax(0,1fr);max-width:1140px}
+  .cw-clues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+  .cw-clues h3{margin-top:0}
+  .cw-act{grid-column:1/-1}
+}
 .cw-c{width:var(--cs);height:var(--cs);background:var(--surface);border:2px solid var(--ink);position:relative;display:grid;place-items:center;font:800 calc(var(--cs)*.55)/1 "Baloo 2",sans-serif;text-transform:uppercase;cursor:pointer;padding:0;color:var(--ink);border-radius:3px}
 .cw-c.x{background:transparent;border:0;cursor:default}
 .cw-c small{position:absolute;top:1px;left:3px;font:700 calc(var(--cs)*.26)/1 "Atkinson Hyperlegible",sans-serif;color:var(--muted)}
@@ -2779,6 +2787,13 @@ function parseGroups(text){
   return out;
 }
 function muChunks(idx, n){ var out = []; for(var i=0;i<idx.length;i+=n) out.push(idx.slice(i, i+n)); return out; }
+/* Match pages: perPage is a maximum. Long pairs get fewer per page (about 300 characters a page) so they stay full size,
+   and the pages are evened out: 15 pairs at 8 a page → 8 + 7, not 8 + 7 … or 12 + 3. */
+function muPageSize(pairs, idx, per){
+  var chars = idx.reduce(function(n, i){ return n + String(pairs[i].f).length + String(pairs[i].b).length; }, 0) / Math.max(1, idx.length);
+  var max = Math.max(4, Math.min(per, Math.floor(300 / Math.max(1, chars)))), pages = Math.ceil(idx.length / max);
+  return Math.ceil(idx.length / Math.max(1, pages));
+}
 TYPES.match = {
   label: "Match Up", letter: "M",
   blurb: "Three ways to play: match each word to its partner, sort words into groups, or find the pairs in a memory grid (numbered tiles, so it works online too). Tap a tile, then tap where it goes.",
@@ -2789,7 +2804,7 @@ TYPES.match = {
   optionsHtml: function(o){
     return '<div class="hint" id="muCount"></div><div class="field"><span class="legend">Way to play</span><div class="choice">' +
       radio("muMode", "match", "Match the pairs", o.mode !== "sort" && o.mode !== "pairs") + radio("muMode", "sort", "Sort into groups", o.mode === "sort") + radio("muMode", "pairs", "Memory pairs", o.mode === "pairs") + '</div></div>' +
-      '<div class="field"><span class="legend">Matches per page (Match the pairs)</span><div class="choice">' + [6,8,10,12].map(function(n){ return radio("muPer", n, String(n), +(o.perPage || 8) === n); }).join("") + '</div></div>' +
+      '<div class="field"><span class="legend">Matches per page (Match the pairs)</span><div class="choice">' + [6,8,10,12].map(function(n){ return radio("muPer", n, String(n), +(o.perPage || 8) === n); }).join("") + '</div><div class="hint">At most. Long pairs get fewer a page so they stay full size, and pages are evened out.</div></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="muRetry"' + (o.retry ? " checked" : "") + '><span><b>Let the student retry wrong ones</b><br><span class="muted">Off: wrong answers are shown and the game moves on.</span></span></label></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="muClaim"' + (o.claim ? " checked" : "") + '><span><b>Memory pairs: say a sentence to keep a pair</b><br><span class="muted">You tap Good sentence or Not yet; a pair kept only by talking.</span></span></label></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="muShuf"' + (o.shuffle ? " checked" : "") + '><span><b>Shuffle the order</b><br><span class="muted">Off: the plan’s order (tiles are always mixed up). A replay is always shuffled.</span></span></label></div>';
@@ -2813,7 +2828,7 @@ TYPES.match = {
       var tiles = []; order.forEach(function(i){ tiles.push({ pi:i, side:0 }); tiles.push({ pi:i, side:1 }); });
       return Object.assign(base, { pairs:pairs, use:order, tiles: shuffle(tiles), open:[], done:{}, turns:0, phase:"pick" });
     }
-    var pages = muChunks(order, +o.perPage || 8);
+    var pages = muChunks(order, muPageSize(pairs, order, +o.perPage || 8));
     return Object.assign(base, { pairs:pairs, pages:pages.map(function(pg){ return { rows:pg, tiles: shuffle(pg.slice()) }; }), p:0, place:{} });
   },
   view: function(run){
@@ -3161,6 +3176,7 @@ TYPES.cross = {
   },
   view: function(run){
     var s = run.st, lay = s.lay, map = cwCells(lay, s.pairs), cs = Math.max(26, Math.min(46, Math.floor(560 / Math.max(lay.cols, lay.rows))));
+    if(window.innerWidth >= 900 && window.innerWidth / window.innerHeight >= 1.25) cs = Math.max(20, Math.min(46, Math.floor(600 / lay.cols), Math.floor((window.innerHeight - 190) / lay.rows) - 2));
     var shown = {};
     Object.keys(s.entry).sort(function(a, b){ return (s.entry[a].t || 0) - (s.entry[b].t || 0); }).forEach(function(wi){ var wd = lay.words[wi], e = s.entry[wi].v; for(var i=0;i<e.length;i++) shown[(wd.r + (wd.dir === "d" ? i : 0)) + "," + (wd.c + (wd.dir === "a" ? i : 0))] = { ch:e[i], wi:+wi }; });
     lay.words.forEach(function(wd, wi){ if(s.state[wi] === "ok"){ var a = s.pairs[wd.k].a; for(var i=0;i<a.length;i++) shown[(wd.r + (wd.dir === "d" ? i : 0)) + "," + (wd.c + (wd.dir === "a" ? i : 0))] = { ch:a[i], wi:wi }; } });
@@ -3183,7 +3199,7 @@ TYPES.cross = {
     var entry = done ? '<div class="verdict ok" style="font-size:28px">Finished!</div><button class="btn big-btn" data-a="finish">See the results</button>'
       : '<div class="cw-entry"><b>' + (sw ? sw.num + (sw.dir === "a" ? " across" : " down") : "") + '</b><input id="cwIn" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="' + (sw ? s.pairs[sw.k].a.length + 6 : 20) + '" value="' + esc(s.draft || "") + '"' + (locked ? " disabled" : "") + ' aria-label="Type the answer"><button class="btn" data-a="cw-enter"' + (locked ? " disabled" : "") + '>Write it in</button></div>' +
         (s.warn ? '<p class="err">' + esc(s.warn) + '</p>' : "") + '<div class="row" style="margin-top:10px"><button class="btn ok" data-a="cw-check">Check</button><button class="btn ghost" data-a="finish">Finish</button></div>' + (SMODE ? "" : '<p class="hint">Online: type what ' + esc(run.student || "the student") + ' says.</p>');
-    return '<section class="center"><div class="score"><span><span class="n cw">' + okN + '/' + lay.words.length + '</span><small>words right</small></span></div><div class="cw-layout"><div class="cw-grid" style="--cs:' + cs + 'px;grid-template-columns:repeat(' + lay.cols + ',' + cs + 'px)">' + cells + '</div><div class="cw-clues">' + list("a", "Across") + list("d", "Down") + entry + '</div></div></section>';
+    return '<section class="center"><div class="score"><span><span class="n cw">' + okN + '/' + lay.words.length + '</span><small>words right</small></span></div><div class="cw-layout"><div class="cw-left"><div class="cw-grid" style="--cs:' + cs + 'px;grid-template-columns:repeat(' + lay.cols + ',' + cs + 'px)">' + cells + '</div></div><div class="cw-clues"><div>' + list("a", "Across") + '</div><div>' + list("d", "Down") + '</div><div class="cw-act">' + entry + '</div></div></div></section>';
   },
   beforeFinish: function(run){
     /* Finish counts what's written: a full-length word still in the box is entered, then everything unchecked is checked. */

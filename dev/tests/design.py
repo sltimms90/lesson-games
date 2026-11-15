@@ -1,11 +1,13 @@
 """Design changes from the review: lesson page layout (Quick game on top, folded sections), Hard mode name, Undo toast."""
 from lg import *
 G = lambda i, ty, title, opts=None, block="castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here": {"id":"g%d" % i, "type":ty, "title":title, "block":block, "opts":opts or {}}
+P15 = [("kitchen","the room where you cook dinner every evening"),("bedroom","the room where you sleep at night"),("bathroom","you have a shower or a bath here"),("garden","flowers and vegetables grow here"),("garage","you keep the car in here"),("library","you borrow books from this place"),("museum","you look at old and famous things here"),("station","you wait here for a train"),("airport","planes take off and land here"),("market","you buy fresh fruit and fish here"),("castle","a king and queen used to live here"),("bridge","you cross a river on it"),("island","land with water all around it"),("forest","a big place with lots of trees"),("village","a very small town in the country")]
+CW = list(zip(["being in charge of something","how hot or cold it is","the area around your home","someone who takes pictures","very, very unusual","the air, water and land around us","it could hurt you","nice and soft to sit on","children play here at school","a sport with a tall net","a small red fruit","it flies with blades on top"], ["responsibility","temperature","neighbourhood","photographer","extraordinary","environment","dangerous","comfortable","playground","basketball","strawberry","helicopter"]))
 BW = "\n".join("castle bridge garden market tower river forest island village museum library station kitchen bedroom bathroom garage".split())
 bank = "castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here\nmarket | you buy food here"
 packs = [{"id":"mia-lp8", "student":"Mia", "lp":8, "title":"Mia · LP8", "date":"2026-11-10", "updatedAt":"x", "games":[], "bank":"castle | a king lives here"},
          {"id":"mia-lp9", "student":"Mia", "lp":9, "title":"Mia · LP9", "date":"2026-11-17", "updatedAt":"x", "bank":bank,
-          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW)]}]
+          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW))]}]
 results = [{"id":"r1", "packId":"mia-lp8", "gameId":"g1", "type":"hangman", "title":"h", "at":"2026-11-10T03:00:00Z", "summary":"h", "items":[{"item":"castle", "ok":False}]}]
 def top(pg, sel): return pg.evaluate("s => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1 }", sel)
 with sync_playwright() as p:
@@ -41,6 +43,15 @@ with sync_playwright() as p:
         check(all(h > 620 for h in hs) and sc[0] <= sc[1] + 1 and sc[2] == "1", "bingo (%s) cards fill the iPad height: %s, page %s, cell %s" % (show, hs, sc, cell))
         t.screenshot(path=HERE + "/shots/bingo_%s.png" % show)
         t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    # --- B. Match Up pages and Crossword stay full size
+    t.click("[data-a=play][data-g=g5]"); t.wait_for_timeout(900)
+    pg = t.evaluate("__T.UI.run.st.pages.map(p => p.rows.length)")
+    check(pg == [5, 5, 5] and t.evaluate("document.querySelector('main.stage').style.zoom || '1'") == "1", "15 long pairs at 12 a page → %s, full size" % pg)
+    t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    t.click("[data-a=play][data-g=g6]"); t.wait_for_timeout(900)
+    check(t.evaluate("document.querySelector('main.stage').style.zoom || '1'") == "1" and t.evaluate("document.documentElement.scrollHeight") <= 821, "12-word crossword fits the iPad at full size")
+    t.screenshot(path=HERE + "/shots/cross_ipad.png")
+    t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
     # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
     hb = t.locator(".game [data-a=play-ch]")
     check(hb.count() == 2 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
