@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-bO9mbEgJDozxWWjAQpcFRBx6fsiQzAGh21pKKM3GjWQ='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-tcGzW9bzz+THJFrCg0rv1e8fxaeUnHcOPFyFi8/ftMM='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -1203,7 +1203,7 @@ function bgResolve(g, k, o){
   cur.pending = cur.pending.filter(function(x){ return x !== k; });
 }
 function bgCard(g, k){
-  var n = g.size, isT = k === g.tk, tap = isT || bgSelf(g), grid = g.cards[k], done = doneLines(grid, g.marks[k], n), inl = {};
+  var n = Math.max(3, Math.min(5, +g.size || 4)), isT = k === g.tk, tap = isT || bgSelf(g), grid = g.cards[k], done = doneLines(grid, g.marks[k], n), inl = {};
   done.forEach(function(l){ l.forEach(function(c){ inl[c] = 1; }); });
   var svg = done.length ? '<svg class="bglines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' + done.map(function(l){
     function pt(c, end){ var x = (c % n + .5) * 100 / n, y = (Math.floor(c / n) + .5) * 100 / n; return [x, y]; }
@@ -1582,7 +1582,7 @@ TYPES.anagrams = {
       if(s.status === "shown") return '<span class="aslot filled">' + esc(ch) + '</span>';
       return '<button class="aslot' + (t ? " filled" : "") + '" data-a="an-slot" data-p="' + p + '"' + (s.status !== "playing" || !t ? " tabindex=\"-1\"" : "") + '>' + (t ? esc(t.ch) : "") + '</button>';
     }).join("");
-    var tiles = s.status === "playing" ? s.tiles.filter(function(t){ return !t.used; }).map(function(t){ return '<button class="tile" data-a="an-tile" data-id="' + t.id + '">' + esc(t.ch) + '</button>'; }).join("") : "";
+    var tiles = s.status === "playing" ? s.tiles.filter(function(t){ return !t.used; }).map(function(t){ return '<button class="tile" data-a="an-tile" data-id="' + esc(t.id) + '">' + esc(t.ch) + '</button>'; }).join("") : "";
     var clue = !w.c ? "" : s.clue ? '<div class="cluebox">' + esc(w.c) + '</div>' : s.status !== "playing" ? "" : !s.ch ? '<button class="btn ghost sm" data-a="an-clue">Show the clue</button>' : '<button class="btn ghost sm" data-a="an-clue">Buy the clue for ' + s.clueCost + ' points</button>';
     var hasPts = s.points != null, wpts = s.status === "playing" ? anWordPts(s) : ((s.log[s.log.length - 1] || {}).pts || 0);
     var board = !hasPts ? "" : '<div class="score"><span><span class="n">' + (s.total || 0) + '</span><small>points</small></span><span><span class="n">' + wpts + '</span><small>' + (s.status === "playing" ? "this word" : "won") + '</small></span></div>';
@@ -1731,7 +1731,7 @@ function wheelSvg(s){
     out.push('<text transform="' + tf + '" text-anchor="' + (flip ? "start" : "end") + '" dominant-baseline="middle" font-size="' + fs + '" font-weight="700" fill="#fff" font-family="Atkinson Hyperlegible, Arial, sans-serif">' + esc(trunc(wheelLabel(s, pi), maxc)) + '</text>');
   });
   out.push('<circle r="14" fill="#fff" stroke="rgba(0,0,0,.15)" stroke-width="2"/>');
-  return '<svg class="wheel" id="wheel" viewBox="-104 -104 208 208" style="transform:rotate(' + s.rotFrom + 'deg)">' + out.join("") + '</svg>';
+  return '<svg class="wheel" id="wheel" viewBox="-104 -104 208 208" style="transform:rotate(' + (+s.rotFrom || 0) + 'deg)">' + out.join("") + '</svg>';
 }
 TYPES.wheel = {
   label: "Random wheel", letter: "W",
@@ -1756,7 +1756,7 @@ TYPES.wheel = {
     } else right = segs.length ? spinBtn() : '<p class="notice">Every prompt has come up.</p><button class="btn big-btn" data-a="finish">Finish</button>';
     function spinBtn(){ return segs.length ? '<button class="btn big-btn" data-a="wh-spin">Spin</button>' : '<button class="btn big-btn" data-a="finish">Finish</button>'; }
     var pick = (!s.spinning && s.current == null && segs.length) ? '<div class="section" style="width:100%;text-align:left"><h3 style="font-size:18px" class="muted">Or choose one</h3><div class="chips">' +
-      segs.map(function(i){ return '<button class="chip" data-a="wh-pick" data-i="' + i + '">' + esc(trunc(wheelLabel(s, i), 40)) + '</button>'; }).join("") + '</div></div>' : "";
+      segs.map(function(i){ return '<button class="chip" data-a="wh-pick" data-i="' + esc(i) + '">' + esc(trunc(wheelLabel(s, i), 40)) + '</button>'; }).join("") + '</div></div>' : "";
     return '<div class="wheel-layout"><div class="center"><div class="wheelbox"><span class="pointer"></span>' + wheelSvg(s) + '</div></div>' +
       '<section class="center" aria-live="polite"><div class="progress">' + s.log.length + ' of ' + s.prompts.length + ' used</div>' + right + pick + '</section></div>';
   },
@@ -2107,13 +2107,13 @@ TYPES.quiz = {
     var keys = cov ? [] : ["fifty", "dbl"].concat(s.timer ? ["time"] : []).filter(function(k){ return (s.life[k] || 0) > 0; });
     var lifes = keys.length ? '<div class="lifes" role="group" aria-label="Lifelines">' + keys.map(function(k){
       var off = shown || (k === "fifty" && !qzCanFifty(s)) || (k === "dbl" && s.dbl);
-      return '<button class="life" data-a="qz-life" data-l="' + k + '"' + (off ? " disabled" : "") + '>' + LIFE_NAMES[k] + (s.life[k] > 1 ? " ×" + s.life[k] : "") + '</button>';
+      return '<button class="life" data-a="qz-life" data-l="' + esc(k) + '"' + (off ? " disabled" : "") + '>' + LIFE_NAMES[k] + (s.life[k] > 1 ? " ×" + s.life[k] : "") + '</button>';
     }).join("") + '</div>' : "";
     var timer = s.timer && !shown && !cov ? '<div class="qtimer"><div class="tbar' + (s.tLeft <= 5000 ? " low" : "") + '"><i id="qzBar" style="width:' + Math.max(0, Math.min(100, s.tLeft / (s.timer*1000) * 100)) + '%"></i></div><span id="qzTime">' + Math.max(0, Math.ceil(s.tLeft / 1000)) + '</span></div>' : "";
     var opts = s.perm.map(function(oi, n){
       var cls = "opt", gone = s.hidden.indexOf(oi) !== -1;
       if(shown) cls += oi === q.right ? " right" : oi === s.chose ? " chose" : " dim"; else if(gone) cls += " gone";
-      return '<button class="' + cls + '" data-a="qz-ans" data-i="' + oi + '"' + (shown || gone ? " disabled" : "") + '><span class="k">' + (n+1) + '</span><span>' + esc(q.opts[oi]) + '</span></button>';
+      return '<button class="' + cls + '" data-a="qz-ans" data-i="' + esc(oi) + '"' + (shown || gone ? " disabled" : "") + '><span class="k">' + (n+1) + '</span><span>' + esc(q.opts[oi]) + '</span></button>';
     }).join("");
     var after = "";
     if(shown){
@@ -3193,12 +3193,12 @@ TYPES.cross = {
       var key = R + "," + C, m = map[key];
       if(!m){ cells += '<div class="cw-c x"></div>'; continue; }
       var sh = shown[key], st = sh ? s.state[sh.wi] : null;
-      cells += '<button class="cw-c' + (selCells[key] ? " sel" : "") + (st === "ok" ? " ok" : st === "no" ? " no" : "") + '" data-a="cw-cell" data-i="' + m.words[0].wi + '" data-j="' + (m.words[1] ? m.words[1].wi : "") + '">' + (m.num ? "<small>" + m.num + "</small>" : "") + (sh ? esc(sh.ch) : "") + '</button>';
+      cells += '<button class="cw-c' + (selCells[key] ? " sel" : "") + (st === "ok" ? " ok" : st === "no" ? " no" : "") + '" data-a="cw-cell" data-i="' + esc(m.words[0].wi) + '" data-j="' + esc(m.words[1] ? m.words[1].wi : "") + '">' + (m.num ? "<small>" + m.num + "</small>" : "") + (sh ? esc(sh.ch) : "") + '</button>';
     }
     function list(dir, title){
       var ws = lay.words.map(function(wd, wi){ return { wd:wd, wi:wi }; }).filter(function(x){ return x.wd.dir === dir; }).sort(function(a, b){ return a.wd.num - b.wd.num; });
       if(!ws.length) return "";
-      return '<h3>' + title + '</h3>' + ws.map(function(x){ var st = s.state[x.wi]; return '<button class="cw-clue' + (s.sel === x.wi ? " sel" : "") + (st === "ok" ? " ok" : st === "no" ? " no" : "") + '" data-a="cw-pick" data-i="' + x.wi + '"><b>' + x.wd.num + '.</b> ' + esc(s.pairs[x.wd.k].clue) + ' <span class="muted">(' + s.pairs[x.wd.k].a.length + ')</span>' + (st === "ok" ? " ✓" : st === "shown" ? ' <span class="muted">— ' + esc(s.pairs[x.wd.k].ans) + '</span>' : "") + '</button>'; }).join("");
+      return '<h3>' + title + '</h3>' + ws.map(function(x){ var st = s.state[x.wi]; return '<button class="cw-clue' + (s.sel === x.wi ? " sel" : "") + (st === "ok" ? " ok" : st === "no" ? " no" : "") + '" data-a="cw-pick" data-i="' + esc(x.wi) + '"><b>' + esc(x.wd.num) + '.</b> ' + esc(s.pairs[x.wd.k].clue) + ' <span class="muted">(' + s.pairs[x.wd.k].a.length + ')</span>' + (st === "ok" ? " ✓" : st === "shown" ? ' <span class="muted">— ' + esc(s.pairs[x.wd.k].ans) + '</span>' : "") + '</button>'; }).join("");
     }
     var done = lay.words.every(function(wd, wi){ return s.state[wi] === "ok" || s.state[wi] === "shown"; });
     var okN = lay.words.filter(function(wd, wi){ return s.state[wi] === "ok"; }).length;
@@ -3206,7 +3206,7 @@ TYPES.cross = {
     var entry = done ? '<div class="verdict ok" style="font-size:28px">Finished!</div><button class="btn big-btn" data-a="finish">See the results</button>'
       : '<div class="cw-entry"><b>' + (sw ? sw.num + (sw.dir === "a" ? " across" : " down") : "") + '</b><input id="cwIn" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="' + (sw ? s.pairs[sw.k].a.length + 6 : 20) + '" value="' + esc(s.draft || "") + '"' + (locked ? " disabled" : "") + ' aria-label="Type the answer"><button class="btn" data-a="cw-enter"' + (locked ? " disabled" : "") + '>Write it in</button></div>' +
         (s.warn ? '<p class="err">' + esc(s.warn) + '</p>' : "") + '<div class="row" style="margin-top:10px"><button class="btn ok" data-a="cw-check">Check</button><button class="btn ghost" data-a="finish">Finish</button></div>' + (SMODE ? "" : '<p class="hint">Online: type what ' + esc(run.student || "the student") + ' says.</p>');
-    return '<section class="center"><div class="score"><span><span class="n cw">' + okN + '/' + lay.words.length + '</span><small>words right</small></span></div><div class="cw-layout"><div class="cw-left"><div class="cw-grid" style="--cs:' + cs + 'px;grid-template-columns:repeat(' + lay.cols + ',' + cs + 'px)">' + cells + '</div></div><div class="cw-clues"><div>' + list("a", "Across") + '</div><div>' + list("d", "Down") + '</div><div class="cw-act">' + entry + '</div></div></div></section>';
+    return '<section class="center"><div class="score"><span><span class="n cw">' + okN + '/' + lay.words.length + '</span><small>words right</small></span></div><div class="cw-layout"><div class="cw-left"><div class="cw-grid" style="--cs:' + cs + 'px;grid-template-columns:repeat(' + (+lay.cols || 1) + ',' + cs + 'px)">' + cells + '</div></div><div class="cw-clues"><div>' + list("a", "Across") + '</div><div>' + list("d", "Down") + '</div><div class="cw-act">' + entry + '</div></div></div></section>';
   },
   beforeFinish: function(run){
     /* Finish counts what's written: a full-length word still in the box is entered, then everything unchecked is checked. */
@@ -3298,7 +3298,7 @@ function snThumb(name, k){ var o = STUDENTS[slug(name)]; return '<span class="th
 function dieFace(n, spin){
   var on = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] }[n] || [], h = "";
   for(var i=0;i<9;i++) h += '<i' + (on.indexOf(i) !== -1 ? ' class="on"' : "") + '></i>';
-  return '<div class="die' + (spin ? " spin" : "") + '" role="img" aria-label="' + n + '">' + h + '</div>';
+  return '<div class="die' + (spin ? " spin" : "") + '" role="img" aria-label="' + esc(n) + '">' + h + '</div>';
 }
 function loadImgFile(file){ return new Promise(function(res, rej){ var u = URL.createObjectURL(file), im = new Image(); im.onload = function(){ res(im); }; im.onerror = function(){ rej(new Error("That file isn’t a picture I can read.")); }; im.src = u; }); }
 function imgData(im, maxSide, type, q, square){
@@ -3716,8 +3716,8 @@ TYPES.build = {
         '<div class="bd-line done">' + esc(x.ok ? (it.alts.filter(function(al){ return bdNorm(al) === bdNorm(x.built); })[0] || it.s) : it.s) + '</div>' + (s.secs && x.ok ? '<p class="notice">' + (x.late ? "Over the clock this time" : "Beat the clock!") + '</p>' : "") +
         '<button class="btn big-btn" data-a="bd-next">Next</button></section>';
     }
-    var line = s.placed.map(function(ti, n){ var m = s.marks ? (s.marks[n] ? " ok" : " no") : ""; return '<button class="bd-tile placed' + m + '" data-a="bd-back" data-i="' + n + '">' + esc(s.tiles[ti]) + '</button>'; }).join("");
-    var pool = s.pool.map(function(ti){ return s.placed.indexOf(ti) === -1 ? '<button class="bd-tile" data-a="bd-put" data-i="' + ti + '">' + esc(s.tiles[ti]) + '</button>' : '<span class="bd-tile gone" aria-hidden="true">' + esc(s.tiles[ti]) + '</span>'; }).join("");
+    var line = s.placed.map(function(ti, n){ var m = s.marks ? (s.marks[n] ? " ok" : " no") : ""; return '<button class="bd-tile placed' + m + '" data-a="bd-back" data-i="' + esc(n) + '">' + esc(s.tiles[ti]) + '</button>'; }).join("");
+    var pool = s.pool.map(function(ti){ return s.placed.indexOf(ti) === -1 ? '<button class="bd-tile" data-a="bd-put" data-i="' + esc(ti) + '">' + esc(s.tiles[ti]) + '</button>' : '<span class="bd-tile gone" aria-hidden="true">' + esc(s.tiles[ti]) + '</span>'; }).join("");
     var all = s.placed.length === s.tiles.length;
     return '<section class="center">' + board + top + (s.secs ? '<div class="wh-bar" aria-hidden="true"><i id="bdBar" style="width:100%"></i></div><div class="hl-left" id="bdLeft"></div>' : "") +
       '<div class="bd-line" aria-label="Your sentence">' + (line || '<span class="muted">Tap the words in order</span>') + '</div>' +
@@ -3997,7 +3997,7 @@ TYPES.odd = {
     var it = s.items[s.q[0]], top = '<div class="progress">Set ' + (s.items.length - s.q.length + 1) + ' of ' + s.items.length + '</div>';
     var tiles = '<div class="od-grid">' + s.order.map(function(k){
       var cls = "od-tile" + (s.taps.indexOf(k) !== -1 ? " no" : "") + (s.phase !== "pick" && k === it.odd ? " yes" : "") + (s.phase !== "pick" && k !== it.odd ? " dim" : "");
-      return s.phase === "pick" && s.taps.indexOf(k) === -1 ? '<button class="' + cls + '" data-a="od-tap" data-k="' + k + '">' + esc(it.words[k]) + '</button>' : '<span class="' + cls + '">' + esc(it.words[k]) + '</span>';
+      return s.phase === "pick" && s.taps.indexOf(k) === -1 ? '<button class="' + cls + '" data-a="od-tap" data-k="' + esc(k) + '">' + esc(it.words[k]) + '</button>' : '<span class="' + cls + '">' + esc(it.words[k]) + '</span>';
     }).join("") + '</div>';
     if(s.phase === "pick") return '<section class="center">' + board + top + '<div class="bd-hint">Which one doesn’t belong?</div>' + tiles + (s.taps.length ? '<p class="notice">Not that one — try again.</p>' : "") + '</section>';
     if(s.phase === "why"){
@@ -4874,7 +4874,8 @@ function liveClean(v, ref, depth){
   if(t === "boolean") return v;
   if(Array.isArray(v)){
     if(v.length > 3000) throw new Error("list too long");
-    return v.map(function(x, i){ return liveClean(x, rt === "array" ? (ref[i] !== undefined ? ref[i] : null) : null, depth + 1); });
+    var tpl = rt === "array" ? liveItemTpl(ref) : null;
+    return v.map(function(x, i){ return liveClean(x, rt === "array" ? (ref[i] !== undefined ? ref[i] : tpl) : null, depth + 1); });
   }
   if(t === "object"){
     var o = {}, keys = Object.keys(v); if(keys.length > 400) throw new Error("too many keys");
@@ -4898,6 +4899,22 @@ function pubGame(g){
   c.block = typeof c.block === "string" ? c.block : ""; c.options = c.options && typeof c.options === "object" && !Array.isArray(c.options) ? c.options : {};
   return c;
 }
+/* A list whose items are all numbers (or all strings, or all true/false) checks extra items against that kind too. */
+function liveItemTpl(a){ if(!a.length) return null; var t0 = typeof a[0]; if(t0 !== "number" && t0 !== "string" && t0 !== "boolean") return null; return a.every(function(x){ return typeof x === t0; }) ? a[0] : null; }
+/* What an incoming game state is checked against: this screen's own state for that game, or — when that game isn't
+   on screen — a fresh start of it from the lesson's own definition (the student page: from the definition in the message).
+   No definition here means nothing here could use the state: the message is dropped. */
+function liveRef(m){
+  if(UI.run && UI.run.gameId === m.g) return UI.run.st;
+  var gg = SMODE && m.gd && m.gd.g && m.gd.g.id === m.g ? { p: PACKS[0] || { id:m.p }, g:m.gd.g } : liveGame(m.g);
+  if(!gg || !TYPES[gg.g.type]) return false;
+  var t = TYPES[gg.g.type];
+  var ref; try{ ref = t.start(Object.assign({}, gg.g, { options: Object.assign({}, t.defaults(gg.p), gg.g.options || {}) }), gg.p); }catch(e){ return false; }
+  if(!ref) return false;
+  /* drawn once, so fields a view fills on first draw (a start time, a first pick) have their kind too */
+  try{ t.view({ type:gg.g.type, packId:gg.p.id, gameId:gg.g.id, title:"", student:"", startedAt:nowIso(), st:ref, liveOverride:true }); }catch(e){}
+  return ref;
+}
 function liveMsgOk(m){
   if(["hello", "st", "fin", "stop", "ack"].indexOf(m.t) === -1) return false;
   if(m.r !== undefined && m.r !== "s" && m.r !== "t") return false;
@@ -4908,15 +4925,15 @@ function liveMsgOk(m){
   if(m.rev !== undefined && (typeof m.rev !== "number" || !isFinite(m.rev))) return false;
   if(m.t0 !== undefined && (typeof m.t0 !== "number" || !isFinite(m.t0))) return false;
   if(typeof m.from !== "string" || m.from.length > 40) return false;
-  try{
-    if(m.st !== undefined){ var r = UI.run && UI.run.gameId === m.g ? UI.run.st : null; m.st = liveClean(m.st, r); if(!m.st || typeof m.st !== "object" || Array.isArray(m.st)) return false; }
-    if(m.title !== undefined) m.title = typeof m.title === "string" ? liveClean(m.title) : "";
-  }catch(e){ return false; }
   if(m.gd !== undefined){
     var g = m.gd && pubGame(m.gd.g); if(!g) return false;
     var x = m.gd.x ? { board: pubBoard(m.gd.x.board), tokens: pubTokens(m.gd.x.tokens) } : null;
     m.gd = { g:g, l: typeof m.gd.l === "number" ? m.gd.l : null, k: typeof m.gd.k === "string" && /^[a-z0-9-]{1,30}$/.test(m.gd.k) ? m.gd.k : "", x:x };
   }
+  try{
+    if(m.st !== undefined){ var r = liveRef(m); if(r === false) return false; m.st = liveClean(m.st, r); if(!m.st || typeof m.st !== "object" || Array.isArray(m.st)) return false; }
+    if(m.title !== undefined) m.title = typeof m.title === "string" ? liveClean(m.title) : "";
+  }catch(e){ return false; }
   return true;
 }
 function liveRecv(m){
@@ -5002,9 +5019,11 @@ function livePaint(){
   var el = document.getElementById("livePill"), run = UI.run, show = UI.view === "play" && liveOn(run);
   if(!show){ if(el) el.remove(); return; }
   if(!el){ el = document.createElement("div"); el.id = "livePill"; el.setAttribute("role", "status"); document.body.appendChild(el); }
-  var on = LIVE.peers > 0, ov = !SMODE && run.liveOverride;
+  /* "connected" and the 🔒 only when the other screen is really in this game (liveLocked). A student tab left open on
+     another game is "online", and nothing is locked, so no 🔒. */
+  var near = LIVE.peers > 0, on = liveLocked(run) || (SMODE && near), ov = !SMODE && run.liveOverride;
   el.className = "livepill" + (on ? " on" : "") + (ov ? " ov" : "");
-  el.innerHTML = '<span>' + esc(on ? "● " + (SMODE ? "Teacher" : (LIVE.peerName || "Student")) + " connected" : "○ Waiting for " + (SMODE ? "your teacher" : "the student") + "…") + '</span>' +
+  el.innerHTML = '<span>' + esc(on ? "● " + (SMODE ? "Teacher" : (LIVE.peerName || "Student")) + " connected" : near && !SMODE ? "○ " + (LIVE.peerName || "Your student") + " is online, not in this game" : "○ Waiting for " + (SMODE ? "your teacher" : "the student") + "…") + '</span>' +
     (SMODE || !on ? "" : '<button class="lo" data-a="live-override" aria-pressed="' + !!ov + '" aria-label="' + (ov ? "Back to taking turns" : "Override: take any turn and see everything") + '" title="' + (ov ? "Override on: you can take any turn and see every card. Tap to go back to turns." : "Override: take any turn and see every card") + '">' + (ov ? "🔓" : "🔒") + '</button>');
 }
 /* Turns: with both screens connected, each side only plays its own turns. The teacher's turns are the players
@@ -5637,7 +5656,9 @@ function resultFrom(run){
   var sc = t.score ? t.score(run) : null, its = t.items ? t.items(run) : [], sum = t.summary(run), secs = Math.round(clockMs(run) / 1000);
   var slow = its.filter(function(x){ return x.secs != null; }).sort(function(a, b){ return b.secs - a.secs; }).slice(0, 3).filter(function(x){ return x.secs >= 10; });
   if(its.length >= 3 && slow.length){ var nl = sum.indexOf("\n"), add = " · slowest: " + slow.map(function(x){ return trunc(x.item, 30) + " " + fmtSecs(x.secs); }).join(", "); sum = nl === -1 ? sum + add : sum.slice(0, nl) + add + sum.slice(nl); }
-  var r = { id: (run.packId + "_" + run.gameId + "_" + shortId()).replace(/[^A-Za-z0-9_\-.~:@+]/g, "-"), packId:run.packId, student:run.student, lp:run.lp, gameId:run.gameId,
+  /* A live game's result id comes from its live game number, so when two of the teacher's devices both save a student's
+     Save, the second overwrites the first instead of making a copy. */
+  var r = { id: (run.packId + "_" + run.gameId + "_" + (run.liveGen ? "L" + run.liveGen : shortId())).replace(/[^A-Za-z0-9_\-.~:@+]/g, "-"), packId:run.packId, student:run.student, lp:run.lp, gameId:run.gameId,
     type:run.type, title:run.title, at:nowIso(), summary:sum, score:sc, items:its, activeSecs:secs, detail:st, points: gamePoints(run.type, run.st, sc) };
   if(run.retry) r.retry = true;
   if(run.liveGen) r.liveGen = run.liveGen;

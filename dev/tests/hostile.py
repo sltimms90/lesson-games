@@ -41,6 +41,43 @@ with sync_playwright() as p:
             pwn = t.evaluate("window.__pwn"); tags = t.locator("#app img[src='x']").count()
             check(pwn is None and tags == 0 and t.evaluate("__T.UI.view") == "play", "%s (%s poison, %s): teacher safe" % (g["type"], mode, r))
         t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(400)
+    # Re-check 1: state for a game that is NOT on screen (teacher on the lesson page). One number at a time, or an
+    # extra list item, becomes an attribute-breaking string. Nothing may land in the page and the game must not open.
+    ATTR = '1" xssattr="1" x="'
+    OFF = """([st, gid, pid, attr, path]) => {
+      const L = __T.LIVE; if (!L.chan) return 'no chan';
+      const o = JSON.parse(st); let c = o; for (let i = 0; i < path.length - 1; i++) c = c[path[i]];
+      const k = path[path.length - 1]; if (k === '+') c.push(attr); else c[k] = attr;
+      L.chan.send({ type:'broadcast', event:'m', payload:{ t:'st', g:gid, p:pid, gen:'gen' + Math.random().toString(36).slice(2, 8), t0:Date.now() + 1e6, rev:3, st:o, title:'x', from:'zzzz' } });
+      return 'sent';
+    }"""
+    def num_paths(v, path=(), out=None):
+        out = [] if out is None else out
+        if isinstance(v, bool): return out
+        if isinstance(v, (int, float)): out.append(list(path))
+        elif isinstance(v, list):
+            if v and all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in v): out.append(list(path) + ["+"])
+            for i, x in enumerate(v): num_paths(x, path + (i,), out)
+        elif isinstance(v, dict):
+            for k, x in v.items():
+                if not k.startswith("_"): num_paths(x, path + (k,), out)
+        return out
+    import json
+    t.click("[data-a=backlesson]") if t.locator("[data-a=backlesson]").count() else None
+    sent = 0
+    for g in games:
+        t.click("[data-a=play][data-g=%s]" % g["id"]); t.wait_for_timeout(300)
+        if t.evaluate("__T.UI.view") != "play": check(False, "%s didn't start" % g["type"]); continue
+        st = t.evaluate("JSON.stringify(__T.UI.run.st)")
+        t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+        paths = num_paths(json.loads(st)); paths = paths[:5] + paths[-3:] if len(paths) > 8 else paths
+        bad = []
+        for path in paths:
+            s.evaluate(OFF, [st, g["id"], pack["id"], ATTR, path]); t.wait_for_timeout(180); sent += 1
+            if t.locator("[xssattr]").count() or t.evaluate("window.__pwn") is not None: bad.append(path)
+            if t.evaluate("__T.UI.view") == "play": bad.append(("opened", path)); t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+        check(not bad and t.locator("[xssattr]").count() == 0, "%s: %d poisoned numbers for a game not on screen are dropped %s" % (g["type"], len(paths), bad[:3]))
+    print("sent %d off-screen poisons" % sent)
     check(not [e for e in errs if "pwn" in e], "no errors from the poison %s" % errs[:3])
     # the real page, untouched: it runs under its CSP, and injected inline code is blocked
     raw = open(ROOT + "/index.html", encoding="utf-8").read()
