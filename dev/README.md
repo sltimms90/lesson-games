@@ -17,6 +17,7 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 prog.py                     # missed-words warm-up and the student progress view
     python3 hostile.py                  # crafted links and poisoned live messages never run code; the CSP holds
     python3 review.py                   # review fixes: two teacher devices, save acknowledgement, class ✕, stale tabs
+    python3 design.py                   # review design changes: lesson page layout, Hard mode, Undo toast
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
