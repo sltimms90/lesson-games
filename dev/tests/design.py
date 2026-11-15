@@ -7,7 +7,7 @@ BW = "\n".join("castle bridge garden market tower river forest island village mu
 bank = "castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here\nmarket | you buy food here"
 packs = [{"id":"mia-lp8", "student":"Mia", "lp":8, "title":"Mia · LP8", "date":"2026-11-10", "updatedAt":"x", "games":[], "bank":"castle | a king lives here"},
          {"id":"mia-lp9", "student":"Mia", "lp":9, "title":"Mia · LP9", "date":"2026-11-17", "updatedAt":"x", "bank":bank,
-          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW))]}]
+          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW)), G(7, "wheel", "Talk", {"remove":True}, block="weekend | What is the most interesting thing you did last weekend, and who were you with?\n! dream job | If you could do any job in the world when you grow up, what would it be and why?\nWhat is your favourite food?")]}]
 results = [{"id":"r1", "packId":"mia-lp8", "gameId":"g1", "type":"hangman", "title":"h", "at":"2026-11-10T03:00:00Z", "summary":"h", "items":[{"item":"castle", "ok":False}]}]
 def top(pg, sel): return pg.evaluate("s => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1 }", sel)
 with sync_playwright() as p:
@@ -51,6 +51,17 @@ with sync_playwright() as p:
     t.click("[data-a=play][data-g=g6]"); t.wait_for_timeout(900)
     check(t.evaluate("document.querySelector('main.stage').style.zoom || '1'") == "1" and t.evaluate("document.documentElement.scrollHeight") <= 821, "12-word crossword fits the iPad at full size")
     t.screenshot(path=HERE + "/shots/cross_ipad.png")
+    t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    # --- C. Wheel: short label on the wheel, full prompt when it stops
+    t.click("[data-a=play][data-g=g7]"); t.wait_for_timeout(600)
+    segs = t.evaluate("[...document.querySelectorAll('#wheel text')].map(x => x.textContent)")
+    chips = t.locator("[data-a=wh-pick]").all_inner_texts()
+    check(segs[:2] == ["weekend", "dream job"] and segs[2].startswith("What is") and "weekend" in chips and "dream job" in chips, "wheel and chips show the labels: %s / %s" % (segs, chips))
+    t.click("[data-a=wh-spin]"); t.wait_for_timeout(4300); t.screenshot(path=HERE + "/shots/wheel_landed.png")
+    txt = t.inner_text(".prompt")
+    check(txt.startswith("If you could do any job") and "dream job" in t.inner_text("#app"), "the must-ask lands first and shows its full prompt under its label: %s" % txt)
+    t.click("[data-a=wh-mark][data-m=good]"); t.wait_for_timeout(200)
+    check(t.evaluate("__T.UI.run.st.log[0].p").startswith("If you could"), "the result keeps the full prompt")
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
     # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
     hb = t.locator(".game [data-a=play-ch]")
