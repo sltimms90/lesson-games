@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-UxtZHwkCf99v8RHKo79PkfhGKrcBi/yE8EQqUGYDW14='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-OAUkd59/vBvSfMLHDTfouBCJYhgoQ7rki++bmdKu40k='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -868,7 +868,7 @@ function prefersReduced(){ return window.matchMedia && window.matchMedia("(prefe
 
 /* Undo. A restored state keeps the current live revision (+1 when it goes out), so the other screen takes it
    instead of treating it as old. After a judging tap (Good / Not yet …) a 3-second toast offers ↶ for that tap only. */
-function judgeTap(a){ if(a === "sp-flip") return false; if(["ch-mark", "bg-res", "tb-out"].indexOf(a) !== -1) return true; return Object.keys(LIVE_TEACH).some(function(k){ return LIVE_TEACH[k].indexOf(a) !== -1; }); }
+function judgeTap(a){ if(a === "sp-flip" || a === "qz-say") return false; if(["ch-mark", "bg-res", "tb-out"].indexOf(a) !== -1) return true; return Object.keys(LIVE_TEACH).some(function(k){ return LIVE_TEACH[k].indexOf(a) !== -1; }); }
 var UNDO_TOAST = {};
 function undoMove(run){
   if(!run || !UNDO.length) return;
@@ -2069,7 +2069,7 @@ TYPES.quiz = {
       '<div class="field" id="qzBonusF"><label for="qzBonus">Bonus round every … questions</label><input type="number" id="qzBonus" min="0" max="20" inputmode="numeric" value="' + esc(o.bonus) + '" style="max-width:120px"><div class="hint">Gameshow only. 0 turns bonus rounds off. Five cards (points to win, points to lose, a lifeline) are shown, turned over and shuffled; the student picks one.</div></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="qzShufA"' + (o.shuffleAns !== false ? " checked" : "") + '><span><b>Shuffle the answers</b></span></label></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="qzShufQ"' + (o.shuffleQs ? " checked" : "") + '><span><b>Shuffle the questions</b><br><span class="muted">Off: the plan’s order on the first play. A replay is always shuffled.</span></span></label></div>' +
-      '<div class="field"><label class="check"><input type="checkbox" id="qzSay"' + (o.sayFirst ? " checked" : "") + '><span><b>Say it first</b><br><span class="muted">The answers stay hidden until the student says an answer aloud; you tap whether it was right, then the answers appear. Logged separately from the tapped answer.</span></span></label></div>';
+      '<div class="field"><label class="check"><input type="checkbox" id="qzSay"' + (o.sayFirst ? " checked" : "") + '><span><b>Say it first</b><br><span class="muted">The answers stay hidden until the student says an answer aloud; you tap whether it was right, then the answers appear. Logged separately from the tapped answer. Starts off in online lessons; Settings can turn it on.</span></span></label></div>';
   },
   wireOptions: function(){
     function upd(){ var n = parseQuiz($("gBlock").value).length; $("qzCount").textContent = n ? n + (n === 1 ? " question" : " questions") : ""; $("qzBonusF").style.display = checkedVal("qzMode", "gameshow") === "winlose" ? "none" : ""; }
@@ -2089,7 +2089,7 @@ TYPES.quiz = {
   },
   start: function(game){
     var o = game.options, qs = parseQuiz(game.block), order = playOrder(qs, game, function(x){ return x.q; }, !!o.shuffleQs), wl = o.mode === "winlose", n = o.lifelines === "none" ? 0 : 1, timer = +o.timer || 0;
-    var s = { qs:qs, order:order, i:0, mode: wl ? "winlose" : "gameshow", shuffleAns: o.shuffleAns !== false || !!game._replay, sayFirst: !!o.sayFirst, timer:timer, bonusEvery: wl ? 0 : (+o.bonus || 0),
+    var s = { qs:qs, order:order, i:0, mode: wl ? "winlose" : "gameshow", shuffleAns: o.shuffleAns !== false || !!game._replay, sayFirst: !!o.sayFirst && !lessonOnline(arguments[1]), timer:timer, bonusEvery: wl ? 0 : (+o.bonus || 0),
       life:{ fifty:n, dbl:n, time: timer ? n : 0 }, perm:null, chose:null, phase:"ask", score:0, pot:0, lost:0, streak:0, best:0, log:[], bonusLog:[], bonus:null, rerun:false };
     qzSetup(s); return s;
   },
@@ -2131,6 +2131,10 @@ TYPES.quiz = {
     var hint = wl && !shown ? " · a right answer " + (s.pot ? (s.dbl ? "quadruples the pot to " + s.pot*4 : "doubles the pot to " + s.pot*2) : "starts the pot at " + (s.dbl ? 200 : 100)) : (!wl && s.dbl && !shown ? " · worth 200" : "");
     return '<section class="center">' + qzBoard(s) + lifes + '<div class="progress">Question ' + (s.i+1) + ' of ' + s.order.length + hint + '</div>' + timer +
       '<div class="qtext">' + esc(q.q) + '</div>' + (cov ? '<div class="cover"><p class="notice" style="margin-top:0">Say your answer first!</p><div class="row" style="justify-content:center"><button class="btn ok big-btn" data-a="qz-said" data-m="yes">Said it right</button><button class="btn no big-btn" data-a="qz-said" data-m="no">Not right</button></div></div>' : '<div class="opts">' + opts + '</div>') + after + '</section>';
+  },
+  settings: function(run){
+    var s = run.st;
+    return '<span class="legend">Answers</span><button class="setopt" data-a="qz-say" aria-pressed="' + !!s.sayFirst + '"><b>Say it first</b><small>' + (s.sayFirst ? "On: answers stay hidden until the student says one." : "Off: answers show straight away. Usual for online lessons.") + '</small></button>';
   },
   after: function(run){
     var s = run.st;
@@ -2186,6 +2190,7 @@ TYPES.quiz = {
     }
     if(a === "qz-bonusdone"){ if(s.phase !== "bonus" || !s.bonus || !s.bonus.revealed) return false; s.bonus = null; s.i++; qzSetup(s); return true; }
     if(a === "qz-rerun"){ s.rerun = !s.rerun; return true; }
+    if(a === "qz-say"){ s.sayFirst = !s.sayFirst; if(s.phase === "ask") s.covered = s.sayFirst && s.chose == null; return true; }
     if(a === "qz-said"){ if(s.phase !== "ask" || !s.covered) return false; s.said = el.getAttribute("data-m") === "yes"; s.covered = false; return true; }
     return false;
   },
@@ -4627,7 +4632,7 @@ function viewPlay(){
     var played = (run.st.log || []).length + (run.st.bonusLog || []).length;
     $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Finish"><div class="pop setpop"><h3 style="margin-bottom:10px">Finish this game?</h3>' +
       '<p class="muted" style="margin-top:0">' + (SMODE ? "Finish shows your score and a message to send your teacher." : played ? "Save keeps the results for the after-class report. Quit throws this play away, as if it never happened." : "Nothing has been scored yet, so saving would record a score of 0. Quit throws this play away, as if it never happened.") + '</p>' +
-      '<div class="row" style="margin-top:14px"><button class="btn' + (played ? "" : " ghost") + '" data-a="finish">Save results</button><button class="btn ' + (played ? "ghost" : "") + '" data-a="discard">Quit without saving</button><button class="btn ghost" data-a="finish-cancel">Keep playing</button>' + (SMODE ? "" : '<button class="btn ghost" data-a="lesson">Leave it for later</button>') + '</div>' + (SMODE ? "" : '<p class="muted" style="margin:12px 0 0;font-size:15px">Leave it for later goes back to the lesson with this game kept as it is — tap Resume on it to carry on. You can leave several games like this.</p>') + '</div></div>');
+      '<div class="row" style="margin-top:14px"><button class="btn' + (played ? "" : " ghost") + '" data-a="finish">Save results</button><button class="btn ' + (played ? "ghost" : "") + '" data-a="discard">Quit without saving</button><button class="btn ghost" data-a="finish-cancel">Keep playing</button>' + '</div>' + (SMODE ? "" : '<p class="muted" style="margin:12px 0 0;font-size:15px">To leave it for later, tap ‹ (top left): it goes back to the lesson with this game kept as it is — tap Resume on it to carry on. You can leave several games like this.</p>') + '</div></div>');
   }
   if(paused) return;
   if(UI.settingsOpen) $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Settings"><div class="pop setpop"><h3 style="margin-bottom:14px">Settings</h3>' +
@@ -4731,7 +4736,7 @@ var LIVE_TURNS = ["snakes", "hilo", "bingo", "taboo"];
 var LIVE_TYPES = ["bingo", "hangman", "anagrams", "cards", "typeit", "build", "spot", "match", "odd", "phon", "whack", "cross", "snakes", "hilo", "wheel", "slot", "dice", "quiz", "taboo", "auction", "spelling"];
 /* Solo games: the student plays and the teacher's screen watches. These taps are the teacher's own judging,
    so they stay on the teacher's screen (audit, Nov 2026). Everything else in a solo game is the student's. */
-var LIVE_TEACH = { cards:["fc-ok", "fc-no"], wheel:["wh-mark"], slot:["sl-mark"], quiz:["qz-said"], auction:["au-mark", "au-explain"], spelling:["sp-flip"],
+var LIVE_TEACH = { cards:["fc-ok", "fc-no"], wheel:["wh-mark"], slot:["sl-mark"], quiz:["qz-said", "qz-say"], auction:["au-mark", "au-explain"], spelling:["sp-flip"],
   typeit:["ty-accept"], match:["mp-good", "mp-not"], spot:["se-said", "se-accept"], odd:["od-why"], dice:["sd-mark"] };
 /* Taps that aren't moves in the game: always allowed on both screens. */
 var LIVE_FREE = ["lesson", "pause", "resume-run", "settings", "set-look", "undo", "undo-toast", "finish-ask", "finish-cancel", "finish", "discard", "live-override", "resume", "s-start"];
@@ -5248,6 +5253,9 @@ function fmtPts(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g
 var SHEETS = {}, RS_LOCAL = {}, RS_DIRTY = {}, RS_TIMER = null, RS_SAVING = 0, RS_PEND = false, RS_TICK = null;
 var RS_PLAN = ["no", "too long", "instructions", "level", "materials"];
 
+/* An online lesson: the run sheet's format says so, or a class link is connected, or this is the student's own device.
+   Quiz "Say it first" starts off there (answers would be on the student's screen anyway); Settings can turn it on. */
+function lessonOnline(p){ return !!(SMODE || rsOnline(rsSpec(p)) || (LIVE.cls && LIVE.peers > 0)); }
 function rsSpec(p){ return p && p.runsheet && Array.isArray(p.runsheet.blocks) && p.runsheet.blocks.length ? p.runsheet : null; }
 function rsOnline(spec){ return /online/i.test(String(spec && spec.format || "")); }
 function rsStudentMode(name){ var o = name ? STUDENTS[slug(name)] : null; return o && o.runsheet === "always" ? "always" : "online"; }

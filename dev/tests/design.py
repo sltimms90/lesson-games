@@ -1,13 +1,13 @@
 """Design changes from the review: lesson page layout (Quick game on top, folded sections), Hard mode name, Undo toast."""
 from lg import *
-G = lambda i, ty, title, opts=None, block="castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here": {"id":"g%d" % i, "type":ty, "title":title, "block":block, "opts":opts or {}}
+G = lambda i, ty, title, opts=None, block="castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here": {"id":"g%d" % i, "type":ty, "title":title, "block":block, "options":opts or {}}
 P15 = [("kitchen","the room where you cook dinner every evening"),("bedroom","the room where you sleep at night"),("bathroom","you have a shower or a bath here"),("garden","flowers and vegetables grow here"),("garage","you keep the car in here"),("library","you borrow books from this place"),("museum","you look at old and famous things here"),("station","you wait here for a train"),("airport","planes take off and land here"),("market","you buy fresh fruit and fish here"),("castle","a king and queen used to live here"),("bridge","you cross a river on it"),("island","land with water all around it"),("forest","a big place with lots of trees"),("village","a very small town in the country")]
 CW = list(zip(["being in charge of something","how hot or cold it is","the area around your home","someone who takes pictures","very, very unusual","the air, water and land around us","it could hurt you","nice and soft to sit on","children play here at school","a sport with a tall net","a small red fruit","it flies with blades on top"], ["responsibility","temperature","neighbourhood","photographer","extraordinary","environment","dangerous","comfortable","playground","basketball","strawberry","helicopter"]))
 BW = "\n".join("castle bridge garden market tower river forest island village museum library station kitchen bedroom bathroom garage".split())
 bank = "castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here\nmarket | you buy food here"
 packs = [{"id":"mia-lp8", "student":"Mia", "lp":8, "title":"Mia · LP8", "date":"2026-11-10", "updatedAt":"x", "games":[], "bank":"castle | a king lives here"},
          {"id":"mia-lp9", "student":"Mia", "lp":9, "title":"Mia · LP9", "date":"2026-11-17", "updatedAt":"x", "bank":bank,
-          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW)), G(7, "wheel", "Talk", {"remove":True}, block="weekend | What is the most interesting thing you did last weekend, and who were you with?\n! dream job | If you could do any job in the world when you grow up, what would it be and why?\nWhat is your favourite food?")]}]
+          "games":[G(1, "hangman", "Castle words"), G(2, "cards", "Cards", block="a king lives here = castle\nyou cross a river on it = bridge\nflowers grow here = garden"), G(3, "anagrams", "Mix-up"), G(4, "bingo", "Bingo", {"size":4, "show":"student", "tk":0}, block=BW), G(5, "match", "Places", {"mode":"match", "perPage":12}, block="\n".join("%s = %s" % x for x in P15)), G(6, "cross", "Big words", block="\n".join("%s = %s" % x for x in CW)), G(8, "quiz", "Quiz", {"sayFirst":True, "timer":0}, block="Which is a verb?\nhappy\n*climb\ntable\n\nPick the noun\n*table\nrun\nblue"), G(7, "wheel", "Talk", {"remove":True}, block="weekend | What is the most interesting thing you did last weekend, and who were you with?\n! dream job | If you could do any job in the world when you grow up, what would it be and why?\nWhat is your favourite food?")]}]
 results = [{"id":"r1", "packId":"mia-lp8", "gameId":"g1", "type":"hangman", "title":"h", "at":"2026-11-10T03:00:00Z", "summary":"h", "items":[{"item":"castle", "ok":False}]}]
 def top(pg, sel): return pg.evaluate("s => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1 }", sel)
 with sync_playwright() as p:
@@ -63,6 +63,16 @@ with sync_playwright() as p:
     t.click("[data-a=wh-mark][data-m=good]"); t.wait_for_timeout(200)
     check(t.evaluate("__T.UI.run.st.log[0].p").startswith("If you could"), "the result keeps the full prompt")
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    # --- D. Finish dialog has three buttons; Quiz "Say it first" off online, toggle in Settings
+    t.click("[data-a=play][data-g=g8]"); t.wait_for_timeout(500)
+    check(t.evaluate("__T.UI.run.st.covered") is True, "in-person lesson: Say it first is on as planned")
+    t.click("[data-a=settings]"); t.click("[data-a=qz-say]"); t.wait_for_timeout(200)
+    check(t.evaluate("__T.UI.run.st.covered") is False and t.locator(".toast.undo").count() == 0, "Settings → Say it first off shows the answers now (no Undo toast)")
+    t.evaluate("__T.UI.settingsOpen && document.querySelector('[data-a=settings]').click()")
+    t.click("[data-a=finish-ask]"); t.wait_for_timeout(100)
+    btns = t.locator(".overlay .btn").all_inner_texts()
+    check(btns == ["Save results", "Quit without saving", "Keep playing"], "Finish dialog: %s" % btns)
+    t.click("[data-a=discard]"); t.wait_for_timeout(300)
     # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
     hb = t.locator(".game [data-a=play-ch]")
     check(hb.count() == 2 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
@@ -106,5 +116,12 @@ with sync_playwright() as p:
     t3.click("[data-a=undo-toast]"); s3.wait_for_timeout(700)
     check(s3.evaluate("__T.UI.run.st.log.length") == 0 and t3.evaluate("__T.UI.run.st.log.length") == 0, "live: ↶ takes the mark back on the student's screen too")
     ctx3.close()
+    # online lesson (run sheet says online): Say it first starts off
+    op = dict(packs[1]); op["runsheet"] = {"format":"online", "student":"Mia", "lp":9, "blocks":[{"label":"0 Arrival", "mins":10, "lines":[]}]}
+    ctx4 = b.new_context(viewport={"width":1180, "height":820}); t4 = teacher(ctx4, seed_db([op]), errs); t4.wait_for_selector("text=Mia · LP9", timeout=8000); t4.click("text=Mia · LP9"); t4.wait_for_timeout(300)
+    if t4.locator("[data-a=rs-games]").count(): t4.click("[data-a=rs-games]"); t4.wait_for_timeout(300)
+    t4.click("[data-a=play][data-g=g8]"); t4.wait_for_timeout(500)
+    check(t4.evaluate("__T.UI.view") == "play" and t4.evaluate("__T.UI.run.st.covered") is False and t4.evaluate("__T.UI.run.st.sayFirst") is False, "online lesson: Say it first starts off")
+    ctx4.close()
     check(not errs, "no page errors %s" % errs[:3])
 done()
