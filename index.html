@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-7duIe7PAjaaMv7U5an08X7R+PegETa70SMUT6gBWI4c='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-+GutS1wndyOQUMrhBCjGOj0AiUSJRCNMSO5KmbZMI3w='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -91,6 +91,12 @@ button.chip{cursor:pointer;min-height:40px}
 .chip.again{border-color:var(--amber)}
 .called .chip{font-size:clamp(20px,2.6vw,26px);padding:6px 16px;font-weight:600}
 .called h3{font-size:20px}
+/* Bingo's called words: a single line under the cards, newest on the left; older ones run off the right edge. */
+.calledbar{display:flex;align-items:center;gap:12px;margin-top:14px;min-height:46px;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.calledbar>b{flex:none;color:var(--muted);font-size:17px}
+.calledbar .chips{flex-wrap:nowrap;overflow:hidden;min-width:0;text-overflow:ellipsis}
+.calledbar .chip{flex:none;font-size:clamp(17px,2vw,22px);padding:4px 14px;font-weight:600;white-space:nowrap}
 .grid{position:relative}
 .grid .cell.inl{box-shadow:inset 0 0 0 3px var(--amber)}
 .bglines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
@@ -338,6 +344,7 @@ button.check[aria-pressed=true]{border-color:var(--ok)}
 .itbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 .itbl tr:last-child td{border-bottom:0}
 .itbl .num{text-align:right;white-space:nowrap}
+.rs-res{display:block;color:var(--ok);font-weight:700;font-size:15px;margin-top:2px}
 .itbl td small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
 .itbl tr.good td:nth-child(3) b{color:var(--ok)}
 .itbl tr.bad td:nth-child(3) b{color:var(--no)}
@@ -355,10 +362,10 @@ button.check[aria-pressed=true]{border-color:var(--ok)}
 @media (min-width:900px) and (min-aspect-ratio:5/4){
   .play3{grid-template-columns:minmax(0,1fr) minmax(200px,250px) minmax(0,1fr)}
   .play3 .callword{font-size:clamp(24px,2.9vw,40px);overflow-wrap:normal;word-break:normal;hyphens:auto}
-  :is(.play2,.play3)>.cards:has(>.card:only-child)>.card{height:calc(100dvh - 128px);max-height:calc(100dvh - 128px);display:flex;flex-direction:column;min-height:0}
+  :is(.play2,.play3)>.cards:has(>.card:only-child)>.card{height:calc(100dvh - 188px);max-height:calc(100dvh - 188px);display:flex;flex-direction:column;min-height:0}
   :is(.play2,.play3)>.cards:has(>.card:only-child)>.card>.grid{flex:1;min-height:0;grid-template-rows:repeat(var(--n),minmax(0,1fr));container-type:size}
   :is(.play2,.play3)>.cards:has(>.card:only-child)>.card>.grid .cell{aspect-ratio:auto;font-size:clamp(13px,min(calc(100cqi / var(--n,4) * .2),calc(100cqb / var(--n,4) * .26)),44px)}
-  .play2>.cards:has(>.card:only-child)>.card{max-width:calc(100dvh - 40px);justify-self:center;width:100%}
+  .play2>.cards:has(>.card:only-child)>.card{max-width:calc(100dvh - 100px);justify-self:center;width:100%}
 }
 button.cell{border:0;font-family:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
@@ -399,6 +406,9 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
   .pc{border:1.5px solid #000;border-radius:2mm;display:flex;align-items:center;justify-content:center;text-align:center;padding:1.5mm;font-weight:700;line-height:1.15;overflow-wrap:anywhere;hyphens:auto}
   .pc.free{border-style:dashed;font-family:"Baloo 2",Arial,sans-serif}
   .pf{font-size:9pt;margin-top:2.5mm;color:#333}
+  /* Bingo prints two cards side by side on landscape A4 */
+  .ppage{display:flex;justify-content:space-around;align-items:flex-start;gap:6mm}
+  .ppage .pcard{margin:0}
   .break{break-after:page;page-break-after:always}
   .tph{font:700 14pt/1.2 "Baloo 2",Arial,sans-serif;margin-bottom:4mm}
   .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
@@ -1166,8 +1176,10 @@ function doneLines(grid, marks, n){ return linesOf(n).filter(function(l){ return
 function bgNeed(g){ return g.need || 1; }
 function bgLinesTxt(n){ return n === 1 ? "1 line" : n + " lines"; }
 function isFull(grid, marks){ return grid.every(function(x){ return x === -1 || marks.indexOf(x) !== -1; }); }
+/* "Cathy & Lily", "Cathy and Lily" and "Cathy, Lily" all mean two cards. */
+function splitNames(s){ return String(s || "").split(/\s*(?:,|&|\+|\/|\band\b)\s*/i).map(function(p){ return p.trim(); }).filter(Boolean); }
 function cardNames(opts, pack){
-  var n = String(opts.cards || "").split(",").map(function(p){ return p.trim(); }).filter(Boolean);
+  var n = splitNames(opts.cards);
   if(!n.length) n = [pack && pack.student ? pack.student : ""];
   return n;
 }
@@ -1234,7 +1246,7 @@ TYPES.bingo = {
       '<div class="field"><span class="legend">Lines for bingo</span><div class="choice">' + [1,2,3,4,5].map(function(n){ return radio("bgLines", n, String(n), (+o.lines || 3) === n); }).join("") + '</div><div class="hint">Rows, columns and diagonals all count.</div></div>' +
       '<div class="field"><span class="legend">On screen</span><div class="choice">' + BG_SHOW.map(function(x){ return radio("bgShow", x[0], x[1], (o.show || "student") === x[0]); }).join("") + '</div><div class="hint">Can be changed during the game with ⚙.</div></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="bgSelf"' + (o.self !== false ? " checked" : "") + '><span><b>Students mark their own squares</b><br><span class="muted">They find and tap the word on the on-screen card. If they don’t spot it before the next call, it counts as not found.</span></span></label></div>' +
-      '<div class="field"><label for="bgCards">Names on the cards</label><input type="text" id="bgCards" value="' + esc(o.cards) + '"><div class="hint">One card per name, commas between.</div></div>' +
+      '<div class="field"><label for="bgCards">Names on the cards</label><input type="text" id="bgCards" value="' + esc(o.cards) + '"><div class="hint">One card per name: “Cathy, Lily” or “Cathy &amp; Lily”.</div></div>' +
       '<div class="field"><label for="bgCode">Card set</label><div class="row"><input type="text" class="code" id="bgCode" maxlength="6" value="' + esc(o.code) + '"><button type="button" class="btn ghost sm" data-a="bg-newcode">New cards</button></div>' +
       '<div class="hint">Saved with the lesson, so cards printed on one device match the game on another.</div></div>';
   },
@@ -1257,7 +1269,7 @@ TYPES.bingo = {
     if(items.length < 9) return "Add at least 9 words. A 3×3 card needs 9; a 4×4 card needs 16.";
     if(!o.size || items.length < need(o.size)) return "Pick a card size that fits " + items.length + " words.";
     if(!o.code) return "Type a card set code, or tap New cards.";
-    if(String(o.cards).split(",").filter(function(s){ return s.trim(); }).length > 6) return "Six cards at most.";
+    if(splitNames(o.cards).length > 6) return "Six cards at most.";
     return null;
   },
   start: function(game, pack){
@@ -1295,19 +1307,22 @@ TYPES.bingo = {
       }
     }
     var label = !cur ? "First call" : g.pool.length ? "Next call" : "Finish";
-    var chips = g.called.length ? '<div class="called"><h3>Called</h3><div class="chips">' + g.called.slice().reverse().map(function(i){ return '<span class="chip' + (g.again.indexOf(i) !== -1 ? " again" : "") + '">' + esc(g.items[i].w) + '</span>'; }).join("") + '</div></div>' : "";
+    /* Called words: one line under the cards, newest first, so the cards never shrink as the list grows. */
+    var chips = '<div class="calledbar"><b>Called</b><div class="chips">' + (g.called.length ? g.called.slice().reverse().map(function(i){ return '<span class="chip' + (g.again.indexOf(i) !== -1 ? " again" : "") + '">' + esc(g.items[i].w) + '</span>'; }).join("") : '<span class="muted">Nothing yet.</span>') + '</div></div>';
     var banner = "";
     if(g.banner){
       var bk = g.banner.k, msg = (named ? esc(cardName(g, bk)) + ": " : "") + (g.banner.kind === "line" ? (bgNeed(g) > 1 ? bgLinesTxt(bgNeed(g)) : "a line") + " after " + g.lineAt[bk] : "a full card after " + g.fullAt[bk]) + " calls.";
       banner = '<div class="overlay" role="dialog" aria-modal="true" aria-label="Bingo"><div class="pop"><div class="big">Bingo!</div><p>' + msg + '</p><div class="row"><button class="btn ghost" data-a="bg-keep">Keep going</button><button class="btn" data-a="finish">Finish</button></div></div></div>';
     }
     var callCol = '<section class="center callcol" aria-live="polite"><div class="ball' + (g.drop ? " drop" : "") + '"><span>' + (cur ? cur.n : "–") + '</span></div>' + callHtml + claimsHtml +
-      '<button class="btn big-btn" data-a="bg-next"' + (waiting.length ? " disabled" : "") + '>' + label + '</button>' + chips + '</section>';
+      '<button class="btn big-btn" data-a="bg-next"' + (waiting.length ? " disabled" : "") + '>' + label + '</button></section>';
     var sCol = bgShowStu(g) ? '<section class="cards">' + g.players.map(function(_, k){ return bgCard(g, k); }).join("") + '</section>' : "";
     var tCol = bgShowTch(g) ? '<section class="cards">' + bgCard(g, g.tk) + '</section>' : "";
     var cls = g.show === "all" ? "play3" : g.show === "call" ? "play1" : "play2";
+    /* Two students, cards only: one card each side of the caller, so each child has their own half of the iPad. */
+    if(g.show === "student" && g.players.length === 2){ cls = "play3 duo"; tCol = '<section class="cards">' + bgCard(g, 0) + '</section>'; sCol = '<section class="cards">' + bgCard(g, 1) + '</section>'; }
     g.drop = false; g.nope = null;
-    return '<div class="' + cls + '">' + tCol + callCol + sCol + '</div>' + banner;
+    return '<div class="bgwrap"><div class="' + cls + '">' + tCol + callCol + sCol + '</div>' + chips + '</div>' + banner;
   },
   settings: function(run){
     var g = run.st;
@@ -1374,18 +1389,27 @@ TYPES.bingo = {
     return lines.join("\n");
   }
 };
+/* Students' cards, then the teacher's (the same teacher card as on screen), two to a landscape page. */
 function printBingo(game, pack){
-  var o = game.options, items = parseItems(game.block), players = cardNames(o, pack), n = +o.size, cards = makeCards(items, n, players.length, o.code);
-  var cell = n === 3 ? 33 : n === 4 ? 25 : 20, base = n === 3 ? 17 : n === 4 ? 13.5 : 11;
-  $("print").innerHTML = cards.map(function(grid, k){
+  var o = game.options, items = parseItems(game.block), players = cardNames(o, pack), n = +o.size, cards = makeCards(items, n, players.length + 1, o.code);
+  var names = players.concat(["Teacher"]);
+  var cell = n === 3 ? 38 : n === 4 ? 28 : 22, base = n === 3 ? 20 : n === 4 ? 15 : 12;
+  function one(grid, k){
     var cells = grid.map(function(i){
-      if(i === -1) return '<div class="pc free" style="font-size:' + (n === 5 ? 13 : 15) + 'pt">FREE</div>';
-      var w = items[i].w, fs = w.length > 14 ? base - 4.5 : w.length > 9 ? base - 2.5 : base;
+      if(i === -1) return '<div class="pc free" style="font-size:' + (n === 5 ? 13 : 16) + 'pt">FREE</div>';
+      var w = items[i].w, fs = w.length > 14 ? base - 5 : w.length > 9 ? base - 3 : base;
       return '<div class="pc" style="font-size:' + fs + 'pt">' + esc(w) + '</div>';
     }).join("");
-    return '<div class="pcard' + (k % 2 === 1 && k < cards.length - 1 ? " break" : "") + '"><div class="ph"><span>' + esc(packTitle(pack)) + '</span><span>' + esc(players[k] || "") + '</span></div>' +
+    return '<div class="pcard"><div class="ph"><span>' + esc(packTitle(pack)) + '</span><span>' + esc(names[k] || "") + '</span></div>' +
       '<div class="pgrid" style="grid-template-columns:repeat(' + n + ',' + cell + 'mm);grid-auto-rows:' + cell + 'mm">' + cells + '</div><div class="pf">Card set ' + esc(o.code) + ' · card ' + (k+1) + ' of ' + cards.length + '</div></div>';
-  }).join("");
+  }
+  var pages = [];
+  for(var k = 0; k < cards.length; k += 2) pages.push('<div class="ppage' + (k + 2 < cards.length ? " break" : "") + '">' + one(cards[k], k) + (cards[k+1] ? one(cards[k+1], k+1) : "") + '</div>');
+  $("print").innerHTML = pages.join("");
+  var ps = document.getElementById("pageLand");
+  if(!ps){ ps = document.createElement("style"); ps.id = "pageLand"; document.head.appendChild(ps); }
+  ps.textContent = "@page{size:A4 landscape;margin:10mm}";
+  window.addEventListener("afterprint", function off(){ ps.textContent = ""; window.removeEventListener("afterprint", off); });
   setTimeout(function(){ window.print(); }, 80);
 }
 
@@ -4322,6 +4346,7 @@ function render(){
   if(v === "done") return viewDone();
   if(!LOADED.packs && STATUS !== "error") return loadingView();
   if(v === "sheet") return viewSheet();
+  if(v === "bgmine") return viewBgMine();
   if(v === "pack") return viewPack();
   if(v === "student") return viewStudent();
   return viewHome();
@@ -4566,6 +4591,7 @@ function viewPack(){
       (function(){ var lr = findRun(p.id, g.id); return lr ? '<div class="inprog">Left part-way' + (lr.st && lr.st.log ? " · " + lr.st.log.length + " done" : "") + ' — Resume carries on where you stopped.</div>' : ""; })() +
       '<div class="row">' + (findRun(p.id, g.id) ? '<button class="btn sm" data-a="play-resume" data-k="' + esc(p.id + "|" + g.id) + '">▶ Resume</button><button class="btn ghost sm" data-a="play" data-g="' + esc(g.id) + '">Start over</button>' : '<button class="btn sm" data-a="play" data-g="' + esc(g.id) + '">' + (rs.length ? "Play again" : "Play") + '</button>') + (g.type === "hangman" || g.type === "anagrams" ? '<button class="btn ghost sm" data-a="play-ch" data-g="' + esc(g.id) + '" title="Hard mode: no free clues, fewer lives or tries">Hard mode</button>' : "") + '<button class="btn ghost sm" data-a="editgame" data-g="' + esc(g.id) + '">Edit</button>' + (last ? '<button class="btn ghost sm" data-a="showres" data-r="' + esc(last.id) + '">Details</button>' : "") + (last && missedItems(last).length ? '<button class="btn ghost sm" data-a="retry" data-r="' + esc(last.id) + '">Retry ' + missedItems(last).length + (missedItems(last).length === 1 ? " miss" : " misses") + '</button>' : "") +
       (t.print ? '<button class="btn ghost sm" data-a="print" data-g="' + esc(g.id) + '">' + (t.printLabel || "Print") + '</button>' : "") +
+      (g.type === "bingo" ? '<button class="btn ghost sm" data-a="bgmine" data-g="' + esc(g.id) + '" title="The teacher’s card on its own, to keep on your phone">My card</button>' : "") +
       (SLINK_TYPES.indexOf(g.type) !== -1 ? '<button class="btn ghost sm" data-a="slink" data-g="' + esc(g.id) + '">Student link</button>' : "") + '</div></div></div>';
   }).join("");
   var add = '<div class="add">' + TYPE_ORDER.map(function(t){ return '<button data-a="addgame" data-t="' + t + '">' + ball(t) + TYPES[t].label + '</button>'; }).join("") + '</div>';
@@ -4665,6 +4691,29 @@ function viewPlay(){
 
 /* Items a result got wrong, for Retry the misses (games that log per item). */
 function missedItems(r){ return (r && r.items || []).filter(function(x){ return x.ok === false && x.item && x.item !== "Bonus round" && !x.challenge; }).map(function(x){ return x.item; }).filter(function(v, i, a){ return a.indexOf(v) === i; }); }
+/* Bingo, teacher's card on its own (e.g. on Sam's phone while the iPad shows the students' cards).
+   Same card as the printed teacher card and the on-screen one. Taps are kept on this device only; nothing is scored. */
+function bgMineData(){
+  var p = getPack(UI.packId), g = p && (p.games || []).filter(function(x){ return x.id === UI.bgGame && x.type === "bingo"; })[0];
+  if(!g) return null;
+  var o = Object.assign({}, TYPES.bingo.defaults(p), g.options || {}), items = parseItems(g.block), players = cardNames(o, p), n = +o.size;
+  if(TYPES.bingo.validate(g.block, o)) return null;
+  return { p:p, g:g, items:items, n:n, grid: makeCards(items, n, players.length + 1, o.code)[players.length], key: [p.id, g.id, o.code, n].join("|") };
+}
+function viewBgMine(){
+  var d = bgMineData(); if(!d){ go("pack"); return; }
+  var marks = (UI.bgMine && UI.bgMine[d.key]) || [], done = doneLines(d.grid, marks, d.n), inl = {};
+  done.forEach(function(l){ l.forEach(function(c){ inl[c] = 1; }); });
+  var cells = d.grid.map(function(i, c){
+    if(i === -1) return '<div class="cell free' + (inl[c] ? " inl" : "") + '">FREE</div>';
+    var on = marks.indexOf(i) !== -1, w = d.items[i].w;
+    return '<button class="cell' + (on ? " on" : "") + (inl[c] ? " inl" : "") + (w.length > 10 ? " long" : "") + '" data-a="bgm-tap" data-i="' + i + '" aria-pressed="' + on + '">' + esc(w) + '</button>';
+  }).join("");
+  $("app").innerHTML = '<div class="wrap bgmine"><div class="spread"><button class="btn ghost sm" data-a="bgm-back">‹ Lesson</button><button class="btn ghost sm" data-a="bgm-clear"' + (marks.length ? "" : " disabled") + '>Clear</button></div>' +
+    '<p class="muted" style="margin:10px 0">' + esc(d.g.title || "Bingo") + ' · tap a word to stamp it. Kept on this device only.</p>' +
+    '<div class="card teacher"><div class="card-head"><span>Teacher</span><span class="muted" style="font-size:16px">' + (done.length ? bgLinesTxt(done.length) : marks.length + " marked") + '</span></div><div class="grid n' + d.n + '" style="--n:' + d.n + '">' + cells + '</div></div></div>';
+}
+
 function viewDone(){
   var r = UI.lastResult;
   if(!r){ go("home"); return; }
@@ -5315,7 +5364,18 @@ function rsLayout(spec){
     var bk = "b" + hash(String(b.label || bi)).toString(36);
     if(seen[bk]) bk += "_" + bi; seen[bk] = 1;
     var cnt = {};
-    var lines = (b.lines || []).map(function(ln){
+    /* A step cue and the app game for the same step ("2A The auction" + "2A Evidence Auction") are one thing:
+       the cue's text goes onto the game's row and the cue's own tick box goes. */
+    function code(l){ var m = /^(\d+[A-Za-z])\b/.exec(String(l || "")); return m ? m[1].toUpperCase() : ""; }
+    var appBy = {}, all = (b.lines || []).map(function(ln){ return Object.assign({}, ln); }); /* copies: the plan itself isn't changed */
+    all.forEach(function(ln){ if(ln.type === "app" && code(ln.label) && !appBy[code(ln.label)]) appBy[code(ln.label)] = ln; });
+    var src = [];
+    all.forEach(function(ln){
+      var c = ln.type === "cue" && !ln.nobox ? code(ln.label) : "";
+      if(c && appBy[c]){ var a = appBy[c]; a._note = (a._note ? a._note + " · " : "") + [rsTitleKey(ln.label) === rsTitleKey(a.label) ? "" : String(ln.label).replace(/^\d+[A-Za-z]\s*/, ""), ln.text].filter(Boolean).join(": "); return; }
+      src.push(ln);
+    });
+    var lines = src.map(function(ln){
       var base = bk + "." + (ln.type || "x") + "." + hash(rsLineText(ln)).toString(36);
       var n = cnt[base] = (cnt[base] || 0) + 1;
       return { key: n > 1 ? base + "_" + n : base, ln: ln };
@@ -5394,7 +5454,7 @@ function rsBuildDoc(p, d){
       } else if(t === "app"){
         var r = rsAppResult(p, ln); v = g(k);
         txt = r ? "played in the app — " + (r.score && r.score.text ? r.score.text : "result saved") + " (see results)" : skip ? "✗ didn’t run" : v === "y" ? "✓ ran (no app result: played outside the app)" : v === "n" ? "✗ didn’t run" : "(?) no app result";
-        L.push("  app game · " + ln.label + ": " + txt); row(bl, t, ln.label, txt, !r && !skip && !v, k);
+        L.push("  app game · " + ln.label + (ln._note ? " (" + ln._note + ")" : "") + ": " + txt); row(bl, t, ln.label, txt, !r && !skip && !v, k);
       } else if(t === "trap"){
         lab = "TRAP “" + ln.spring + "”";
         var tb = false;
@@ -5470,7 +5530,8 @@ function rsLine(p, x, G, gk){
   if(t === "app"){
     var r = rsAppResult(p, ln), gm = rsAppGame(p, ln);
     return '<div class="rs-ln' + gap + '">' + (r ? '<span class="rs-tk y auto" title="Played in the app">✓</span>' : rsTick(pid, k, ln.label)) +
-      '<span class="rs-tx"><b>' + esc(ln.label) + '</b> <span class="muted">' + (r ? "played · " + esc(r.score && r.score.text ? r.score.text : "saved") : gm ? "app game" : "app game — not found in this lesson") + '</span></span>' +
+      '<span class="rs-tx"><b>' + esc(ln.label) + '</b> <span class="muted">' + esc(ln._note || (gm ? "app game" : "")) + (gm ? "" : " — app game not found in this lesson") + '</span>' +
+      (r ? '<small class="rs-res">Played · ' + esc(r.score && r.score.text ? r.score.text : "saved") + '</small>' : "") + '</span>' +
       (gm ? '<button class="btn sm' + (r ? " ghost" : "") + '" data-a="rs-play" data-g="' + esc(gm.id) + '">' + (r ? "Play again" : "Play") + '</button>' : "") + '</div>';
   }
   if(t === "trap") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><span class="rs-trapb">TRAP</span>“' + esc(ln.spring) + '”</span>' +
@@ -5790,6 +5851,15 @@ function handle(a, el){
     if(st5 && st5.order && !st5.order.length || st5 && st5.words && !st5.words.length || st5 && st5.q && !st5.q.length){ toast("Those items aren’t in the game any more."); return; }
     UI.packId = pk4.id; UI.clsPlay = true; startRun(pk4, g5); return;
   }
+  if(a === "bgm-back"){ go("pack"); return; }
+  if(a === "bgmine"){ UI.bgGame = el.getAttribute("data-g"); if(!bgMineData()){ toast("Add enough words for the card size first."); return; } go("bgmine"); return; }
+  if(a === "bgm-tap" || a === "bgm-clear"){
+    var dm = bgMineData(); if(!dm) return;
+    UI.bgMine = UI.bgMine || {}; var mk = UI.bgMine[dm.key] = UI.bgMine[dm.key] || [];
+    if(a === "bgm-clear") delete UI.bgMine[dm.key];
+    else { var ii = +el.getAttribute("data-i"), at = mk.indexOf(ii); if(at === -1) mk.push(ii); else mk.splice(at, 1); }
+    saveUI(); render(); return;
+  }
   if(a === "print"){
     var pk3 = getPack(UI.packId), gp = (pk3.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
     var tp = TYPES[gp.type]; if(!tp || !tp.print) return;
@@ -5873,8 +5943,15 @@ if(UI.run && UI.run.st) UI.run.st._animating = false; /* resume a spin cut off b
    the stage is zoomed down until it fits (never below half size). Re-checked when the stage changes size
    or the window turns, but not while the on-screen keyboard is up. */
 var FIT_RO = null, FIT_BUSY = false;
+/* Bingo's called line: chips that don't fit are hidden, not left hanging off the edge. */
+function bgTrimCalled(){
+  var c = document.querySelector("#app .calledbar .chips"); if(!c) return;
+  var right = c.getBoundingClientRect().right;
+  Array.prototype.forEach.call(c.children, function(ch){ ch.style.visibility = ""; if(ch.getBoundingClientRect().right > right + 1) ch.style.visibility = "hidden"; });
+}
 function fitStage(){
   var st = document.querySelector("#app main.stage"); if(!st || UI.view !== "play" || FIT_BUSY) return;
+  try{ bgTrimCalled(); }catch(e){}
   var a = document.activeElement; if(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && st.style.zoom) return;
   FIT_BUSY = true;
   try{
