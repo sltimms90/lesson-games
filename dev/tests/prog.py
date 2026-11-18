@@ -28,7 +28,7 @@ with sync_playwright() as p:
     t.click("[data-a=qscope][data-v=missed]"); t.wait_for_timeout(200)
     txt = t.inner_text(".section >> nth=0") if False else t.inner_text("#app")
     import re
-    m = re.search(r"Warm-up: ([^\n]*)", txt); wl = m.group(1) if m else ""
+    m = re.search(r"Warm-up · \d+ words: ([^\n]*)", txt); wl = m.group(1) if m else ""
     check("castle" in wl and "bridge" in wl and "market" in wl and "went" in wl and "river" in wl, "warm-up words from the last 3 lessons: %s" % wl)
     check("goed" not in wl and "tower" not in wl and "verb" not in wl, "leaves out distractors, right answers and sentences")
     check("Missed lately (5)" in btn.inner_text(), "count on the button: %s" % btn.inner_text())
@@ -56,7 +56,7 @@ with sync_playwright() as p:
     t.click("[data-a=pg-quick]"); t.wait_for_timeout(400)
     check(t.evaluate("__T.UI.view") == "pack" and t.evaluate("__T.UI.packId") == "mia-lp9", "it opens the newest lesson: %s" % t.evaluate("__T.UI.packId"))
     sb = t.locator("[data-a=qscope][data-v=stuck]")
-    check(sb.count() == 1 and "btn sm ghost" not in sb.get_attribute("class") and "Keeps coming up: castle" in t.inner_text("#quickSec") and "climb" in t.inner_text("#quickSec"), "Quick game is set to Keeps coming up: %s" % t.inner_text("#quickSec")[:200])
+    check(sb.count() == 1 and "btn sm ghost" not in sb.get_attribute("class") and "Keeps coming up ·" in t.inner_text("#quickSec") and "castle" in t.inner_text("#quickSec") and "climb" in t.inner_text("#quickSec"), "Quick game is set to Keeps coming up: %s" % t.inner_text("#quickSec")[:200])
     check(t.locator("[data-a=quick][data-q=cards]").is_disabled(), "Flash Cards needs 3 words with clues (market has none), so it's off")
     t.click("[data-a=quick][data-q=hangman]"); t.wait_for_timeout(400)
     ws = t.evaluate("__T.UI.run.st.words.map(w => w.w + '|' + (w.c||''))")

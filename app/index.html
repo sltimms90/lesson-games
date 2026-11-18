@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-U1JbOhiBW8obofGXvFsuS4Aw/p0sFgL7V3mCmObvddI='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-1O/BhfCi2o+yQO7Tdo43jQzYpgIJWTB6wKo8K9pkO8s='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -38,6 +38,7 @@
 }
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *,*::before,*::after{box-sizing:inherit}
+select,textarea,input{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:18px;line-height:1.45;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -426,6 +427,7 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 /* ---------- looks (chosen per student, or per lesson) ---------- */
 .cluewarn{font-size:15px;font-weight:700;color:var(--amber);margin:2px 0 6px}
 .lookrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.lookrow > *{min-width:0}
 .lookrow select{font:inherit;font-size:17px;min-height:46px;width:100%;border-radius:10px;border:2px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 10px}
 .hmlives{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;min-height:76px;align-items:flex-end}
 .hmlife{width:44px;height:50px;display:block;transition:opacity .35s,transform .35s,filter .35s}
@@ -4583,10 +4585,10 @@ function bankSection(p){
   var scope = UI.qScope === "recent" && rp.length > 1 ? "recent" : UI.qScope === "missed" && mw.length ? "missed" : UI.qScope === "stuck" && sw.length ? "stuck" : mine.length ? "today" : mw.length ? "missed" : "today";
   var ws = bankWords(p, scope);
   var withClue = ws.filter(function(b){ return bankPrompt(b); }).length;
-  var quick = ws.length ? '<div class="row" style="margin:8px 0">' + (mine.length ? '<button class="btn sm' + (scope === "today" ? "" : " ghost") + '" data-a="qscope" data-v="today">Today’s words (' + mine.length + ')</button>' : "") + (rp.length > 1 ? '<button class="btn sm' + (scope === "recent" ? "" : " ghost") + '" data-a="qscope" data-v="recent">Last ' + rp.length + ' lessons (' + bankWords(p, "recent").length + ')</button>' : "") + (mw.length ? '<button class="btn sm' + (scope === "missed" ? "" : " ghost") + '" data-a="qscope" data-v="missed" title="Words missed in the last ' + missedPacks(p).length + ' lessons">Missed lately (' + mw.length + ')</button>' : "") + (sw.length ? '<button class="btn sm' + (scope === "stuck" ? "" : " ghost") + '" data-a="qscope" data-v="stuck" title="From the student folder: missed in more than one lesson or game, and still missed last time">Keeps coming up (' + sw.length + ')</button>' : "") + '</div>' +
-    (scope === "missed" || scope === "stuck" ? '<p class="muted" style="margin:0 0 8px;font-size:15px">' + (scope === "stuck" ? "Keeps coming up: " : "Warm-up: ") + esc(trunc((scope === "stuck" ? sw : mw).map(function(b){ return b.w; }).join(", "), 120)) + '</p>' : "") +
+  var quick = ws.length ? '<div class="row" style="margin:8px 0;align-items:center"><span class="muted" style="font-size:15px">Words from:</span>' + (mine.length ? '<button class="btn sm' + (scope === "today" ? "" : " ghost") + '" data-a="qscope" data-v="today">Today’s words (' + mine.length + ')</button>' : "") + (rp.length > 1 ? '<button class="btn sm' + (scope === "recent" ? "" : " ghost") + '" data-a="qscope" data-v="recent">Last ' + rp.length + ' lessons (' + bankWords(p, "recent").length + ')</button>' : "") + (mw.length ? '<button class="btn sm' + (scope === "missed" ? "" : " ghost") + '" data-a="qscope" data-v="missed" title="Words missed in the last ' + missedPacks(p).length + ' lessons">Missed lately (' + mw.length + ')</button>' : "") + (sw.length ? '<button class="btn sm' + (scope === "stuck" ? "" : " ghost") + '" data-a="qscope" data-v="stuck" title="From the student folder: missed in more than one lesson or game, and still missed last time">Keeps coming up (' + sw.length + ')</button>' : "") + '</div>' +
+    '<p class="muted" style="margin:0 0 8px;font-size:15px">' + (scope === "stuck" ? "Keeps coming up" : scope === "missed" ? "Warm-up" : scope === "recent" ? "This lesson and the " + (rp.length - 1 === 1 ? "one" : rp.length - 1) + " before" : "Today") + ' · ' + ws.length + ' words: ' + esc(trunc(ws.map(function(b){ return b.w; }).join(", "), 140)) + '</p>' +
     '<div class="add">' + QUICK.map(function(q){ var n = q.filter ? ws.filter(q.filter).length : q.clue ? withClue : ws.length, ok = n >= q.min; return '<button data-a="quick" data-q="' + q.k + '"' + (ok ? "" : " disabled title=\"Needs " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "\"") + '>' + ball(q.t) + q.label + '</button>'; }).join("") + '</div>' : "";
-  return '<section class="section" id="quickSec" style="margin-top:14px"><h3>Quick game</h3>' + (mine.length || mw.length ? helpTip("Tap a game to build it from the word bank and start it straight away. It’s saved to this lesson, so its results go in the after-class report. Missed lately uses the words this student got wrong in their last three lessons; Keeps coming up, the ones their folder says keep being missed.") : '<p class="muted" style="margin-top:4px">No word bank yet. The planner saves each lesson’s key words here; you can also add them below.</p>') + quick +
+  return '<section class="section" id="quickSec" style="margin-top:14px"><h3>Quick game</h3>' + (mine.length || mw.length ? helpTip("Pick where the words come from (today’s word bank, the last few lessons’ word banks together, or missed words), then tap a game to build it from those words and start it straight away. It’s saved to this lesson, so its results go in the after-class report. Missed lately uses the words this student got wrong in their last three lessons; Keeps coming up, the ones their folder says keep being missed.") : '<p class="muted" style="margin-top:4px">No word bank yet. The planner saves each lesson’s key words here; you can also add them below.</p>') + quick +
     '<details style="margin-top:10px"' + (mine.length ? "" : " open") + '><summary class="muted">' + (mine.length ? "Word bank: " + esc(trunc(mine.map(function(b){ return b.w; }).join(", "), 90)) : "Add the word bank") + '</summary><textarea id="bankIn" style="min-height:140px;margin-top:8px" placeholder="kitchen | you cook dinner in this room | Mom is cooking in the kitchen.">' + esc(p.bank || "") + '</textarea><div class="hint">One word per line: word | clue (its meaning, never part of the word) | an example sentence with the word in it. Clue and sentence are optional.</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="bank-save">Save word bank</button></div></details></section>';
 }
 
@@ -4618,7 +4620,7 @@ function viewPack(){
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
     clsBarHtml(p) + rsPackCard(p) + '<h3 style="margin:26px 0 4px">Games</h3>' + (games || '<p class="notice">No games in this lesson yet.</p>') + bankSection(p) +
     '<details class="section fold" id="addSec"' + ((p.games || []).length ? "" : " open") + '><summary><h3>Add other games</h3><span class="muted">' + TYPE_ORDER.length + ' kinds</span></summary>' + add + '</details>' +
-    '<details class="section fold" id="advSec"><summary><h3>Advanced</h3><span class="muted">look, results, lesson details</span></summary>' + lookSection(p) +
+    '<details class="section fold" id="advSec"><summary><h3>Advanced</h3><span class="muted">look, results, lesson details</span></summary>' + lookSection(p) + rsPasteSection(p) +
     '<section class="section"><h3>Online students</h3>' + helpTip((SB_MODE ? 'Class link: one link for the whole lesson. The student opens it at the start of class and waits; then tap Play on any game here to put it on their screen, and its result saves itself. ' : '') + 'Student link (on a game) sends the student that one game to play on their own device — nothing else in the app.' + (SB_MODE ? ' It works as homework too: whenever it’s played, the result saves itself here, marked homework. Add a student’s result is only for a code a student sent when that didn’t work.' : '')) + '<div><button class="btn ghost" data-a="sres-open">Add a student’s result</button></div></section>' +
     (hasRes ? '<section class="section"><h3>Results</h3><p class="muted">Everything played in this lesson, ready for the after-class report.</p><div class="row"><button class="btn" data-a="copylesson">Copy lesson results</button></div><p class="ok-msg" id="copied" role="status"></p></section>' : "") +
     '<section class="section"><div class="row"><button class="btn ghost sm" data-a="editpack">Edit lesson details</button>' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">All of ' + esc(p.student) + '’s results</button>' : "") +
@@ -5680,10 +5682,15 @@ function viewSheet(){
 }
 function rsPackCard(p){
   var spec = rsSpec(p), modeRow = "";
-  var paste = '<details style="margin-top:10px"><summary class="muted">' + (spec ? "Replace the run sheet" : "Paste a run sheet") + '</summary><p class="muted" style="font-size:15px">The run sheet spec (JSON) the planning chat gives to rs_build.py.</p><textarea id="rsSpecIn" spellcheck="false" style="min-height:140px;font-size:14px"></textarea><p class="err" id="rsSpecErr" role="alert"></p><button class="btn sm" data-a="rs-spec">Save run sheet</button></details>';
-  if(!spec) return '<section class="rs-card"><h3>Run sheet</h3><p class="muted" style="margin:0;font-size:16px">None saved with this lesson yet: the planning chat adds it at Gate 5.</p>' + paste + modeRow + '</section>';
+  var paste = "";
+  if(!spec) return '<section class="rs-card"><h3>Run sheet</h3><p class="muted" style="margin:0;font-size:16px">None saved with this lesson yet: the planning chat adds it when it saves the lesson.</p></section>';
   var info = rsBuildDoc(p, rsDoc(p.id)), marked = Object.keys(rsDoc(p.id).marks || {}).length;
   return '<section class="rs-card"><div class="spread"><div><h3>Run sheet</h3><p class="muted" style="margin:0;font-size:16px">' + esc(spec.format || "") + (rsDoc(p.id).finished ? " · finished" : marked ? " · started · " + info.gaps.length + " unmarked" : " · not started") + '</p></div><button class="btn" data-a="rs-open">Open run sheet</button></div>' + modeRow + paste + '</section>';
+}
+/* Advanced: a way in for a run sheet the planning chat couldn't save itself (it gives the JSON instead). */
+function rsPasteSection(p){
+  var spec = rsSpec(p);
+  return '<details class="section fold" id="rsPasteSec"><summary><h3>' + (spec ? "Replace the run sheet" : "Paste a run sheet") + '</h3></summary><p class="muted" style="margin-top:0;font-size:15px">Only needed if a planning chat couldn’t save the run sheet itself and gave you its JSON instead. Paste the whole thing, from { to }.' + (spec ? " It replaces this lesson’s run sheet; ticks on lines that didn’t change are kept." : "") + '</p><textarea id="rsSpecIn" spellcheck="false" style="min-height:140px;font-size:14px;width:100%"></textarea><p class="err" id="rsSpecErr" role="alert"></p><button class="btn sm" data-a="rs-spec">Save run sheet</button></details>';
 }
 function rsSpecFrom(text){
   var o; try{ o = JSON.parse(String(text || "").trim()); }catch(e){ return { err: "That isn’t valid JSON. Paste the whole spec, from { to }." }; }
@@ -6036,7 +6043,7 @@ if(UI.run && UI.run.st) UI.run.st._animating = false; /* resume a spin cut off b
 /* Screen fit: a game screen never scrolls. If what's on the stage is taller (or wider) than the screen,
    the stage is zoomed down until it fits (never below half size). Re-checked when the stage changes size
    or the window turns, but not while the on-screen keyboard is up. */
-var FIT_RO = null, FIT_BUSY = false;
+var FIT_RO = null, FIT_BUSY = false, FIT_H = 0, FIT_W = 0;
 /* Bingo's called line: chips that don't fit are hidden, not left hanging off the edge. */
 function bgTrimCalled(){
   var c = document.querySelector("#app .calledbar .chips"); if(!c) return;
@@ -6046,10 +6053,15 @@ function bgTrimCalled(){
 function fitStage(){
   var st = document.querySelector("#app main.stage"); if(!st || UI.view !== "play" || FIT_BUSY) return;
   try{ bgTrimCalled(); }catch(e){}
-  var a = document.activeElement; if(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && st.style.zoom) return;
+  /* Pinch-zoomed (a student zooming in to read): leave the size and scroll alone, or every word would jump the view. */
+  if(window.visualViewport && window.visualViewport.scale > 1.05) return;
+  /* With a text box focused the on-screen keyboard can shrink the window: measure against the size from before it opened,
+     so the game doesn't shrink and grow with every word typed. */
+  var a = document.activeElement, typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName);
+  if(!typing || !FIT_H || window.innerWidth !== FIT_W){ FIT_H = window.innerHeight; FIT_W = window.innerWidth; }
   FIT_BUSY = true;
   try{
-    var de = document.documentElement, H = window.innerHeight, W = window.innerWidth, z = 1;
+    var de = document.documentElement, H = Math.max(window.innerHeight, FIT_H), W = window.innerWidth, z = 1;
     st.style.zoom = ""; st.style.maxWidth = "";
     for(var i = 0; i < 6; i++){
       var sh = de.scrollHeight, sw = de.scrollWidth;
@@ -6060,7 +6072,9 @@ function fitStage(){
       z = Math.max(0.5, nz); st.style.zoom = String(Math.round(z * 1000) / 1000); st.style.maxWidth = Math.round(1180 / z) + "px";
       if(z <= 0.5) break;
     }
-    if(window.scrollY) window.scrollTo(0, 0);
+    if(window.scrollY && !typing) window.scrollTo(0, 0);
+    /* a box shown smaller than 16px makes phones zoom in on it when it's focused */
+    st.querySelectorAll("input[type=text],input:not([type]),textarea").forEach(function(el){ el.style.fontSize = ""; var fs = parseFloat(getComputedStyle(el).fontSize) || 16; if(fs * z < 16) el.style.fontSize = Math.ceil(16.5 / z) + "px"; });
   } finally { FIT_BUSY = false; }
   if(window.ResizeObserver){
     if(!FIT_RO) FIT_RO = new ResizeObserver(function(){ if(!FIT_BUSY) requestAnimationFrame(fitStage); });
