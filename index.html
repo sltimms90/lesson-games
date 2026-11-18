@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-+GutS1wndyOQUMrhBCjGOj0AiUSJRCNMSO5KmbZMI3w='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-c331I2oUA0qiSL3nCLxRgWtnERQuD/fTDqrlmOd8PhI='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -5364,15 +5364,26 @@ function rsLayout(spec){
     var bk = "b" + hash(String(b.label || bi)).toString(36);
     if(seen[bk]) bk += "_" + bi; seen[bk] = 1;
     var cnt = {};
-    /* A step cue and the app game for the same step ("2A The auction" + "2A Evidence Auction") are one thing:
-       the cue's text goes onto the game's row and the cue's own tick box goes. */
+    /* A step cue and the app game for the same step are one thing: the cue's text goes onto the game's row and the
+       cue's own tick box goes. Same step code ("2A The auction" + "2A Evidence Auction"), or a cue straight before an
+       app game with no code that shares a word with it ("2A Hangman" + "Batch 18 Hangman"; the row then shows "2A"). */
     function code(l){ var m = /^(\d+[A-Za-z])\b/.exec(String(l || "")); return m ? m[1].toUpperCase() : ""; }
+    function words(l){ return String(l || "").replace(/^\d+[A-Za-z]\b/, "").toLowerCase().match(/[a-z0-9]{3,}/g) || []; }
     var appBy = {}, all = (b.lines || []).map(function(ln){ return Object.assign({}, ln); }); /* copies: the plan itself isn't changed */
     all.forEach(function(ln){ if(ln.type === "app" && code(ln.label) && !appBy[code(ln.label)]) appBy[code(ln.label)] = ln; });
     var src = [];
-    all.forEach(function(ln){
-      var c = ln.type === "cue" && !ln.nobox ? code(ln.label) : "";
-      if(c && appBy[c]){ var a = appBy[c]; a._note = (a._note ? a._note + " · " : "") + [rsTitleKey(ln.label) === rsTitleKey(a.label) ? "" : String(ln.label).replace(/^\d+[A-Za-z]\s*/, ""), ln.text].filter(Boolean).join(": "); return; }
+    all.forEach(function(ln, i){
+      var c = ln.type === "cue" && !ln.nobox ? code(ln.label) : "", a = c && appBy[c], nx = all[i + 1];
+      if(!a && ln.type === "cue" && !ln.nobox && nx && nx.type === "app" && !code(nx.label) && !nx._code){
+        var aw = words(nx.label);
+        if(words(ln.label).some(function(w){ return aw.indexOf(w) !== -1; })){ a = nx; if(c) a._code = c; }
+      }
+      if(a){
+        var aw2 = words(a.label), title = String(ln.label || "").replace(/^\d+[A-Za-z]\s*/, "");
+        if(words(ln.label).every(function(w){ return aw2.indexOf(w) !== -1; })) title = "";
+        a._note = (a._note ? a._note + " · " : "") + [title, ln.text].filter(Boolean).join(": ");
+        return;
+      }
       src.push(ln);
     });
     var lines = src.map(function(ln){
@@ -5454,7 +5465,7 @@ function rsBuildDoc(p, d){
       } else if(t === "app"){
         var r = rsAppResult(p, ln); v = g(k);
         txt = r ? "played in the app — " + (r.score && r.score.text ? r.score.text : "result saved") + " (see results)" : skip ? "✗ didn’t run" : v === "y" ? "✓ ran (no app result: played outside the app)" : v === "n" ? "✗ didn’t run" : "(?) no app result";
-        L.push("  app game · " + ln.label + (ln._note ? " (" + ln._note + ")" : "") + ": " + txt); row(bl, t, ln.label, txt, !r && !skip && !v, k);
+        L.push("  app game · " + (ln._code ? ln._code + " " : "") + ln.label + (ln._note ? " (" + ln._note + ")" : "") + ": " + txt); row(bl, t, ln.label, txt, !r && !skip && !v, k);
       } else if(t === "trap"){
         lab = "TRAP “" + ln.spring + "”";
         var tb = false;
@@ -5530,7 +5541,7 @@ function rsLine(p, x, G, gk){
   if(t === "app"){
     var r = rsAppResult(p, ln), gm = rsAppGame(p, ln);
     return '<div class="rs-ln' + gap + '">' + (r ? '<span class="rs-tk y auto" title="Played in the app">✓</span>' : rsTick(pid, k, ln.label)) +
-      '<span class="rs-tx"><b>' + esc(ln.label) + '</b> <span class="muted">' + esc(ln._note || (gm ? "app game" : "")) + (gm ? "" : " — app game not found in this lesson") + '</span>' +
+      '<span class="rs-tx"><b>' + esc((ln._code ? ln._code + " " : "") + ln.label) + '</b> <span class="muted">' + esc(ln._note || (gm ? "app game" : "")) + (gm ? "" : " — app game not found in this lesson") + '</span>' +
       (r ? '<small class="rs-res">Played · ' + esc(r.score && r.score.text ? r.score.text : "saved") + '</small>' : "") + '</span>' +
       (gm ? '<button class="btn sm' + (r ? " ghost" : "") + '" data-a="rs-play" data-g="' + esc(gm.id) + '">' + (r ? "Play again" : "Play") + '</button>' : "") + '</div>';
   }

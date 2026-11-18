@@ -6,9 +6,11 @@ import lg
 lg.APP = lg.APP.replace(HOOK, HOOK + "window.__B={splitNames:splitNames,rsBuildDoc:rsBuildDoc,rsDoc:rsDoc,getPack:getPack};")
 words = ["castle","tower","bridge","market","river","forest","garden","palace","village","harbour","museum","station","library","school","hospital","bakery"]
 bg = {"id":"g3","type":"bingo","title":"Bingo","block":"\n".join(words),"options":{"size":3,"call":"word","claim":True,"cards":"Cathy & Lily","code":"PAB5","show":"student","self":True,"lines":3}}
-blocks = [{"mins":14,"label":"2 GAME Evidence Auction","material":"WS27","lines":[{"text":"8 lots · E4 red pen","type":"cue","label":"2A The auction"},{"game":"g1","type":"app","label":"2A Evidence Auction"},{"n":5,"type":"score","label":"2A fakes passed + fixed"},{"text":"7 sentences · fixes typed","type":"cue","label":"2B Case Closed"},{"game":"g2","type":"app","label":"2B Case Closed"},{"text":"3 slips","type":"cue","label":"2C Fix-it"}]}]
+blocks = [{"mins":14,"label":"2 GAME Evidence Auction","material":"WS27","lines":[{"text":"8 lots · E4 red pen","type":"cue","label":"2A The auction"},{"game":"g1","type":"app","label":"2A Evidence Auction"},{"n":5,"type":"score","label":"2A fakes passed + fixed"},{"text":"7 sentences · fixes typed","type":"cue","label":"2B Case Closed"},{"game":"g2","type":"app","label":"2B Case Closed"},{"text":"3 slips","type":"cue","label":"2C Fix-it"}]},
+ {"mins":15,"label":"3 Batch 18 test","lines":[{"text":"no spelling tips","type":"cue","label":"3A Hangman"},{"game":"g4","type":"app","label":"Batch 18 Hangman"},{"text":"word · sentence","type":"cue","label":"3B Test"},{"game":"g5","type":"app","label":"Batch 18 Test"},{"text":"trick first","type":"cue","label":"3C Batch 19"},{"type":"words","words":["community"]}]}]
 pack = {"id":"jl","student":"Cathy & Lily","lp":27,"title":"JL","date":"2026-11-18","updatedAt":"x",
- "games":[{"id":"g1","type":"auction","title":"Evidence Auction","block":"1. He goes home. [CORRECT]\n2. He go home. [WRONG — goes]"},{"id":"g2","type":"spot","title":"Case Closed","block":"She don't like it. = She doesn't like it."}, bg],
+ "games":[{"id":"g1","type":"auction","title":"Evidence Auction","block":"1. He goes home. [CORRECT]\n2. He go home. [WRONG — goes]"},{"id":"g2","type":"spot","title":"Case Closed","block":"She don't like it. = She doesn't like it."}, bg,
+  {"id":"g4","type":"hangman","title":"Batch 18 Hangman","block":"castle = a big old house for a king"},{"id":"g5","type":"spelling","title":"Batch 18 Test","block":"castle"}],
  "runsheet":{"student":"Cathy & Lily","lp":27,"start":"19:00","length":60,"format":"in person","blocks":blocks}}
 res = [{"id":"r1","packId":"jl","gameId":"g1","type":"auction","summary":"x","score":{"text":"9,650 money · fixed 5/5"},"at":"2026-11-18T11:00:00Z"}]
 def lesson(pg):
@@ -61,5 +63,9 @@ with sync_playwright() as p:
     check(not any("The auction" in g for g in gaps) and "2C Fix-it — 3 slips" in gaps, "Phase B no longer asks about the folded cue: %s" % gaps)
     check("(The auction: 8 lots · E4 red pen)" in summ["summary"], "the cue's text is in the Phase B summary")
     check(pg.evaluate("JSON.stringify(__B.getPack('jl').runsheet.blocks[0].lines.length)") == "6", "the plan itself is unchanged")
+    t3 = pg.inner_text(".rs-blk >> nth=1")
+    check("3A Batch 18 Hangman" in t3 and "no spelling tips" in t3 and t3.count("Hangman") == 1, "3A cue folded into the uncoded game straight after it: %r" % t3)
+    check("3B Batch 18 Test" in t3 and t3.count("Test") == 1 and "3C Batch 19" in t3, "3B folded; 3C (no game after it) stays")
+    check(pg.evaluate("JSON.stringify(__B.getPack('jl').runsheet.blocks[1].lines.length)") == "6", "plan unchanged (block 3)")
     check(errs == [], "no page errors: %s" % errs)
     done()
