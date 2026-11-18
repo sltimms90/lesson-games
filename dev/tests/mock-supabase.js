@@ -26,6 +26,30 @@
     if(this.lim) rows = rows.slice(0, this.lim);
     return res({ data: this.single ? (rows[0] || null) : rows, error:null });
   };
+  /* submit_homework: the same checks as dev/sql/submit_homework.sql (token, size, sid; insert-only, first copy wins).
+     M.hwDown = true fails it like a dropped connection. Calls are logged in M.rpcs. */
+  M.rpcs = [];
+  M.submitHomework = function(a){
+    a = JSON.parse(JSON.stringify(a || {})); M.rpcs.push(a);
+    function err(m){ return res({ data:null, error:{ message:m, code:"P0001" } }); }
+    if(M.hwDown){ return res({ data:null, error:{ message:"TypeError: Failed to fetch" } }); }
+    if(!/^[0-9a-f]{32}$/.test(a.p_token || "")) return err("bad_link");
+    var r = a.p_result; if(!r || typeof r !== "object" || Array.isArray(r)) return err("bad_result");
+    if(JSON.stringify(r).length > 65536) return err("too_big");
+    var pk = M.db.packs[a.p_pack], d = pk && pk.data;
+    if(!d || !d.hw || d.hw[a.p_game] !== a.p_token) return err("bad_link");
+    var g = (d.games || []).filter(function(x){ return x.id === a.p_game; })[0]; if(!g) return err("bad_link");
+    if(!/^L?[a-z0-9]{6,20}$/.test(r.sid || "")) return err("bad_result");
+    var id = a.p_pack + "_" + a.p_game + "_" + r.sid;
+    if(M.db.results[id]) return res({ data:{ ok:true, "new":false }, error:null });
+    var sum = String(r.summary || ""), i = sum.indexOf(" — ");
+    sum = i !== -1 ? sum.slice(0, i) + " (homework, played 18 Nov 20:14)" + sum.slice(i) : "Homework, played 18 Nov 20:14" + (sum ? " — " + sum : "");
+    var row = { id:id, data:{ id:id, packId:a.p_pack, student:d.student || "", lp:d.lp == null ? null : d.lp, gameId:a.p_game, type:g.type, title:(g.title || g.type) + " (homework)",
+      at:new Date().toISOString(), summary:sum, score:r.score || null, items:r.items || [], activeSecs:r.activeSecs || 0, points:r.points == null ? null : r.points, homework:true, online:true } };
+    if(r.sid[0] === "L") row.data.liveGen = r.sid.slice(1);
+    M.db.results[id] = row; M.homework = (M.homework || []).concat([row]);
+    return res({ data:{ ok:true, "new":true }, error:null });
+  };
   M.remote = function(t, ev, row){ /* simulate another device */
     if(ev === "DELETE"){ delete M.db[t][row.id]; } else M.db[t][row.id] = row;
     M.handlers.forEach(function(h){ if(h.table === t) h.cb({ eventType:ev, new: ev === "DELETE" ? {} : row, old: ev === "DELETE" ? { id:row.id } : {} }); });
@@ -45,7 +69,9 @@
       storage: { from: function(bk){ return {
         upload: function(path, blob, opts){ if(!M.session || !M.teacher) return res({ error:{ message:"denied" } }); M.uploads = (M.uploads||[]).concat([{ bk:bk, path:path, type:opts.contentType, size:blob.size, upsert:opts.upsert }]); return res({ data:{ path:path }, error:null }); },
         getPublicUrl: function(path){ return { data:{ publicUrl: "https://prglfopvovvxhzrejhzc.supabase.co/storage/v1/object/public/" + bk + "/" + path } }; } }; } },
-      rpc: function(n){ return res({ data: !!(M.session && M.teacher), error:null }); },
+      rpc: function(n, args){
+        if(n === "submit_homework") return M.submitHomework(args);
+        return res({ data: !!(M.session && M.teacher), error:null }); },
       from: function(t){ return new Query(t); },
       channel: function(name, opts){
         var key = (opts && opts.config && opts.config.presence && opts.config.presence.key) || Math.random().toString(36).slice(2);

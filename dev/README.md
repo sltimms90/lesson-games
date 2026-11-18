@@ -19,6 +19,7 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 review.py                   # review fixes: two teacher devices, save acknowledgement, class ✕, stale tabs
     python3 design.py                   # review design changes: lesson page layout, Hard mode, Undo toast
     python3 bf.py                       # 18 Nov feedback: bingo card each for pairs, called line, print 2-up + teacher, My card; run sheet step merge
+    python3 hw.py                       # homework links: Student link results save themselves (submit_homework), refused tokens, offline fallback, New link
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
@@ -26,3 +27,6 @@ they inject a hook into the script; `hostile.py` checks the real, untouched page
 
 Every script ends with "N failures". `fit.py` fails only on iPad and desktop; on phones it prints NOTE lines
 (very long content on a sideways phone hits the half-size floor). New scripts share helpers in `lg.py`.
+
+`sql/submit_homework.sql` is the database function student pages call to save a homework result (applied to the project as
+migrations `submit_homework` and `submit_homework_anon_only`). `mock-supabase.js` has a copy of its checks for the tests.

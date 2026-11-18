@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-c331I2oUA0qiSL3nCLxRgWtnERQuD/fTDqrlmOd8PhI='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-kz5wr793atgEzWK2sE2fFifKNFURQ2Vzofp73hEpm10='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -601,6 +601,7 @@ button.cell:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 .lpts small{font:700 14px/1 "Atkinson Hyperlegible",sans-serif;color:var(--muted)}
 .bar .lp{font:800 17px/1 "Baloo 2",sans-serif;white-space:nowrap;padding:4px 10px;border-radius:999px;background:var(--soft)}
 
+.hwtag{display:inline-block;font-size:13px;font-weight:800;padding:1px 8px;border-radius:99px;background:var(--c-quiz);color:#fff;vertical-align:1px}
 .inprog{margin-top:6px;font-size:15px;font-weight:700;color:var(--c-quiz)}
 /* higher or lower */
 .hl-row{display:flex;gap:clamp(12px,3vw,28px);justify-content:center;align-items:center;flex-wrap:wrap}
@@ -4586,7 +4587,7 @@ function viewPack(){
     var rs = resultsFor(p.id, g.id), last = rs[0];
     var t = TYPES[g.type]; if(!t) return "";
     return '<div class="game">' + ball(g.type) + '<div class="body"><b>' + esc(g.title || t.label) + '</b><span class="muted" style="font-size:15px">' + t.label + (rs.length ? " · played " + rs.length + (rs.length === 1 ? " time" : " times") : "") + '</span>' +
-      (last ? '<div class="sum">' + esc(last.summary) + '</div>' : "") +
+      (last ? '<div class="sum">' + (last.homework ? '<span class="hwtag">Homework</span> ' : "") + esc(last.summary) + '</div>' : "") +
       (leakyClues(g).length ? '<div class="cluewarn">Clues that give the answer away: ' + esc(leakyClues(g).join(", ")) + '. Tap Edit to rewrite them.</div>' : "") +
       (function(){ var lr = findRun(p.id, g.id); return lr ? '<div class="inprog">Left part-way' + (lr.st && lr.st.log ? " · " + lr.st.log.length + " done" : "") + ' — Resume carries on where you stopped.</div>' : ""; })() +
       '<div class="row">' + (findRun(p.id, g.id) ? '<button class="btn sm" data-a="play-resume" data-k="' + esc(p.id + "|" + g.id) + '">▶ Resume</button><button class="btn ghost sm" data-a="play" data-g="' + esc(g.id) + '">Start over</button>' : '<button class="btn sm" data-a="play" data-g="' + esc(g.id) + '">' + (rs.length ? "Play again" : "Play") + '</button>') + (g.type === "hangman" || g.type === "anagrams" ? '<button class="btn ghost sm" data-a="play-ch" data-g="' + esc(g.id) + '" title="Hard mode: no free clues, fewer lives or tries">Hard mode</button>' : "") + '<button class="btn ghost sm" data-a="editgame" data-g="' + esc(g.id) + '">Edit</button>' + (last ? '<button class="btn ghost sm" data-a="showres" data-r="' + esc(last.id) + '">Details</button>' : "") + (last && missedItems(last).length ? '<button class="btn ghost sm" data-a="retry" data-r="' + esc(last.id) + '">Retry ' + missedItems(last).length + (missedItems(last).length === 1 ? " miss" : " misses") + '</button>' : "") +
@@ -4600,7 +4601,7 @@ function viewPack(){
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
     clsBarHtml(p) + bankSection(p) + rsPackCard(p) + '<h3 style="margin:26px 0 4px">Games</h3>' + (games || '<p class="notice">No games in this lesson yet.</p>') +
     '<details class="section fold" id="addSec"' + ((p.games || []).length ? "" : " open") + '><summary><h3>Add a game</h3><span class="muted">' + TYPE_ORDER.length + ' kinds</span></summary>' + add + '</details>' + lookSection(p) +
-    '<section class="section"><h3>Online students</h3>' + helpTip((SB_MODE ? 'Class link: one link for the whole lesson. The student opens it at the start of class and waits; then tap Play on any game here to put it on their screen, and its result saves itself. ' : '') + 'Student link (on a game) sends the student that one game to play on their own device — nothing else in the app.') + '<div><button class="btn ghost" data-a="sres-open">Add a student’s result</button></div></section>' +
+    '<section class="section"><h3>Online students</h3>' + helpTip((SB_MODE ? 'Class link: one link for the whole lesson. The student opens it at the start of class and waits; then tap Play on any game here to put it on their screen, and its result saves itself. ' : '') + 'Student link (on a game) sends the student that one game to play on their own device — nothing else in the app.' + (SB_MODE ? ' It works as homework too: whenever it’s played, the result saves itself here, marked homework. Add a student’s result is only for a code a student sent when that didn’t work.' : '')) + '<div><button class="btn ghost" data-a="sres-open">Add a student’s result</button></div></section>' +
     (hasRes ? '<section class="section"><h3>Results</h3><p class="muted">Everything played in this lesson, ready for the after-class report.</p><div class="row"><button class="btn" data-a="copylesson">Copy lesson results</button></div><p class="ok-msg" id="copied" role="status"></p></section>' : "") +
     '<section class="section"><div class="row"><button class="btn ghost sm" data-a="editpack">Edit lesson details</button>' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">All of ' + esc(p.student) + '’s results</button>' : "") +
     '<button class="btn danger sm" data-a="delpack">' + (UI.confirmDel === p.id ? "Tap again to delete this lesson" : "Delete lesson") + '</button></div></section></div>';
@@ -4609,7 +4610,9 @@ function viewPack(){
     var lg = (p.games || []).filter(function(x){ return x.id === UI.slink.gid; })[0], u = UI.slink.url;
     $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Student link"><div class="pop setpop"><h3 style="margin-bottom:8px">Student link · ' + esc(lg ? (lg.title || TYPES[lg.type].label) : "") + '</h3>' +
       (u ? '<textarea id="slinkUrl" readonly style="min-height:90px">' + esc(u) + '</textarea><p class="muted" style="font-size:15px">' + u.length + ' characters. If Meet won’t take a link this long, send it on LINE.</p>' : '<p class="notice">Making the link…</p>') +
-      '<p class="ok-msg" id="slinkMsg" role="status"></p><div class="row"><button class="btn" data-a="slink-copy"' + (u ? "" : " disabled") + '>Copy link</button><button class="btn ghost" data-a="slink-close">Close</button></div>' +
+      (SB_MODE && SB ? '<p class="muted" style="font-size:15px;margin-top:0">Homework too: whenever it’s played, the result saves itself to this lesson.</p>' : "") +
+      '<p class="ok-msg" id="slinkMsg" role="status"></p><div class="row"><button class="btn" data-a="slink-copy"' + (u ? "" : " disabled") + '>Copy link</button><button class="btn ghost" data-a="slink-close">Close</button>' +
+      (SB_MODE && SB && u ? '<button class="btn ghost sm" data-a="slink-new" title="Makes a new link. Links sent before stop saving results.">' + (UI.slink.rot ? "Tap again: old links stop saving" : "New link") + '</button>' : "") + '</div>' +
       '<details style="margin-top:12px"><summary class="muted">Student page address</summary><input id="slinkBase" value="' + esc(UI.studentBase || SLINK_BASE) + '" style="width:100%;margin-top:6px;font:inherit;padding:8px;border-radius:8px;border:2px solid var(--line);background:var(--surface);color:var(--ink)"></details></div></div>');
     var bi = $("slinkBase"); if(bi) bi.addEventListener("change", function(){ var v = bi.value.trim(); if(v && !/\/$/.test(v)) v += "/"; UI.studentBase = v && v !== SLINK_BASE ? v : ""; saveUI(); if(UI.slink){ var g2 = (p.games || []).filter(function(x){ return x.id === UI.slink.gid; })[0]; UI.slink.url = ""; render(); slinkData(p, g2).then(packData).then(function(c){ if(UI.slink){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }, slinkFail); } });
   }
@@ -4789,7 +4792,20 @@ function slinkData(p, g){
   var d = studentLinkData(p, g);
   if(p.student) d.n = p.student;
   var live = SB_MODE && SB && LIVE_TYPES.indexOf(g.type) !== -1 ? liveEnsureRoom(p).then(function(r){ d.live = { r:r }; }) : Promise.resolve();
-  return live.then(function(){ if(g.type !== "snakes") return d; return snPublish(p, g).then(function(x){ d.x = x; return d; }); });
+  return live.then(function(){ return hwEnsureToken(p.id, g.id); }).then(function(h){ if(h) d.h = h; if(g.type !== "snakes") return d; return snPublish(p, g).then(function(x){ d.x = x; return d; }); });
+}
+/* HOMEWORK LINKS (Nov 2026). Each linkable game gets its own token (packs.data.hw[<game id>]). The student page sends the
+   finished result to the database's submit_homework function with it; that function only adds one result to this one
+   lesson and game, and nothing else is reachable with it. New link (rot) replaces the token, so old links stop saving. */
+function hwNewToken(){ return liveNewRoom(); }
+function hwEnsureToken(pid, gid, rot){
+  if(!SB_MODE || !SB || !STORE || STORE.kind !== "supabase") return Promise.resolve(null);
+  var p = getPack(pid); if(!p) return Promise.resolve(null);
+  var cur = p.hw && p.hw[gid];
+  if(cur && /^[0-9a-f]{32}$/.test(cur) && !rot) return Promise.resolve(cur);
+  var pp = clone(p); pp.hw = Object.assign({}, pp.hw || {}); pp.hw[gid] = hwNewToken(); touchPack(pp);
+  PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; });
+  return STORE.savePack(pp).then(function(){ return pp.hw[gid]; });
 }
 function slinkFail(e){ UI.slink = null; render(); toast("Couldn’t make the link: " + ((e && e.message) || "check the connection")); }
 /* =====================================================================
@@ -5252,10 +5268,14 @@ function viewSDone(){
       ((r.items || []).length ? '<details style="margin:22px auto 0;max-width:720px;text-align:left"><summary class="muted" style="text-align:center">See your answers</summary>' + itemsTable(r.items) + '</details>' : "") + '</div>';
     return;
   }
-  $("app").innerHTML = '<div class="wrap results"><h2>Well done!</h2>' + (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") + itemsTable(r.items) +
-    (r.liveSaved ? '<p class="notice" style="margin-top:22px">Your teacher has your score already.</p><details><summary class="muted">Result code (only if your teacher asks)</summary>' : '') +
-    '<h3 style="margin-top:22px">' + (r.liveSaved ? 'Result code' : 'Send this to your teacher') + '</h3><p class="muted">Tap Copy, then paste it in the Meet chat (or LINE).</p><textarea id="res" readonly>' + esc(code || "Getting it ready…") + '</textarea><p class="ok-msg" id="copied" role="status"></p>' +
-    '<div class="actions"><button class="btn" data-a="copyres"' + (code ? "" : " disabled") + '>Copy</button>' + (SMODE.cls ? "" : '<button class="btn ghost" data-a="s-start">Play again</button>') + '</div>' + (r.liveSaved ? '</details>' : '') + (SMODE.cls ? '<p class="muted" style="margin-top:18px">Keep this page open. Your teacher will send the next game.</p>' : "") + '</div>';
+  var have = r.liveSaved || r.hw === "saved", sending = !have && r.hw === "sending";
+  var why = r.hw === "failed" ? { link:"This link has been replaced by a newer one, so your score couldn’t be sent by itself.", many:"Too many scores were sent today, so this one couldn’t be sent by itself.", big:"Your score couldn’t be sent by itself.", net:"Your score couldn’t be sent (no connection?)." }[r.hwErr || "net"] : "";
+  $("app").innerHTML = '<div class="wrap results"><h2>Well done!</h2>' + (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") +
+    (have ? '<p class="notice" id="hwState" style="margin-top:14px">Your teacher has your score already.</p>' : sending ? '<p class="notice" id="hwState" style="margin-top:14px">Sending your score to your teacher…</p>' : why ? '<p class="notice" id="hwState" style="margin-top:14px">' + esc(why) + (r.hwErr === "net" ? ' <button class="btn sm" data-a="hw-retry">Try again</button>' : "") + ' Or send the code below.</p>' : "") +
+    itemsTable(r.items) +
+    (have || sending ? '<details style="margin-top:22px"><summary class="muted">Result code (only if your teacher asks)</summary>' : '') +
+    '<h3 style="margin-top:22px">' + (have || sending ? 'Result code' : 'Send this to your teacher') + '</h3><p class="muted">Tap Copy, then paste it in the Meet chat (or LINE).</p><textarea id="res" readonly>' + esc(code || "Getting it ready…") + '</textarea><p class="ok-msg" id="copied" role="status"></p>' +
+    '<div class="actions"><button class="btn" data-a="copyres"' + (code ? "" : " disabled") + '>Copy</button>' + (SMODE.cls || have || sending ? "" : '<button class="btn ghost" data-a="s-start">Play again</button>') + '</div>' + (have || sending ? '</details>' + (SMODE.cls ? "" : '<div class="actions"><button class="btn ghost" data-a="s-start">Play again</button></div>') : '') + (SMODE.cls ? '<p class="muted" style="margin-top:18px">Keep this page open. Your teacher will send the next game.</p>' : "") + '</div>';
 }
 async function startStudent(){
   STATUS = "student"; LOADED.packs = true; LOADED.results = true;
@@ -5281,6 +5301,7 @@ async function startStudent(){
   var sg = pubGame(d.g); if(!sg){ msg("This game link looks broken. Ask your teacher to send it again."); return; }
   d.g = sg; d.p = idOk(d.p) ? d.p : "student"; d.n = typeof d.n === "string" ? liveClean(d.n).slice(0, 40) : ""; d.k = typeof d.k === "string" && /^[a-z0-9-]{1,30}$/.test(d.k) ? d.k : ""; d.l = typeof d.l === "number" ? d.l : null;
   if(d.live && !(d.live.r && /^[0-9a-f]{32}$/.test(d.live.r))) delete d.live;
+  if(!(typeof d.h === "string" && /^[0-9a-f]{32}$/.test(d.h))) delete d.h;
   var lbd = d.x && pubBoard(d.x.board); if(lbd) BOARDS[lbd.id] = lbd;
   if(d.x){ var ltk = pubTokens(d.x.tokens); Object.keys(ltk).forEach(function(nm){ STUDENTS[slug(nm)] = { id:slug(nm), name:nm, token:ltk[nm] }; }); }
   SMODE = { d:d, key:String(hash(m[1])) };
@@ -5289,8 +5310,30 @@ async function startStudent(){
   if(UI.view === "sdone" && UI.sKey !== SMODE.key) UI.view = "sready";
   if(UI.view !== "sdone" && !(UI.view === "play" && UI.run)) UI.view = "sready";
   if(UI.view === "sdone" && UI.lastResult && !UI.sCode) makeSCode(UI.lastResult);
+  if(UI.view === "sdone" && UI.lastResult && UI.lastResult.hw === "sending"){ UI.lastResult.hwBusy = false; hwSubmit(); }   /* reloaded mid-send: send again (same sid, so still one result) */
   render();
 }
+/* Homework: send the finished result straight to the teacher's lesson (see HOMEWORK LINKS). The result code stays as the
+   fallback when this fails. The play's own id (sid) means a resend after a dropped connection is still one result. */
+function hwSubmit(){
+  var r = UI.lastResult;
+  if(!SMODE || SMODE.cls || !SMODE.d.h || !r || r.liveSaved || r.hw === "saved" || r.hwBusy) return;
+  var sid = String(r.id || "").split("_").pop();
+  r.hw = "sending"; r.hwBusy = true; delete r.hwErr; saveUI();
+  var args = { p_pack:SMODE.d.p, p_game:SMODE.d.g.id, p_token:SMODE.d.h, p_result:{ sid:sid, summary:r.summary, score:r.score, items:r.items, activeSecs:r.activeSecs, points:r.points } };
+  function end(state, err){
+    var lr = UI.lastResult; r.hwBusy = false;
+    if(lr && lr.id === r.id){ lr.hw = state; lr.hwBusy = false; if(err) lr.hwErr = err; else delete lr.hwErr; saveUI(); if(UI.view === "sdone") render(); }
+  }
+  liveClient().then(function(c){ return c.rpc("submit_homework", args); }).then(function(res){
+    if(res && res.error) throw res.error;
+    end("saved");
+  }).catch(function(e){
+    var m = String((e && e.message) || "");
+    end("failed", /bad_link/.test(m) ? "link" : /too_many/.test(m) ? "many" : /too_big|bad_result/.test(m) ? "big" : "net");
+  });
+}
+window.addEventListener("online", function(){ if(SMODE && UI.view === "sdone" && UI.lastResult && UI.lastResult.hw === "failed" && UI.lastResult.hwErr === "net") hwSubmit(); });
 function makeSCode(r){
   var slim = { t:r.type, g:r.gameId, p:r.packId, n:r.title, a:r.at, s:r.summary, sc:r.score, it:r.items, sec:r.activeSecs, pt:r.points };
   packData(slim).then(function(c){ UI.sCode = c; saveUI(); if(UI.view === "sdone") render(); });
@@ -5750,7 +5793,7 @@ function finishRun(){
   var ackFor = !SMODE && LIVE.applyingFin ? { g:run.gameId, gen:run.liveGen } : null;
   var t = TYPES[run.type];
   var r = resultFrom(run), sc = r.score, its = r.items, sum = r.summary, secs = r.activeSecs;
-  if(SMODE){ UI.run = null; UNDO = []; UI.lastResult = { id:r.id, summary:sum, packId:r.packId, gameId:r.gameId, type:r.type, title:r.title, at:r.at, score:sc, items:its, activeSecs:secs, points:r.points }; UI.lastResult.liveSaved = liveSaved; UI.lastResult.gen = run.liveGen || null; UI.sKey = SMODE.key; UI.sCode = null; makeSCode(UI.lastResult); go("sdone"); return; }
+  if(SMODE){ UI.run = null; UNDO = []; UI.lastResult = { id:r.id, summary:sum, packId:r.packId, gameId:r.gameId, type:r.type, title:r.title, at:r.at, score:sc, items:its, activeSecs:secs, points:r.points }; UI.lastResult.liveSaved = liveSaved; UI.lastResult.gen = run.liveGen || null; UI.sKey = SMODE.key; UI.sCode = null; makeSCode(UI.lastResult); if(SMODE.d.h && !SMODE.cls && !liveSaved) UI.lastResult.hw = "sending"; go("sdone"); hwSubmit(); return; }
   UI.run = null; UI.lastResult = { id:r.id, summary:r.summary, packId:r.packId, gameId:r.gameId, score:sc, items:its, activeSecs:secs, points:r.points }; UNDO = [];
   STORE.saveResult(r).then(function(){ refresh(); if(ackFor) liveSend({ t:"ack", g:ackFor.g, gen:ackFor.gen }); }).catch(saveErr);
   go("done");
@@ -5881,11 +5924,16 @@ function handle(a, el){
   if(a === "copylesson"){ var pc = getPack(UI.packId); copyText(lessonResultsText(pc)).then(function(ok){ var c = $("copied"); if(c) c.textContent = ok ? "Copied." : "Copying is blocked here."; }); return; }
   if(a === "copyres"){ copyText($("res").value).then(function(ok){ $("copied").textContent = ok ? "Copied." : "Copying is blocked here. Select the text and copy it."; if(!ok){ $("res").focus(); $("res").select(); } }); return; }
   if(a === "backlesson"){ var blp = UI.lastResult ? UI.lastResult.packId : UI.packId; go(lessonView(blp), { packId: blp }); return; }
+  if(a === "hw-retry"){ hwSubmit(); return; }
   if(a === "s-start"){ if(SMODE && SMODE.cls) return; if(SMODE && UI.view === "sdone") UI.liveFresh = true; if(SMODE){ startRun(PACKS[0], PACKS[0].games[0]); } return; }
   if(a === "slink"){ var spk = getPack(UI.packId), sg = (spk.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0]; if(!sg) return;
     var se = TYPES[sg.type].validate(sg.block, Object.assign({}, TYPES[sg.type].defaults(spk), sg.options || {})); if(se){ toast(se); return; }
     UI.slink = { gid:sg.id, url:"" }; render();
     slinkData(spk, sg).then(packData).then(function(c){ if(UI.slink && UI.slink.gid === sg.id){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); } }, slinkFail); return; }
+  if(a === "slink-new"){ var npk = getPack(UI.packId); if(!UI.slink || !npk) return; var ng = (npk.games || []).filter(function(x){ return x.id === UI.slink.gid; })[0]; if(!ng) return;
+    if(!UI.slink.rot){ UI.slink.rot = true; render(); return; }
+    UI.slink = { gid:ng.id, url:"" }; render();
+    hwEnsureToken(npk.id, ng.id, true).then(function(){ return slinkData(getPack(npk.id), ng); }).then(packData).then(function(c){ if(UI.slink && UI.slink.gid === ng.id){ UI.slink.url = (UI.studentBase || SLINK_BASE) + "#s=" + c; render(); toast("New link made. Links sent before won’t save results any more."); } }, slinkFail); return; }
   if(a === "clink"){ var cpk = getPack(UI.packId); if(!cpk) return; UI.clink = { url:"" }; render();
     clsLink(cpk).then(function(u){ if(UI.clink){ UI.clink.url = u; render(); } }, function(e){ UI.clink = null; render(); toast("Couldn’t make the link: " + ((e && e.message) || "check the connection")); }); return; }
   if(a === "clink-close"){ UI.clink = null; render(); return; }
