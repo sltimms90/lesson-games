@@ -52,7 +52,7 @@ with sync_playwright() as p:
     for name, w, h in VIEWS:
         ctx = b.new_context(viewport={"width":w, "height":h}, has_touch=name.startswith("phone"))
         errs = []; pg = teacher(ctx, seed_db([pack]), errs)
-        pg.wait_for_selector("text=Fit", timeout=8000); pg.click("text=Fit"); pg.wait_for_timeout(300)
+        go_lesson(pg, "Fit", "Maximilian"); pg.wait_for_timeout(300)
         for g in games:
             pg.evaluate("UI => 0", None)
             pg.click("[data-a=play][data-g=%s]" % g["id"]); pg.wait_for_timeout(450)

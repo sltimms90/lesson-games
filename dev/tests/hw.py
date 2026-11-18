@@ -35,7 +35,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
     home = b.new_context(viewport={"width":390, "height":844}, device_scale_factor=2)   # the student at home: no live channel to the teacher
-    t = teacher(ctx, db, errs); t.wait_for_selector("text=Mia · LP9", timeout=8000); t.click("text=Mia · LP9"); t.wait_for_timeout(300)
+    t = teacher(ctx, db, errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     url = link_for(t, "g1")
     tok = t.evaluate("__T.PACKS[0].hw && __T.PACKS[0].hw.g1")
     check(isinstance(tok, str) and len(tok) == 32, "the game got a homework token: %s" % tok)

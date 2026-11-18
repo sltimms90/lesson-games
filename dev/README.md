@@ -20,6 +20,7 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 design.py                   # review design changes: lesson page layout, Hard mode, Undo toast
     python3 bf.py                       # 18 Nov feedback: bingo card each for pairs, called line, print 2-up + teacher, My card; run sheet step merge
     python3 hw.py                       # homework links: Student link results save themselves (submit_homework), refused tokens, offline fallback, New link
+    python3 rs_every.py                 # 19 Nov: run sheet opens for every lesson; phone/iPad comfort; home by day; lesson page order; edited games on top
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because

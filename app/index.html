@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-kz5wr793atgEzWK2sE2fFifKNFURQ2Vzofp73hEpm10='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-U1JbOhiBW8obofGXvFsuS4Aw/p0sFgL7V3mCmObvddI='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -748,6 +748,7 @@ span.od-tile{cursor:default}
 .rs-words .chip{min-height:40px}
 .rs .chip.on{background:var(--amber);border-color:var(--amber);color:#fff;font-weight:700}
 .rs-lbl{font-weight:700;flex:0 0 150px}
+main.rs{padding-bottom:45vh}
 .rs-ln > .rs-in,.rs-ln > .rs-ta{flex:1 1 260px;width:auto}
 .rs-card{background:var(--surface);border:2px solid var(--ball);border-radius:18px;padding:14px;margin:0 0 16px}
 .rs-card h3{margin:0 0 4px}
@@ -782,6 +783,8 @@ span.od-tile{cursor:default}
 .clsbar.on{border-color:#1E8A5A;color:#1E8A5A}
 .clsbar .muted{font-weight:400}
 .livepill{display:flex;align-items:center;gap:8px}.livepill .lo{font:inherit;font-size:18px;line-height:1;border:none;background:none;cursor:pointer;padding:0 2px}.livepill.ov{border-color:#C2397A;color:#C2397A}
+.clsbar.mini{padding:6px 10px;flex-wrap:nowrap;justify-content:space-between;gap:10px;font-size:15px}
+.daybar{margin:6px 0 10px;flex-wrap:wrap;gap:8px}
 .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:12px}
 .folder{position:relative;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:4px 14px 14px 14px;padding:16px 14px 14px;display:flex;flex-direction:column;gap:4px;cursor:pointer;margin-top:10px}
 .folder .ftab{position:absolute;top:-10px;left:-2px;width:46%;height:12px;background:var(--surface);border:2px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0}
@@ -4392,18 +4395,25 @@ function packItemHtml(p){
   return '<li><button class="item" data-a="open" data-id="' + esc(p.id) + '"><span><b>' + esc(packTitle(p)) + '</b><small>' + esc(fmtDate(p.date)) + ' · ' + n + (n === 1 ? " game" : " games") + (played ? " · " + played + " played" : "") + (p.source === "plan" ? " · from the plan" : "") + (rsSpec(p) ? " · run sheet" + (SHEETS[p.id] && SHEETS[p.id].finished ? " ✓" : "") : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
 }
 function packsByDate(list){ return list.slice().sort(function(a,b){ return String(b.date || "").localeCompare(String(a.date || "")) || (+b.lp || 0) - (+a.lp || 0) || String(b.updatedAt).localeCompare(String(a.updatedAt)); }); }
+/* Home: the day's lessons (‹ › step a day, for filling in a run sheet late), then every student as a folded list. */
+var HOMEDAY = "";   /* not saved: the app opens on today */
+function dayShift(d, n){ var p = d.split("-"), dt = new Date(+p[0], +p[1]-1, +p[2] + n); return dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0") + "-" + String(dt.getDate()).padStart(2,"0"); }
 function viewHome(){
   var packs = packsByDate(PACKS), resume = inProgressHtml(false), groups = {}, names = [];
+  var day = HOMEDAY || today(), isToday = day === today();
   packs.forEach(function(p){ var k = p.student || ""; if(!groups[k]){ groups[k] = []; names.push(k); } groups[k].push(p); });
   names.sort(function(a, b){ return !a ? 1 : !b ? -1 : a.localeCompare(b); });
-  var recent = packs.slice(0, 4);
-  var folders = names.length ? '<div class="folders">' + names.map(function(k){
+  var onDay = packs.filter(function(p){ return String(p.date || "").slice(0, 10) === day; });
+  var dayLabel = isToday ? "Today" : day === dayShift(today(), -1) ? "Yesterday" : fmtDate(day);
+  var dayBar = '<div class="spread daybar"><div class="row" style="align-items:center;gap:6px"><button class="btn ghost sm" data-a="day-prev" aria-label="Day before">‹</button><h3 style="margin:0">' + esc(dayLabel) + (isToday || dayLabel === "Yesterday" ? ' <span class="muted" style="font-weight:400;font-size:16px">' + esc(fmtDate(day)) + '</span>' : "") + '</h3>' +
+    (isToday ? "" : '<button class="btn ghost sm" data-a="day-next" aria-label="Day after">›</button><button class="btn ghost sm" data-a="day-today">Today</button>') + '</div><button class="btn sm" data-a="newpack">New lesson</button></div>';
+  var dayList = onDay.length ? '<ul class="list">' + onDay.map(packItemHtml).join("") + '</ul>' : '<p class="notice">' + (PACKS.length ? "No lessons on this day." : "No lessons yet. Lessons made by the planning chat appear here by themselves, or tap New lesson.") + '</p>';
+  var stuList = names.length ? '<details class="section fold" id="stuSec"><summary><h3>Students</h3><span class="muted">' + names.length + '</span></summary><ul class="list">' + names.map(function(k){
     var g = groups[k], last = g[0];
-    return '<button class="folder" data-a="student" data-s="' + esc(k) + '"><span class="ftab" aria-hidden="true"></span><b>' + esc(k || "No student") + '</b><small>' + g.length + (g.length === 1 ? " lesson" : " lessons") + (last ? " · " + esc(last.lp ? "LP" + last.lp : fmtDate(last.date)) : "") + '</small></button>';
-  }).join("") + '</div>' : '<p class="notice">No lessons yet. Lessons made by the planning chat appear here by themselves, or tap New lesson.</p>';
-  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>Lesson games</h1>' + statusPill() + '</div>' + resume +
-    (recent.length ? '<h3>Latest</h3><ul class="list">' + recent.map(packItemHtml).join("") + '</ul>' : "") +
-    '<div class="spread" style="margin-top:22px"><h3>Students</h3><button class="btn sm" data-a="newpack">New lesson</button></div>' + folders + dataSection() + '</div>';
+    return '<li><button class="item" data-a="student" data-s="' + esc(k) + '"><span><b>' + esc(k || "No student") + '</b><small>' + g.length + (g.length === 1 ? " lesson" : " lessons") + (last ? " · latest " + esc(last.lp ? "LP" + last.lp + ", " : "") + esc(fmtDate(last.date)) : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
+  }).join("") + '</ul></details>' : "";
+  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>Lesson games</h1>' + statusPill() + '</div>' + resume + dayBar + dayList + stuList + dataSection() + '</div>';
+  foldRestore();
   var rf = $("restoreFile"); if(rf) rf.addEventListener("change", function(){ restoreFile(rf.files && rf.files[0]); rf.value = ""; });
 }
 
@@ -4580,10 +4590,17 @@ function bankSection(p){
     '<details style="margin-top:10px"' + (mine.length ? "" : " open") + '><summary class="muted">' + (mine.length ? "Word bank: " + esc(trunc(mine.map(function(b){ return b.w; }).join(", "), 90)) : "Add the word bank") + '</summary><textarea id="bankIn" style="min-height:140px;margin-top:8px" placeholder="kitchen | you cook dinner in this room | Mom is cooking in the kitchen.">' + esc(p.bank || "") + '</textarea><div class="hint">One word per line: word | clue (its meaning, never part of the word) | an example sentence with the word in it. Clue and sentence are optional.</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="bank-save">Save word bank</button></div></details></section>';
 }
 
+/* Lesson page order: games made or edited in the app (stamped ed) first, newest first, so the one Sam just made is on top;
+   the rest in plan order. Display only: p.games keeps its order, so run sheet matching by title is unchanged. */
+function gamesShown(p){
+  var gs = (p.games || []).map(function(g, i){ return { g:g, i:i }; });
+  gs.sort(function(a, b){ var x = a.g.ed || "", y = b.g.ed || ""; return x === y ? a.i - b.i : !x ? 1 : !y ? -1 : y.localeCompare(x); });
+  return gs.map(function(o){ return o.g; });
+}
 function viewPack(){
   var p = getPack(UI.packId);
   if(!p){ $("app").innerHTML = '<div class="wrap"><p class="notice">This lesson isn’t there any more.</p><button class="btn" data-a="home">All lessons</button></div>'; return; }
-  var games = (p.games || []).map(function(g){
+  var games = gamesShown(p).map(function(g){
     var rs = resultsFor(p.id, g.id), last = rs[0];
     var t = TYPES[g.type]; if(!t) return "";
     return '<div class="game">' + ball(g.type) + '<div class="body"><b>' + esc(g.title || t.label) + '</b><span class="muted" style="font-size:15px">' + t.label + (rs.length ? " · played " + rs.length + (rs.length === 1 ? " time" : " times") : "") + '</span>' +
@@ -4597,14 +4614,15 @@ function viewPack(){
   }).join("");
   var add = '<div class="add">' + TYPE_ORDER.map(function(t){ return '<button data-a="addgame" data-t="' + t + '">' + ball(t) + TYPES[t].label + '</button>'; }).join("") + '</div>';
   var hasRes = resultsFor(p.id).length;
-  $("app").innerHTML = '<div class="wrap"><div class="spread">' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">‹ ' + esc(p.student) + '</button>' : '<button class="btn ghost sm" data-a="home">‹ All students</button>') + statusPill() + '</div>' +
+  $("app").innerHTML = '<div class="wrap"><div class="spread">' + '<div class="row">' + (rsVia(p.id) ? '<button class="btn sm" data-a="rs-open">‹ Run sheet</button>' : "") + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">‹ ' + esc(p.student) + '</button>' : '<button class="btn ghost sm" data-a="home">‹ All students</button>') + '</div>' + statusPill() + '</div>' +
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
-    clsBarHtml(p) + bankSection(p) + rsPackCard(p) + '<h3 style="margin:26px 0 4px">Games</h3>' + (games || '<p class="notice">No games in this lesson yet.</p>') +
-    '<details class="section fold" id="addSec"' + ((p.games || []).length ? "" : " open") + '><summary><h3>Add a game</h3><span class="muted">' + TYPE_ORDER.length + ' kinds</span></summary>' + add + '</details>' + lookSection(p) +
+    clsBarHtml(p) + rsPackCard(p) + '<h3 style="margin:26px 0 4px">Games</h3>' + (games || '<p class="notice">No games in this lesson yet.</p>') + bankSection(p) +
+    '<details class="section fold" id="addSec"' + ((p.games || []).length ? "" : " open") + '><summary><h3>Add other games</h3><span class="muted">' + TYPE_ORDER.length + ' kinds</span></summary>' + add + '</details>' +
+    '<details class="section fold" id="advSec"><summary><h3>Advanced</h3><span class="muted">look, results, lesson details</span></summary>' + lookSection(p) +
     '<section class="section"><h3>Online students</h3>' + helpTip((SB_MODE ? 'Class link: one link for the whole lesson. The student opens it at the start of class and waits; then tap Play on any game here to put it on their screen, and its result saves itself. ' : '') + 'Student link (on a game) sends the student that one game to play on their own device — nothing else in the app.' + (SB_MODE ? ' It works as homework too: whenever it’s played, the result saves itself here, marked homework. Add a student’s result is only for a code a student sent when that didn’t work.' : '')) + '<div><button class="btn ghost" data-a="sres-open">Add a student’s result</button></div></section>' +
     (hasRes ? '<section class="section"><h3>Results</h3><p class="muted">Everything played in this lesson, ready for the after-class report.</p><div class="row"><button class="btn" data-a="copylesson">Copy lesson results</button></div><p class="ok-msg" id="copied" role="status"></p></section>' : "") +
     '<section class="section"><div class="row"><button class="btn ghost sm" data-a="editpack">Edit lesson details</button>' + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">All of ' + esc(p.student) + '’s results</button>' : "") +
-    '<button class="btn danger sm" data-a="delpack">' + (UI.confirmDel === p.id ? "Tap again to delete this lesson" : "Delete lesson") + '</button></div></section></div>';
+    '<button class="btn danger sm" data-a="delpack">' + (UI.confirmDel === p.id ? "Tap again to delete this lesson" : "Delete lesson") + '</button></div></section></details></div>';
   wireLook(p);
   if(UI.slink){
     var lg = (p.games || []).filter(function(x){ return x.id === UI.slink.gid; })[0], u = UI.slink.url;
@@ -5225,6 +5243,9 @@ function clsBarHtml(p){
   if(!SB_MODE || !SB) return "";
   var on = !!p.liveRoom && LIVE.room === p.liveRoom && LIVE.cls && LIVE.peers > 0, nm = LIVE.peerName || p.student || "Your student";
   var btn = '<button class="btn sm' + (on ? " ghost" : "") + '" data-a="clink">Class link</button>';
+  /* An in-person lesson (run sheet format) with nobody on the link: one slim line, so the run sheet starts higher on a phone. */
+  var sp = rsSpec(p);
+  if(!on && sp && !rsOnline(sp)) return '<div class="clsbar mini" id="clsBar" role="status"><span class="muted">In person · class link only if needed</span><button class="btn ghost sm" data-a="clink">Class link</button></div>';
   return '<div class="clsbar' + (on ? " on" : "") + '" id="clsBar" role="status">' + (on ? '<span>● ' + esc(nm) + ' is on the class link. <span class="muted">Tap Play on any game to put it on ' + esc(nm) + '’s screen.</span></span>' : !p.liveRoom ? '<span>Online class? <span class="muted">Send the class link once; then every game you start appears on the student’s screen.</span></span>' : '<span>○ Class link: nobody connected. <span class="muted">When the student opens it, they wait for your first game.</span></span>') + btn + '</div>';
 }
 function clsOverlay(p){
@@ -5383,7 +5404,7 @@ function fmtPts(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g
                           rows [ {block, type, label, mark} ], gaps [labels], summary (plain text) }
    Marks: "y" ran / "n" didn't run / missing = not marked (asked at Phase B). Keys come from the block label
    and the line's own text, so a re-saved plan keeps the marks on lines that didn't change.
-   students/<slug>.runsheet  "online" (default: opens first for online lessons) | "always"
+   students/<slug>.runsheet  no longer read (was "online" | "always"); every lesson with a run sheet opens on it.
    ===================================================================== */
 var SHEETS = {}, RS_LOCAL = {}, RS_DIRTY = {}, RS_TIMER = null, RS_SAVING = 0, RS_PEND = false, RS_TICK = null;
 var RS_PLAN = ["no", "too long", "instructions", "level", "materials"];
@@ -5393,8 +5414,8 @@ var RS_PLAN = ["no", "too long", "instructions", "level", "materials"];
 function lessonOnline(p){ return !!(SMODE || rsOnline(rsSpec(p)) || (LIVE.cls && LIVE.peers > 0)); }
 function rsSpec(p){ return p && p.runsheet && Array.isArray(p.runsheet.blocks) && p.runsheet.blocks.length ? p.runsheet : null; }
 function rsOnline(spec){ return /online/i.test(String(spec && spec.format || "")); }
-function rsStudentMode(name){ var o = name ? STUDENTS[slug(name)] : null; return o && o.runsheet === "always" ? "always" : "online"; }
-function rsOn(p){ var s = rsSpec(p); return !!s && (rsOnline(s) || rsStudentMode(p.student) === "always"); }
+/* Every lesson with a run sheet opens on it, online or in person (Nov 2026: paper only on request, from the planning chat). */
+function rsOn(p){ return !!rsSpec(p); }
 function rsHm(t){ var m = /^(\d{1,2}):(\d{2})/.exec(String(t || "")); return m ? +m[1] * 60 + +m[2] : null; }
 function rsFmt(n){ n = ((n % 1440) + 1440) % 1440; return String(Math.floor(n / 60)).padStart(2, "0") + ":" + String(n % 60).padStart(2, "0"); }
 function rsNow(){ var d = new Date(); return rsFmt(d.getHours() * 60 + d.getMinutes()); }
@@ -5658,8 +5679,7 @@ function viewSheet(){
   if(!RS_TICK) RS_TICK = setInterval(function(){ if(UI.view === "sheet" && !rsTyping() && !UI.rsFinish) render(); }, 30000);
 }
 function rsPackCard(p){
-  var spec = rsSpec(p), mode = rsStudentMode(p.student);
-  var modeRow = p.student ? '<div class="row" style="margin-top:10px"><span class="muted" style="font-size:15px">Open lessons on the run sheet for ' + esc(p.student) + ':</span><span class="rs-seg"><button class="' + (mode === "online" ? "on" : "") + '" data-a="rs-mode" data-v="online" aria-pressed="' + (mode === "online") + '">Online lessons</button><button class="' + (mode === "always" ? "on" : "") + '" data-a="rs-mode" data-v="always" aria-pressed="' + (mode === "always") + '">Every lesson</button></span></div>' : "";
+  var spec = rsSpec(p), modeRow = "";
   var paste = '<details style="margin-top:10px"><summary class="muted">' + (spec ? "Replace the run sheet" : "Paste a run sheet") + '</summary><p class="muted" style="font-size:15px">The run sheet spec (JSON) the planning chat gives to rs_build.py.</p><textarea id="rsSpecIn" spellcheck="false" style="min-height:140px;font-size:14px"></textarea><p class="err" id="rsSpecErr" role="alert"></p><button class="btn sm" data-a="rs-spec">Save run sheet</button></details>';
   if(!spec) return '<section class="rs-card"><h3>Run sheet</h3><p class="muted" style="margin:0;font-size:16px">None saved with this lesson yet: the planning chat adds it at Gate 5.</p>' + paste + modeRow + '</section>';
   var info = rsBuildDoc(p, rsDoc(p.id)), marked = Object.keys(rsDoc(p.id).marks || {}).length;
@@ -5676,8 +5696,7 @@ function rsSpecFrom(text){
 function rsHandle(a, el){
   var pid = UI.packId, p = getPack(pid), k = el.getAttribute("data-k");
   if(a === "rs-open"){ UI.rsGaps = false; go("sheet"); return; }
-  if(a === "rs-games"){ rsFlush(pid); UI.rsGaps = false; UI.rsFinish = false; go("pack"); return; }
-  if(a === "rs-mode"){ if(!p || !p.student) return; var sid = slug(p.student), so = Object.assign({ id: sid, name: p.student }, STUDENTS[sid] || {}, { runsheet: el.getAttribute("data-v"), updatedAt: nowIso() }); STUDENTS[sid] = so; STORE.saveStudent(so).catch(saveErr); render(); return; }
+  if(a === "rs-games"){ rsFlush(pid); UI.rsGaps = false; UI.rsFinish = false; UI.rsVia = pid; go("pack"); return; }
   if(a === "rs-spec"){
     var r = rsSpecFrom($("rsSpecIn").value); if(r.err){ $("rsSpecErr").textContent = r.err; return; }
     var pp = clone(p); pp.runsheet = r.spec; touchPack(pp); PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; });
@@ -5716,7 +5735,21 @@ function rsHandle(a, el){
     render(); return;
   }
 }
+/* Came to the lesson page from its run sheet (‹ Games): games started there go back to the run sheet too. */
+function rsVia(pid){ return UI.rsVia === pid && rsSpec(getPack(pid)) ? pid : null; }
 function lessonView(pid){ var p = getPack(pid); return UI.rsRet === pid && rsSpec(p) ? "sheet" : "pack"; }
+/* Run sheet on a phone or iPad: when a box gets the keyboard, keep it in the visible part of the screen
+   (visualViewport shrinks when the keyboard opens; the sticky header covers the top). */
+function rsKeepVisible(el){
+  if(!el || !el.isConnected) return;
+  var vv = window.visualViewport, top = 70, bot = vv ? vv.height + vv.offsetTop : window.innerHeight, r = el.getBoundingClientRect();
+  if(r.top < top || r.bottom > bot - 12) window.scrollBy(0, r.top - top - Math.max(0, (bot - top - r.height) / 3));
+}
+document.addEventListener("focusin", function(e){
+  var el = e.target; if(!el || !el.matches || !el.matches("[data-rsin]")) return;
+  setTimeout(function(){ rsKeepVisible(el); }, 350);
+});
+if(window.visualViewport) window.visualViewport.addEventListener("resize", function(){ var el = document.activeElement; if(el && el.matches && el.matches("[data-rsin]")) rsKeepVisible(el); });
 document.addEventListener("input", function(e){
   var el = e.target, k = el && el.getAttribute && el.getAttribute("data-rsin");
   if(!k || UI.view !== "sheet" || !UI.packId) return;
@@ -5812,7 +5845,7 @@ function handle(a, el){
   if(a === "showall"){ UI.showAll = true; render(); return; }
   if(a === "resume"){ if(run) startClock(run); go("play"); return; }
   if(a === "play-resume"){ if(!resumeRun(el.getAttribute("data-k"))) toast("That game isn’t waiting any more."); return; }
-  if(a === "open"){ UI.confirmDel = null; var opk = getPack(el.getAttribute("data-id")); UI.rsGaps = false; UI.rsFinish = false; go(opk && rsOn(opk) ? "sheet" : "pack", { packId: el.getAttribute("data-id") }); return; }
+  if(a === "open"){ UI.confirmDel = null; UI.rsVia = null; var opk = getPack(el.getAttribute("data-id")); UI.rsGaps = false; UI.rsFinish = false; go(opk && rsOn(opk) ? "sheet" : "pack", { packId: el.getAttribute("data-id") }); return; }
   if(a === "student"){ go("student", { student: el.getAttribute("data-s") }); return; }
   if(a === "newpack"){ UI.draftPack = { student:"", lp:"", date:today() }; go("packEdit"); return; }
   if(a === "editpack"){ var p0 = getPack(UI.packId); UI.draftPack = { id:p0.id, student:p0.student || "", lp:p0.lp || "", date:p0.date || today() }; go("packEdit"); return; }
@@ -5853,7 +5886,7 @@ function handle(a, el){
     var leaks = leakyClues({ type:dg.type, block:block });
     if(leaks.length && UI.clueOk !== block){ UI.clueOk = block; $("err").textContent = "These clues give part of the answer away: " + leaks.join(", ") + ". Rewrite them, or tap Save again to keep them."; return; }
     UI.clueOk = null;
-    var pp = clone(getPack(UI.packId)), game = { id:dg.id, type:dg.type, title:title, block:block, options:opts2 };
+    var pp = clone(getPack(UI.packId)), game = { id:dg.id, type:dg.type, title:title, block:block, options:opts2, ed:nowIso() };
     var was = (pp.games || []).filter(function(x){ return x.id === dg.id; })[0];
     if(dg.isNew || (was && (was.app || was.spot))) game.app = true;   /* made in the app: a plan re-save keeps it */
     if(was && was.spot) game.spot = true;
@@ -5869,6 +5902,8 @@ function handle(a, el){
     var p2 = clone(getPack(UI.packId)); p2.games = (p2.games || []).filter(function(x){ return x.id !== dg2.id; });
     UI.confirmDel = null; touchPack(p2); PACKS = PACKS.map(function(x){ return x.id === p2.id ? p2 : x; }); go("pack"); return;
   }
+  if(a === "day-prev" || a === "day-next"){ HOMEDAY = dayShift(HOMEDAY || today(), a === "day-prev" ? -1 : 1); if(HOMEDAY >= today()) HOMEDAY = ""; render(); return; }
+  if(a === "day-today"){ HOMEDAY = ""; render(); return; }
   if(a === "qscope"){ UI.qScope = el.getAttribute("data-v"); saveUI(); render(); return; }
   if(a === "pg-quick"){ var pgs = el.getAttribute("data-s"), pgp = packsByDate(PACKS.filter(function(x){ return (x.student || "") === pgs; }))[0]; if(!pgp) return; UI.qScope = "stuck"; UI.confirmDel = null; UI.rsGaps = false; UI.rsFinish = false; go("pack", { packId: pgp.id }); setTimeout(function(){ var q = $("quickSec"); if(q) q.scrollIntoView({ block:"start" }); }, 0); return; }
   if(a === "bank-save"){ var bp = getPack(UI.packId), bt = $("bankIn"); if(!bp || !bt) return; var bpp = clone(bp); bpp.bank = bt.value.trim(); if(!bpp.bank) delete bpp.bank; touchPack(bpp); PACKS = PACKS.map(function(x){ return x.id === bpp.id ? bpp : x; }); render(); toast("Word bank saved: " + parseBank(bpp.bank).length + " words."); return; }
@@ -5880,13 +5915,13 @@ function handle(a, el){
     if(qw.length < q.min){ toast(q.label + " needs at least " + q.min + (q.need ? " " + q.need : " words" + (q.clue ? " with clues" : "")) + "."); return; }
     var ids = (qp.games || []).map(function(x){ return x.id; }), qn = 1; while(ids.indexOf("q" + qn) !== -1) qn++;
     var qo = Object.assign({}, TYPES[q.t].defaults(qp), q.opts ? q.opts(qw) : {});
-    var qg = { id:"q" + qn, app:true, type:q.t, title:q.label + " · " + qScopeName(qs) + " (on the spot)", block:q.block(qw), options:qo, spot:true };
+    var qg = { id:"q" + qn, app:true, type:q.t, title:q.label + " · " + qScopeName(qs) + " (on the spot)", block:q.block(qw), options:qo, spot:true, ed:nowIso() };
     var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
     var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
-    UI.rsRet = null; UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
+    UI.rsRet = rsVia(qpp.id); UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
   }
   if(a === "play" || a === "play-ch"){
-    UI.rsRet = null; UI.clsPlay = true;
+    UI.rsRet = rsVia(UI.packId); UI.clsPlay = true;
     var pk2 = getPack(UI.packId), gm = (pk2.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
     var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(pk2), gm.options || {}));
     if(bad){ toast("This game needs fixing first: " + bad); return; }

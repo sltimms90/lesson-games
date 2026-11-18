@@ -13,25 +13,32 @@ def top(pg, sel): return pg.evaluate("s => { const e = document.querySelector(s)
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
-    t = teacher(ctx, seed_db(packs, results=results), errs); t.wait_for_selector("text=Mia · LP9", timeout=8000)
-    t.click("text=Mia · LP9"); t.wait_for_timeout(300)
+    t = teacher(ctx, seed_db(packs, results=results), errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     # --- 1. lesson page layout
-    q, rs, g1 = top(t, "#quickSec"), top(t, ".rs-card"), top(t, ".game")
-    check(0 < q < rs < g1, "Quick game comes before the run sheet and the games (%d < %d < %d)" % (q, rs, g1))
-    check(q < 400, "Quick game starts in the top half of the iPad screen (%d)" % q)
-    check(t.locator("#quickSec [data-a=qscope][data-v=missed]").is_visible(), "Missed lately button is visible at the top")
-    check(not t.evaluate("document.getElementById('addSec').open") and not t.evaluate("document.getElementById('lookSec').open"), "Add a game and Look start folded")
-    check(t.locator("[data-a=addgame]").first.is_hidden() and t.locator("#lkPack").is_hidden(), "their controls are hidden until opened")
+    order = [top(t, x) for x in ("#clsBar", ".rs-card", ".game", "#quickSec", "#addSec", "#advSec")]
+    check(0 < order[0] < order[1] < order[2] < order[3] < order[4] < order[5], "lesson page order: class link, run sheet, games, quick game, add other games, advanced %s" % order)
+    check(t.locator("#quickSec [data-a=qscope][data-v=missed]").is_visible(), "Missed lately button is visible")
+    check(not t.evaluate("document.getElementById('addSec').open") and not t.evaluate("document.getElementById('advSec').open"), "Add other games and Advanced start folded")
+    check(t.locator("[data-a=addgame]").first.is_hidden() and t.locator("#lkPack").is_hidden() and t.locator("[data-a=sres-open]").is_hidden() and t.locator("[data-a=editpack]").is_hidden(), "their controls are hidden until opened")
     check(t.locator("details.help[open]").count() == 0 and t.locator("details.help").count() >= 2, "help text is folded behind ⓘ (%d tips)" % t.locator("details.help").count())
-    check("Bright" in t.inner_text("#lookSec summary"), "Look summary names the current look: %s" % t.inner_text("#lookSec summary"))
     h = t.evaluate("document.documentElement.scrollHeight"); print("lesson page height %d px = %.1f iPad screens" % (h, h / 820.0))
     t.screenshot(path=HERE + "/shots/lesson_ipad.png"); t.screenshot(path=HERE + "/shots/lesson_ipad_full.png", full_page=True)
+    t.click("#advSec > summary"); t.wait_for_timeout(100)
+    check("Bright" in t.inner_text("#lookSec summary"), "Look (inside Advanced) names the current look: %s" % t.inner_text("#lookSec summary"))
     t.click("#addSec > summary"); t.click("#lookSec > summary"); t.wait_for_timeout(100)
     t.select_option("#lkPack", "bats"); t.wait_for_timeout(300)
-    check(t.evaluate("document.getElementById('addSec').open && document.getElementById('lookSec').open"), "opened sections stay open after a re-render")
+    check(t.evaluate("document.getElementById('addSec').open && document.getElementById('lookSec').open && document.getElementById('advSec').open"), "opened sections stay open after a re-render")
     check("Midnight bats (this lesson only)" in t.inner_text("#lookSec summary"), "summary shows a one-off look")
-    t.click("#lookSec > summary"); t.click("[data-a=qscope][data-v=today]"); t.wait_for_timeout(200)
-    check(not t.evaluate("document.getElementById('lookSec').open") and t.evaluate("document.getElementById('addSec').open"), "a folded section stays folded after a re-render")
+    t.click("#lookSec > summary"); t.click("#advSec > summary"); t.click("[data-a=qscope][data-v=today]"); t.wait_for_timeout(200)
+    check(not t.evaluate("document.getElementById('advSec').open") and t.evaluate("document.getElementById('addSec').open"), "a folded section stays folded after a re-render")
+    # --- edited / new games go to the top of Games
+    t.click("[data-a=editgame][data-g=g3]"); t.wait_for_timeout(200); t.click("[data-a=savegame]"); t.wait_for_timeout(300)
+    gs = t.eval_on_selector_all(".game [data-a=editgame]", "els=>els.map(e=>e.dataset.g)")
+    check(gs[:2] == ["g3", "g1"], "an edited game moves to the top of Games: %s" % gs)
+    check([g["id"] for g in t.evaluate("__T.PACKS.find(p=>p.id==='mia-lp9').games")][:3] == ["g1", "g2", "g3"], "the lesson's stored game order is unchanged (run sheet matching)")
+    t.click("[data-a=quick][data-q=hangman]"); t.wait_for_timeout(400); t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    gs = t.eval_on_selector_all(".game [data-a=editgame]", "els=>els.map(e=>e.dataset.g)")
+    check(gs[:2] == ["q1", "g3"], "a quick game goes on top, the edited one next: %s" % gs)
     # --- A. Bingo cards fill the landscape screen
     for show in ("student", "all"):
         t.click("[data-a=play][data-g=g4]"); t.wait_for_selector(".grid .cell", timeout=5000)
@@ -77,7 +84,7 @@ with sync_playwright() as p:
     t.click("[data-a=discard]"); t.wait_for_timeout(300)
     # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
     hb = t.locator(".game [data-a=play-ch]")
-    check(hb.count() == 2 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
+    check(hb.count() == 3 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman (plan + quick) and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
     check("Challenge" not in t.inner_text("#app"), "no 'Challenge' left on the lesson page")
     hb.first.click(); t.wait_for_timeout(400)
     check(t.evaluate("__T.UI.run.title").endswith("(hard mode)") and "Hard mode · Word 1" in t.inner_text("#app"), "Hard mode run: %s" % t.evaluate("__T.UI.run.title"))
@@ -103,13 +110,13 @@ with sync_playwright() as p:
     check(t.locator(".toast.undo").count() == 0, "an ordinary move (a Hangman letter) gets no toast")
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(200)
     np = [{"id":"new-lp1", "student":"Ned", "lp":1, "title":"Ned · LP1", "date":"2026-11-17", "updatedAt":"x", "games":[]}]
-    ctx2 = b.new_context(viewport={"width":1180, "height":820}); t2 = teacher(ctx2, seed_db(np), errs); t2.wait_for_selector("text=Ned · LP1", timeout=8000); t2.click("text=Ned · LP1"); t2.wait_for_timeout(300)
+    ctx2 = b.new_context(viewport={"width":1180, "height":820}); t2 = teacher(ctx2, seed_db(np), errs); go_lesson(t2, "Ned · LP1"); t2.wait_for_timeout(300)
     check(t2.evaluate("document.getElementById('addSec').open"), "a lesson with no games opens Add a game")
     ctx2.close()
     # --- 3b. Undo toast in a live game: the student's screen follows the undo
     lp = dict(packs[1]); lp["liveRoom"] = "0123456789abcdef0123456789abcdef"
     ctx3 = b.new_context(viewport={"width":1180, "height":820})
-    t3 = teacher(ctx3, seed_db([lp]), errs); t3.wait_for_selector("text=Mia · LP9", timeout=8000); t3.click("text=Mia · LP9"); t3.wait_for_timeout(300)
+    t3 = teacher(ctx3, seed_db([lp]), errs); go_lesson(t3, "Mia · LP9"); t3.wait_for_timeout(300)
     t3.click("#clsBar [data-a=clink]"); t3.wait_for_selector("#slinkUrl", timeout=5000); url = t3.input_value("#slinkUrl"); t3.click("[data-a=clink-close]")
     s3 = student(ctx3, url, errs); s3.wait_for_timeout(1000)
     t3.click("[data-a=play][data-g=g2]"); s3.wait_for_selector("[data-a=fc-flip]", timeout=5000)
@@ -120,7 +127,7 @@ with sync_playwright() as p:
     ctx3.close()
     # online lesson (run sheet says online): Say it first starts off
     op = dict(packs[1]); op["runsheet"] = {"format":"online", "student":"Mia", "lp":9, "blocks":[{"label":"0 Arrival", "mins":10, "lines":[]}]}
-    ctx4 = b.new_context(viewport={"width":1180, "height":820}); t4 = teacher(ctx4, seed_db([op]), errs); t4.wait_for_selector("text=Mia · LP9", timeout=8000); t4.click("text=Mia · LP9"); t4.wait_for_timeout(300)
+    ctx4 = b.new_context(viewport={"width":1180, "height":820}); t4 = teacher(ctx4, seed_db([op]), errs); go_lesson(t4, "Mia · LP9"); t4.wait_for_timeout(300)
     if t4.locator("[data-a=rs-games]").count(): t4.click("[data-a=rs-games]"); t4.wait_for_timeout(300)
     t4.click("[data-a=play][data-g=g8]"); t4.wait_for_timeout(500)
     check(t4.evaluate("__T.UI.view") == "play" and t4.evaluate("__T.UI.run.st.covered") is False and t4.evaluate("__T.UI.run.st.sayFirst") is False, "online lesson: Say it first starts off")

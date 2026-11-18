@@ -4,13 +4,24 @@ ROOT = __import__("os").path.abspath(__import__("os").path.join(__import__("os")
 MOCK = open("mock-supabase.js").read()
 APP = open(ROOT + "/app/index.html", encoding="utf-8").read()
 APP = __import__("re").sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>', "", APP)  # the test hook changes the script, so its hash no longer matches
-HOOK = "window.__T={get STORE(){return STORE},slinkData:slinkData,packData:packData,get SLINK_TYPES(){return SLINK_TYPES}};\n"
+HOOK = "window.__T={setHomeDay:function(d){HOMEDAY=d;render()},get STORE(){return STORE},slinkData:slinkData,packData:packData,get SLINK_TYPES(){return SLINK_TYPES}};\n"
 APP = APP.replace("if(STUDENT_PAGE) startStudent();", HOOK + "if(STUDENT_PAGE) startStudent();")
 BOARD = open("board.b64").read(); TOK = open("tok.b64").read(); JPG = open("board.jpg","rb").read()
 fails = []
 def check(c, m):
     print(("PASS " if c else "FAIL ") + m)
     if not c: fails.append(m)
+def go_lesson(pg, title, who=None, timeout=8000):
+    """Home lists only today's lessons; anything else is reached through the Students list (folded)."""
+    pg.wait_for_selector("#stuSec, .head h2", timeout=timeout)
+    if pg.locator(".head h2", has_text=title).count(): return   # the app reopened on this lesson
+    if not pg.locator("#stuSec").count():
+        if not pg.locator("[data-a=home]").count(): pg.click("[data-a=student]"); pg.wait_for_timeout(200)
+        pg.click("[data-a=home]"); pg.wait_for_selector("#stuSec", timeout=timeout)
+    if not pg.locator(".daybar ~ .list >> text=" + title).count():
+        if not pg.evaluate("document.getElementById('stuSec').open"): pg.click("#stuSec > summary")
+        pg.click("#stuSec [data-a=student]:has-text('%s')" % (who or title.split(" · ")[0])); pg.wait_for_timeout(250)
+    pg.click("text=" + title)
 def route(page, imgs):
     def h(r):
         u = r.request.url
@@ -33,9 +44,9 @@ with sync_playwright() as p:
     pg = ctx.new_page(); errs=[]; pg.on("pageerror", lambda e: errs.append(str(e))); imgs=[]
     pg.add_init_script("window.__MOCK = %s;" % json.dumps({"db":seed, "session":{"user":{"email":"t@x"}}}))
     route(pg, imgs); pg.goto("https://sltimms90.github.io/lesson-games/app/")
-    pg.wait_for_selector("text=Mia · LP9", timeout=8000)
+    pg.wait_for_selector("#stuSec", timeout=8000)
     check("snakes" in pg.evaluate("__T.SLINK_TYPES") and "bingo" in pg.evaluate("__T.SLINK_TYPES"), "both types offer a student link")
-    pg.click("text=Mia · LP9"); pg.wait_for_timeout(400)
+    go_lesson(pg, "Mia · LP9"); pg.wait_for_timeout(400)
     check(pg.locator("[data-a=slink][data-g=g1]").count() == 1 and pg.locator("[data-a=slink][data-g=g2]").count() == 1, "Student link buttons shown on the lesson page")
     pg.click("[data-a=slink][data-g=g1]"); pg.wait_for_selector("#slinkUrl", timeout=5000)
     snurl = pg.input_value("#slinkUrl")
@@ -49,7 +60,7 @@ with sync_playwright() as p:
     check(not errs, "teacher errors %s" % errs)
     pg.close()
     # student: snakes
-    pg = ctx.new_page(); route(pg, []); pg.add_init_script("window.__MOCK = %s;" % json.dumps({"db":seed, "session":{"user":{"email":"t@x"}}})); pg.goto("https://sltimms90.github.io/lesson-games/app/"); pg.wait_for_selector("text=Mia · LP9"); pg.click("text=Mia · LP9"); pg.wait_for_timeout(300)
+    pg = ctx.new_page(); route(pg, []); pg.add_init_script("window.__MOCK = %s;" % json.dumps({"db":seed, "session":{"user":{"email":"t@x"}}})); pg.goto("https://sltimms90.github.io/lesson-games/app/"); go_lesson(pg, "Mia · LP9"); pg.wait_for_timeout(300)
     pg.click("[data-a=slink][data-g=g3]"); pg.wait_for_selector("#slinkUrl"); hlurl = pg.input_value("#slinkUrl"); pg.close()
     for name, url in [("snakes", snurl), ("bingo", bgurl), ("hilo", hlurl)]:
         pg = ctx.new_page(); e=[]; pg.on("pageerror", lambda x: e.append(str(x))); imgs=[]; reqs=[]

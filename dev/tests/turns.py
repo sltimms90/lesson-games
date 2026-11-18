@@ -3,7 +3,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"]); ctx = b.new_context(viewport={"width":1180,"height":820})
     T = ctx.new_page(); terr=[]; T.on("pageerror", lambda e: terr.append(str(e))); route(T, [])
     T.add_init_script("if(!sessionStorage.mk){sessionStorage.mk=1; window.__MOCK = %s;}" % json.dumps({"db":seed, "session":{"user":{"email":"t@x"}}}))
-    T.goto("https://sltimms90.github.io/lesson-games/app/"); T.wait_for_selector("text=Mia · LP9"); T.click("text=Mia · LP9"); T.wait_for_timeout(300)
+    T.goto("https://sltimms90.github.io/lesson-games/app/"); go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
     links = {}
     for g in ["g1","g2","g3"]:
         T.click("[data-a=slink][data-g=%s]" % g); T.wait_for_selector("#slinkUrl"); links[g] = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")

@@ -10,7 +10,7 @@ games = [
 pack = {"id":"mia-lp9","student":"Mia","lp":9,"title":"Mia · LP9","date":"2026-11-15","updatedAt":"x","games":games,"liveRoom":"0123456789abcdef0123456789abcdef"}
 db = seed_db([pack])
 def open_lesson(pg):
-    pg.wait_for_selector("text=Mia · LP9", timeout=8000); pg.click("text=Mia · LP9"); pg.wait_for_timeout(400)
+    go_lesson(pg, "Mia · LP9"); pg.wait_for_timeout(400)
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []

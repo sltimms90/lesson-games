@@ -10,7 +10,7 @@ pack = {"id":"mia-lp9","student":"Mia","lp":9,"title":"Mia · LP9","date":"2026-
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
-    t = teacher(ctx, seed_db([pack]), errs); t.wait_for_selector("text=Mia · LP9", timeout=8000); t.click("text=Mia · LP9"); t.wait_for_timeout(300)
+    t = teacher(ctx, seed_db([pack]), errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     # in person, one screen
     t.click("[data-a=play][data-g=g3]"); t.wait_for_timeout(300)
     check(t.locator("header [data-a=challenge]").count() == 0, "no ⚡ on games other than Snakes & Ladders / Higher or Lower")

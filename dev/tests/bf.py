@@ -14,7 +14,7 @@ pack = {"id":"jl","student":"Cathy & Lily","lp":27,"title":"JL","date":"2026-11-
  "runsheet":{"student":"Cathy & Lily","lp":27,"start":"19:00","length":60,"format":"in person","blocks":blocks}}
 res = [{"id":"r1","packId":"jl","gameId":"g1","type":"auction","summary":"x","score":{"text":"9,650 money · fixed 5/5"},"at":"2026-11-18T11:00:00Z"}]
 def lesson(pg):
-    pg.wait_for_selector("text=JL", timeout=8000); pg.click("text=JL"); pg.wait_for_timeout(300)
+    go_lesson(pg, "JL", "Cathy"); pg.wait_for_timeout(300)
     if pg.evaluate("__T.UI.view") == "sheet": pg.locator("button", has_text="Games").first.click(); pg.wait_for_timeout(300)
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])

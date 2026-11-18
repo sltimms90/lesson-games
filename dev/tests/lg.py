@@ -17,6 +17,17 @@ def check(c, m):
     if not c: FAILS.append(m)
 def done():
     print("%d failures" % len(FAILS))
+def go_lesson(pg, title, who=None, timeout=8000):
+    """Home lists only today's lessons; anything else is reached through the Students list (folded)."""
+    pg.wait_for_selector("#stuSec, .head h2", timeout=timeout)
+    if pg.locator(".head h2", has_text=title).count(): return   # the app reopened on this lesson
+    if not pg.locator("#stuSec").count():
+        if not pg.locator("[data-a=home]").count(): pg.click("[data-a=student]"); pg.wait_for_timeout(200)
+        pg.click("[data-a=home]"); pg.wait_for_selector("#stuSec", timeout=timeout)
+    if not pg.locator(".daybar ~ .list >> text=" + title).count():
+        if not pg.evaluate("document.getElementById('stuSec').open"): pg.click("#stuSec > summary")
+        pg.click("#stuSec [data-a=student]:has-text('%s')" % (who or title.split(" · ")[0])); pg.wait_for_timeout(250)
+    pg.click("text=" + title)
 def route(page, imgs=None):
     def h(r):
         u = r.request.url

@@ -29,7 +29,7 @@ with sync_playwright() as p:
     check(s0.locator("img[src='x'], img[src='y']").count() == 0, "foreign picture addresses are dropped")
     s0.close()
     # C1: poisoned live state, every game type, both kinds of poison
-    t = teacher(ctx, seed_db([pack]), errs); t.wait_for_selector("text=Mia · LP9", timeout=8000); t.click("text=Mia · LP9"); t.wait_for_timeout(300)
+    t = teacher(ctx, seed_db([pack]), errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     t.click("#clsBar [data-a=clink]"); t.wait_for_selector("#slinkUrl"); url = t.input_value("#slinkUrl"); t.click("[data-a=clink-close]")
     s = student(ctx, url, errs); s.wait_for_timeout(900)
     for g in games:

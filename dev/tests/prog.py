@@ -21,8 +21,7 @@ results = [
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
-    t = teacher(ctx, seed_db(packs, results=results), errs); t.wait_for_selector("text=Mia · LP9", timeout=8000)
-    t.click("text=Mia · LP9"); t.wait_for_timeout(300)
+    t = teacher(ctx, seed_db(packs, results=results), errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     btn = t.locator("[data-a=qscope][data-v=missed]")
     check(btn.count() == 1, "Quick game offers Missed lately")
     words = t.evaluate("(() => { const p = __T.PACKS.find(x => x.id === 'mia-lp9'); return null; })()")

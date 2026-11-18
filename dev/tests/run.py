@@ -47,7 +47,7 @@ with sync_playwright() as p:
     pg.fill("#sbCode", "000000"); pg.click("[data-a=sb-code]"); pg.wait_for_timeout(300)
     check("didn’t work" in pg.inner_text("#app"), "wrong code shows an error")
     pg.fill("#sbCode", "123456"); pg.click("[data-a=sb-code]")
-    pg.wait_for_selector("text=Seed lesson 2", timeout=8000)
+    pg.wait_for_selector("#stuSec", timeout=8000); pg.click("#stuSec > summary"); pg.click("#stuSec [data-a=student]:has-text('No student')"); pg.wait_for_selector("text=Seed lesson 2", timeout=8000)
     check(pg.locator(".list li").count() == 3, "three seeded lessons listed")
     check("Saved online" in pg.inner_text("#status"), "status pill says Saved online")
     check(pg.evaluate("__MOCK.created.opts.auth.persistSession") is True, "session persists")
@@ -66,6 +66,7 @@ with sync_playwright() as p:
     r = pg.evaluate("__T.STORE.saveResult({id:'r2',packId:'p1',at:'x'}).then(()=>'ok',e=>'err:'+e.message)")
     check(r == "err:network down", "write errors reach the caller")
     # backup
+    pg.click("[data-a=home]"); pg.wait_for_timeout(200)
     with pg.expect_download() as d: pg.click("[data-a=backup]")
     data = json.load(open(d.value.path()))
     check(data["format"] == "lesson-games-backup" and len(data["collections"]["packs"]) == 3 and len(data["collections"]["students"]) == 1, "backup file has the live data")

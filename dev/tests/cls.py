@@ -13,7 +13,7 @@ db = seed_db([pack], students=[{"id":"mia-chen","name":"Mia Chen","token":TOK}])
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []; imgs = []
-    t = teacher(ctx, db, errs); t.wait_for_selector("text=Mia · LP9", timeout=8000); t.click("text=Mia · LP9"); t.wait_for_timeout(300)
+    t = teacher(ctx, db, errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     check(t.locator("#clsBar [data-a=clink]").count() == 1, "lesson page offers the class link")
     t.click("#clsBar [data-a=clink]"); t.wait_for_selector("#slinkUrl", timeout=5000)
     url = t.input_value("#slinkUrl")
