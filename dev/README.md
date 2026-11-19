@@ -23,6 +23,7 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 rs_every.py                 # 19 Nov: run sheet opens for every lesson; phone/iPad comfort; home by day; lesson page order; edited games on top
     python3 fix19.py                    # 19 Nov feedback: Look selects, run sheet paste under Advanced, Quick game word source line, spelling size/zoom
     python3 plan.py                     # Plan tab: fetch through plan-doc, device copy + ↻, run sheet jumps, outline, scroll kept, folds, no code from the file, never on student pages
+    python3 fb1119b.py                  # 19 Nov evening: Win or lose typed bet + All in (student link, class link), Plan tab HW Key, Open plan / Folder links
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
@@ -33,7 +34,8 @@ Every script ends with "N failures". `fit.py` fails only on iPad and desktop; on
 
 `functions/plan-doc/` is the Edge Function behind the Plan tab (deployed as `plan-doc`, verify_jwt off: it checks
 `am_i_teacher` with the caller's token itself). It reads the LP file with a Google service account whose JSON key is the
-secret `GOOGLE_SA_KEY`; .docx files go through mammoth, native Docs through files.export. Test it with Deno:
+secret `GOOGLE_SA_KEY`; .docx files go through mammoth, native Docs through files.export. It also sends the file's folder
+(`folderId`, the first of `parents` from the same metadata call) for the app's Folder link. Test it with Deno:
 `deno test --allow-env --allow-read dev/functions/plan-doc/plan_test.ts`. `tests/plan_sample.docx` is a made-up plan in
 the LP layout (`make_plan_sample.py`); `tests/plan_sample.html` is the same plan as the function returns it.
 

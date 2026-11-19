@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-C8F9C4cr+o2/NwtDVhckFse4pdITj8v+ntuTLsgpS5Q='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-MTgPJCYK+jjl+dOOb+eHsOU3R6j7m6LP+jt9RFu1/kM='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -300,6 +300,10 @@ button.check[aria-pressed=true]{border-color:var(--ok)}
 .betn{text-align:center;min-width:120px}
 .betn b{display:block;font:800 40px/1 "Baloo 2",sans-serif;color:var(--amber)}
 .betn small{color:var(--muted);font-size:15px}
+/* Win or lose: a typed amount and All in, beside the − / + bet (Nov 2026). 16px+ so phones don't zoom in on it. */
+.qz-betx{justify-content:center;align-items:center}
+.qz-amt{display:inline-flex;align-items:center;gap:8px;font-size:16px;color:var(--muted)}
+.qz-amt input{width:7.5em;font:700 20px/1.2 "Baloo 2",sans-serif;text-align:center;padding:8px 10px}
 /* grammar auction */
 .score .n.au{color:var(--c-auction)}
 .score .n.sp{color:var(--c-spelling)}
@@ -777,6 +781,12 @@ main.rs{padding-bottom:45vh}
 .pl-doc li{margin:.25em 0}
 .pl-doc [id]{scroll-margin-top:72px}
 .pl-doc .pl-hit{outline:3px solid var(--ball);outline-offset:4px;border-radius:8px}
+/* Open plan / Folder: Drive links (teacher only). Icons only on a narrow screen. */
+.pl-links{display:inline-flex;gap:6px;align-items:center}
+.pl-ext{gap:6px;text-decoration:none;color:var(--ink)}
+.pl-hwb{white-space:nowrap}
+.pl-meta .pl-links{margin-left:auto}
+@media (max-width:640px){.rs-top .pl-ext .lbl{display:none}.rs-top .pl-ext{min-width:44px;padding:8px 10px;justify-content:center}}
 .pl-tbl{overflow-x:auto}
 .pl-doc table{border-collapse:collapse;margin:.5em 0}
 .pl-doc td,.pl-doc th{border:1px solid var(--line);padding:4px 8px;vertical-align:top}
@@ -2043,6 +2053,15 @@ function qzSetup(s){
   s.perm = p; s.chose = null; s.phase = "ask"; s.hidden = []; s.dbl = false; s.used = []; s.betting = false; s.covered = !!s.sayFirst; s.said = null;
   s.tLeft = s.timer ? s.timer * 1000 : 0;
 }
+/* A typed bet: whole numbers only, 1 up to the pot (more is cut to the pot); anything else → null (ignored). */
+function qzAmt(s, v){ v = String(v == null ? "" : v).trim(); if(!/^\d{1,9}$/.test(v)) return null; var n = parseInt(v, 10); return n >= 1 ? Math.min(n, s.pot) : null; }
+function qzBetWire(run){
+  var inp = $("qzBetIn"), s = run.st; if(!inp) return;
+  function show(){ var n = qzAmt(s, inp.value), v = n != null ? n : s.bet, b = $("qzBetN"), k = $("qzBetBank"), g = $("qzBetGo");
+    if(b) b.textContent = v; if(k) k.textContent = "bet · bank " + (s.pot - v); if(g) g.textContent = "Bet " + v; }
+  inp.addEventListener("input", function(){ s.betDraft = inp.value; show(); });
+  inp.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); var g = $("qzBetGo"); if(g && !g.disabled) g.click(); } });
+}
 function qzMissed(s){ return s.log.filter(function(x){ return !x.ok; }); }
 function qzBlock(list){ return list.map(function(q){ return q.q + "\n" + q.opts.map(function(o, i){ return (i === q.right ? "*" : "") + o; }).join("\n"); }).join("\n\n"); }
 function qzCanFifty(s){ var q = s.qs[s.order[s.i]]; return s.perm.filter(function(i){ return i !== q.right && s.hidden.indexOf(i) === -1; }).length >= 2; }
@@ -2192,10 +2211,12 @@ TYPES.quiz = {
       after = '<div class="verdict ' + (ok ? "ok" : "no") + '">' + (ok ? "Right!" + (lg && lg.points > (wl ? 0 : 100) && !wl ? " +" + lg.points : "") : (lg && lg.timeout ? "Time’s up" : "Not this time") + (wl && s.lost ? ": " + s.lost + " lost" : "")) + '</div>';
       if(wl && ok && !last){
         if(s.betting){
-          after += '<div class="bet"><button class="btn ghost" data-a="qz-betstep" data-d="-50" aria-label="Bet 50 less"' + (s.bet <= 50 ? " disabled" : "") + '>−</button><div class="betn"><b>' + s.bet + '</b><small>bet · bank ' + (s.pot - s.bet) + '</small></div><button class="btn ghost" data-a="qz-betstep" data-d="50" aria-label="Bet 50 more"' + (s.bet >= s.pot - 50 ? " disabled" : "") + '>+</button></div>' +
-            '<div class="row" style="justify-content:center"><button class="btn big-btn" data-a="qz-bet">Bet ' + s.bet + '</button><button class="btn ghost" data-a="qz-betcancel">Back</button></div>';
+          var shown0 = qzAmt(s, s.betDraft), bv = shown0 != null ? shown0 : s.bet;
+          after += '<div class="bet"><button class="btn ghost" data-a="qz-betstep" data-d="-50" aria-label="Bet 50 less"' + (s.bet <= 50 ? " disabled" : "") + '>−</button><div class="betn"><b id="qzBetN">' + bv + '</b><small id="qzBetBank">bet · bank ' + (s.pot - bv) + '</small></div><button class="btn ghost" data-a="qz-betstep" data-d="50" aria-label="Bet 50 more"' + (s.bet >= s.pot - 50 ? " disabled" : "") + '>+</button></div>' +
+            '<div class="row qz-betx"><label class="qz-amt">Or type it<input type="text" id="qzBetIn" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="7" placeholder="1–' + s.pot + '" aria-label="Bet amount, 1 to ' + s.pot + '" value="' + esc(s.betDraft || "") + '"></label><button class="btn ghost" data-a="qz-allin">All in · ' + s.pot + '</button></div>' +
+            '<div class="row" style="justify-content:center"><button class="btn big-btn" data-a="qz-bet" id="qzBetGo">Bet ' + bv + '</button><button class="btn ghost" data-a="qz-betcancel">Back</button></div>';
         } else {
-          after += '<div class="row" style="justify-content:center"><button class="btn ok big-btn" data-a="qz-bank">Bank ' + s.pot + '</button><button class="btn big-btn" data-a="qz-next">Risk it all: ' + (s.pot * 2) + ' or 0</button>' + (s.pot >= 100 ? '<button class="btn ghost big-btn" data-a="qz-betopen">Bet some</button>' : "") + '</div>';
+          after += '<div class="row" style="justify-content:center"><button class="btn ok big-btn" data-a="qz-bank">Bank ' + s.pot + '</button><button class="btn big-btn" data-a="qz-next">Risk it all: ' + (s.pot * 2) + ' or 0</button>' + (s.pot >= 2 ? '<button class="btn ghost big-btn" data-a="qz-betopen">Bet some</button>' : "") + '</div>';
         }
       } else after += '<button class="btn big-btn" data-a="qz-next">' + (last ? "See the score" : "Next question") + '</button>';
     }
@@ -2210,7 +2231,7 @@ TYPES.quiz = {
   after: function(run){
     var s = run.st;
     if(s.phase === "bonus" && s.bonus){ if(QZT){ clearInterval(QZT); QZT = null; } qzBonusAfter(run); return; }
-    qzTimerAfter(run);
+    qzTimerAfter(run); qzBetWire(run);
   },
   act: function(run, a, el){
     var s = run.st, wl = s.mode === "winlose", q = s.qs[s.order[s.i]];
@@ -2245,10 +2266,18 @@ TYPES.quiz = {
     }
     if(a === "qz-bank"){ if(s.phase !== "shown") return false; decide("banked " + s.pot); s.score += s.pot; s.pot = 0; advance(); return true; }
     if(a === "qz-next"){ if(s.phase !== "shown") return false; if(wl && s.chose === q.right && s.i < s.order.length - 1) decide("risked " + s.pot); advance(); return true; }
-    if(a === "qz-betopen"){ if(s.phase !== "shown" || s.pot < 100) return false; s.betting = true; s.bet = Math.min(s.pot - 50, Math.max(50, Math.round(s.pot / 100) * 50)); return true; }
-    if(a === "qz-betstep"){ if(!s.betting) return false; s.bet = Math.min(s.pot - 50, Math.max(50, s.bet + (+el.getAttribute("data-d") || 0))); return true; }
-    if(a === "qz-betcancel"){ s.betting = false; return true; }
-    if(a === "qz-bet"){ if(!s.betting) return false; decide("bet " + s.bet + ", banked " + (s.pot - s.bet)); s.score += s.pot - s.bet; s.pot = s.bet; advance(); return true; }
+    if(a === "qz-betopen"){ if(s.phase !== "shown" || s.pot < 2) return false; s.betting = true; s.betDraft = ""; s.bet = Math.max(1, Math.min(s.pot - 50, Math.max(50, Math.round(s.pot / 100) * 50))); return true; }
+    if(a === "qz-betstep"){ if(!s.betting) return false; s.betDraft = ""; s.bet = Math.max(1, Math.min(s.pot - 50, Math.max(50, s.bet + (+el.getAttribute("data-d") || 0)))); return true; }
+    if(a === "qz-betcancel"){ s.betting = false; s.betDraft = ""; return true; }
+    /* Bet: a typed amount wins over the − / + one (whole numbers 1 up to the pot; more is cut to the pot, anything else ignored).
+       All in: the whole pot, nothing banked. Both are logged with the question like every bet. */
+    if(a === "qz-bet" || a === "qz-allin"){
+      if(!s.betting || s.phase !== "shown") return false;
+      var bi = $("qzBetIn"), typed = qzAmt(s, bi ? bi.value : s.betDraft);
+      s.bet = a === "qz-allin" ? s.pot : typed != null ? typed : s.bet;
+      s.betDraft = "";
+      decide("bet " + s.bet + ", banked " + (s.pot - s.bet) + (s.bet >= s.pot ? " (all in)" : "")); s.score += s.pot - s.bet; s.pot = s.bet; advance(); return true;
+    }
     if(a === "qz-pick"){
       var b = s.bonus; if(s.phase !== "bonus" || !b || b.stage !== "pick") return false;
       var ck = +el.getAttribute("data-k"), card = b.cards[ck]; if(!card) return false;
@@ -4328,7 +4357,7 @@ function lap(run){ var now = clockMs(run), s = Math.max(0, Math.round((now - (ru
 var CLOCKT = null;
 function fmtClock(ms){ var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); }
 function fmtSecs(s){ return s < 60 ? s + " s" : Math.floor(s / 60) + " min" + (s % 60 ? " " + (s % 60) + " s" : ""); }
-var LAP_START = ["bg-next", "hm-next", "an-next", "wh-spin", "wh-pick", "sl-spin", "qz-next", "qz-bank", "qz-bet", "qz-bonusdone", "tb-show", "au-next", "sp-next", "bd-next", "se-next", "od-next", "sd-roll", "ph-next"];
+var LAP_START = ["bg-next", "hm-next", "an-next", "wh-spin", "wh-pick", "sl-spin", "qz-next", "qz-bank", "qz-bet", "qz-allin", "qz-bonusdone", "tb-show", "au-next", "sp-next", "bd-next", "se-next", "od-next", "sd-roll", "ph-next"];
 function itemsTable(items){
   if(!items || !items.length) return "";
   var pts = items.some(function(x){ return x.points != null; }), who = items.some(function(x){ return x.who; });
@@ -5703,7 +5732,7 @@ function viewSheet(){
     '<div class="rs-ln"><span class="rs-lbl">Parent said</span>' + rsIn(pid, "end.parent", "", "Parent said") + '</div>' +
     '<div class="rs-ln"><span class="rs-lbl">Other mistakes</span><textarea class="rs-ta" data-rsin="end.other" aria-label="Other mistakes">' + esc(rsGet(pid, "end.other")) + '</textarea></div>' +
     '</div></section>';
-  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games">‹ Games</button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button><button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
+  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games">‹ Games</button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button>' + plLinksHtml(p) + '<button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
     '<main class="wrap rs"><p class="rs-meta">' + esc([spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · ")) + '</p>' +
     (spec.spine ? '<p class="rs-spine"><b>Spine:</b> ' + esc(spec.spine) + '</p>' : "") +
     '<div class="rs-state"><span class="pill" id="rsState"><i></i></span>' + (isToday ? '<span class="pill">Now ' + rsNow() + (nowBlk ? " · " + esc(nowBlk.label) : nowM >= endM ? " · lesson time over" : "") + '</span>' : "") + '</div>' +
@@ -5837,12 +5866,25 @@ function plFetch(pid, id){
     return res.json().catch(function(){ return {}; }).then(function(j){ if(!res.ok || !j || typeof j.html !== "string") throw new Error((j && j.error) || "http " + res.status); return j; });
   }).then(function(j){
     PL.busy[id] = false;
-    var o = { html:j.html, name:String(j.name || ""), modified:String(j.modified || ""), at:nowIso() };
+    var o = { html:j.html, name:String(j.name || ""), modified:String(j.modified || ""), folder: typeof j.folderId === "string" ? j.folderId : "", at:nowIso() };
     if(!plCacheSet(id, o)) PL.mem = { id:id, o:o };   /* storage full or blocked: keep it for this visit */
     plRepaint(pid);
   }, function(e){ PL.busy[id] = false; PL.err[id] = plErrText(e && e.message, !!plCopy(id)); plRepaint(pid); });
 }
 function plCopy(id){ return plCacheGet(id) || (PL.mem && PL.mem.id === id ? PL.mem.o : null); }
+/* Open plan / Folder: Drive links for the run sheet header and the Plan tab (teacher only; nothing for a pack with no plan).
+   The folder is the plan file's parent (the student's lesson-plan folder: WS, print pack, HW PDFs), which plan-doc sends
+   with the plan and the device keeps with its copy. The run sheet never fetches (the Plan tab does), so Folder shows
+   once the plan has been opened (or ↻ fetched again) on this device; until then only Open plan. */
+function plFolder(p){ var id = plDocId(p), c = id ? plCopy(id) : null, f = c && c.folder; return typeof f === "string" && /^[A-Za-z0-9_-]{10,128}$/.test(f) ? f : ""; }
+function plLinksInner(p){
+  var id = plDocId(p); if(!id || STUDENT_PAGE || SMODE) return "";
+  var f = plFolder(p);
+  return '<a class="btn ghost sm pl-ext" href="https://drive.google.com/file/d/' + esc(id) + '/view" target="_blank" rel="noopener noreferrer" aria-label="Open plan in Google Drive" title="Open the plan in Google Drive"><span aria-hidden="true">📄</span><span class="lbl">Open plan</span></a>' +
+    (f ? '<a class="btn ghost sm pl-ext" href="https://drive.google.com/drive/folders/' + esc(f) + '" target="_blank" rel="noopener noreferrer" aria-label="Folder: this student’s lesson-plan folder in Google Drive" title="This student’s lesson-plan folder in Google Drive (worksheets, print pack, homework)"><span aria-hidden="true">📁</span><span class="lbl">Folder</span></a>' : "");
+}
+function plLinksHtml(p){ var h = plLinksInner(p); return h ? '<span class="pl-links" id="plLinks">' + h + '</span>' : ""; }
+
 /* Redraw the plan after a fetch without moving the page (a first fetch lands on the pending jump or saved place). */
 function plRepaint(pid){
   if(UI.view !== "plan" || UI.packId !== pid) return;
@@ -5904,11 +5946,13 @@ function plBuild(html){
   }
   /* Keys: a bold "Key" / "… key" line, and what follows it up to the next heading or bold label. */
   var KEYL = /(^|[\s—–-])key\s*:?$|^(answer\s+)?key\b/i;
+  /* inside a key: "Pt2: …", "Part 3 …", "Watch: …", "Accept …" lines belong to it; "Key — …" starts the next key */
+  var KEYPART = /^(pt\.?\s*\d+|part\s*\d+|watch\b|accept\b)/i, KEYHEAD = /^key\s*[—–-]/i;
   function isLabel(e){ if(!e || e.tagName !== "P") return false; var f = e.firstElementChild, t = txt(e); return !!(f && f.tagName === "B" && t.indexOf(txt(f)) === 0 && txt(f)); }
   Array.prototype.forEach.call(root.querySelectorAll("p,h4"), function(p){
     var t = txt(p); if(!t || t.length > 60 || !KEYL.test(t) || (p.tagName === "P" && boldTxt(p) !== t) || p.closest(".pl-fold")) return;
     var d = fold("pl-key", "🔑 " + t), w = d.lastChild, n = p.nextElementSibling;
-    while(n && !/^(H1|H2|H3|H4|HR)$/.test(n.tagName) && !isLabel(n) && n.textContent.indexOf("⚠") === -1){ var nx = n.nextElementSibling; w.appendChild(n); n = nx; }
+    while(n && !/^(H1|H2|H3|H4|HR)$/.test(n.tagName) && !(isLabel(n) && !KEYPART.test(txt(n))) && !KEYHEAD.test(txt(n)) && n.textContent.indexOf("⚠") === -1){ var nx = n.nextElementSibling; w.appendChild(n); n = nx; }
     p.parentNode.replaceChild(d, p);
   });
   /* The trap's answers: Right / Also right / Expect, one per line. */
@@ -5918,7 +5962,16 @@ function plBuild(html){
     while(e.firstChild) w.appendChild(e.firstChild);
     e.appendChild(d);
   });
-  return { html: root.innerHTML, outline: outline };
+  /* HW Key: the homework key ("Key — HW102 (from HW102's key page)"), else any key whose heading says HW. */
+  var HWK = /^key\s*[—–-]\s*hw/i, hw = [];
+  function keyText(e){ return e.tagName === "DETAILS" ? txt(e.firstElementChild).replace(/^🔑\s*/, "") : txt(e); }
+  Array.prototype.forEach.call(root.querySelectorAll("details.pl-key, h1, h2, h3, h4, p"), function(e){
+    var t = keyText(e); if(!HWK.test(t) || hw.some(function(x){ return x.el.contains(e); })) return;
+    hw.push({ el:e, text:t });
+  });
+  if(!hw.length) Array.prototype.forEach.call(root.querySelectorAll("details.pl-key"), function(e){ var t = keyText(e); if(/\bHW/i.test(t)) hw.push({ el:e, text:t }); });
+  hw = hw.map(function(x, i){ if(!x.el.id) x.el.id = "pl-hw-" + (i + 1); return { id:x.el.id, text:trunc(x.text.replace(/\s*:.*$/, ""), 60) || "HW key" }; });
+  return { html: root.innerHTML, outline: outline, hw: hw };
 }
 /* Where a run sheet line lives in the plan: its step code, else its segment, else a heading named like the block. */
 function plCode(l){ var m = /^(\d+[A-Za-z])\b/.exec(String(l || "").trim()); return m ? m[1].toUpperCase() : ""; }
@@ -5940,7 +5993,10 @@ function viewPlan(){
   if(!p){ go("home"); return; }
   var id = plDocId(p), c = id ? plCopy(id) : null, back = UI.plFrom === "pack" || !rsSpec(p) ? "pack" : "sheet";
   if(id && !c && !PL.busy[id] && !PL.err[id]) plFetch(p.id, id);
+  if(id && c && !UI.plEdit){ var bkey = id + "|" + c.at + "|" + c.html.length; if(!PL.built || PL.built.key !== bkey) PL.built = Object.assign({ key:bkey }, plBuild(c.html)); }
+  var hwk = id && c && !UI.plEdit && PL.built && PL.built.hw || [];
   var head = '<header class="bar pl-top"><button class="btn ghost sm ic" data-a="pl-back" aria-label="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '" title="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '">‹</button><div class="t">' + esc(packTitle(p)) + ' · plan</div>' +
+    (hwk.length ? '<button class="btn sm pl-hwb" data-a="pl-hw" aria-label="HW Key: jump to the homework key" title="Jump to the homework key' + (hwk.length > 1 ? "s" : "") + '">HW Key</button>' : "") +
     (id ? '<button class="btn ghost sm ic" data-a="pl-outline" aria-label="Outline" title="Outline: jump to a segment or step"' + (c ? "" : " disabled") + '>☰</button><button class="btn ghost sm ic" data-a="pl-refresh" aria-label="Fetch the plan again" title="Fetch the plan again (after you edit it)"' + (PL.busy[id] ? " disabled" : "") + '>↻</button>' : "") + '</header>';
   var body = "";
   if(!id || UI.plEdit){
@@ -5948,18 +6004,18 @@ function viewPlan(){
       '<input id="plLink" type="url" autocomplete="off" spellcheck="false" placeholder="https://docs.google.com/…" aria-label="Plan link"><p class="err" id="plErr" role="alert"></p><div class="row"><button class="btn" data-a="pl-save">Save</button>' + (id ? '<button class="btn ghost" data-a="pl-edit-x">Cancel</button>' : "") + '</div></section>';
   } else {
     var st = PL.busy[id] ? "Fetching…" : c ? "fetched " + plWhen(c.at) : "";
-    body = '<p class="pl-meta"><span class="pill' + (PL.err[id] ? " warn" : c ? " ok" : "") + '"><i></i>' + esc(st || "Not fetched yet") + '</span>' + (c && c.name ? '<span>' + esc(c.name) + '</span>' : "") + '</p>' +
+    body = '<p class="pl-meta"><span class="pill' + (PL.err[id] ? " warn" : c ? " ok" : "") + '"><i></i>' + esc(st || "Not fetched yet") + '</span>' + (c && c.name ? '<span>' + esc(c.name) + '</span>' : "") + plLinksHtml(p) + '</p>' +
       (PL.err[id] ? '<p class="notice" role="alert">' + esc(PL.err[id]) + (c ? "" : ' <button class="btn sm" data-a="pl-refresh">Try again</button>') + '</p>' : "") +
       (c ? '<article class="pl-doc" id="plDoc"></article>' : PL.busy[id] ? '<p class="notice">Fetching the plan from Google Drive…</p>' : "");
   }
   $("app").innerHTML = head + '<main class="wrap pl">' + body + '</main>';
   var doc = $("plDoc");
   if(doc && c){
-    var key = id + "|" + c.at + "|" + c.html.length;
-    if(!PL.built || PL.built.key !== key) PL.built = Object.assign({ key:key }, plBuild(c.html));
     doc.innerHTML = PL.built.html;   /* rebuilt from plain tags above: no attributes from the file */
     if(UI.plOutline) $("app").insertAdjacentHTML("beforeend", plOutlineHtml());
-    if(UI.planAt){
+    if(UI.plHwMenu && hwk.length > 1) $("app").insertAdjacentHTML("beforeend", plHwMenuHtml());
+    if(UI.planAt && UI.planAt.hw){ UI.planAt = null; saveUI(); if(hwk.length > 1 && !UI.plHwMenu){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); scrollRestore(); } else if(hwk.length === 1){ SCROLL_PEND = false; plHwGo(hwk[0].id); } else scrollRestore(); }
+    else if(UI.planAt){
       var el = plFind(UI.planAt); UI.planAt = null; saveUI(); SCROLL_PEND = false;
       if(el){ el.scrollIntoView({ block:"start" }); el.classList.add("pl-hit"); setTimeout(function(){ el.classList.remove("pl-hit"); }, 1600); }
       else { window.scrollTo(0, 0); toast("That step isn’t in the plan’s headings."); }
@@ -5973,17 +6029,39 @@ function plOutlineHtml(){
     (o.length ? '<ul class="pl-out">' + o.map(function(x){ return '<li class="l' + x.lvl + '"><button data-a="pl-to" data-id="' + esc(x.id) + '">' + esc(x.text) + '</button></li>'; }).join("") + '</ul>' : '<p class="muted">This plan has no headings to jump to.</p>') +
     '<div class="row"><button class="btn ghost" data-a="pl-outline-x">Close</button><button class="btn ghost sm" data-a="pl-edit">Change the plan’s link</button></div></div></div>';
 }
+function plHwMenuHtml(){
+  var hw = (PL.built && PL.built.hw) || [];
+  return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Homework keys" id="plHwMenu"><div class="pop setpop"><h3 style="margin-bottom:4px">HW Key</h3><p class="muted" style="margin:0 0 6px;font-size:16px">This plan has more than one homework key.</p>' +
+    '<ul class="pl-out">' + hw.map(function(x){ return '<li class="l1"><button data-a="pl-hw" data-id="' + esc(x.id) + '">🔑 ' + esc(x.text) + '</button></li>'; }).join("") + '</ul>' +
+    '<div class="row"><button class="btn ghost" data-a="pl-hw-x">Close</button></div></div></div>';
+}
+/* Unfold the key (and any fold it sits in), then bring it clear of the header. Scrolling saves the place as usual. */
+function plHwGo(hid){
+  var e = hid && document.getElementById(hid); if(!e || !e.closest(".pl-doc")) return false;
+  for(var d = e; d; d = d.parentElement ? d.parentElement.closest("details") : null){ if(d.tagName === "DETAILS") d.open = true; }
+  e.scrollIntoView({ block:"start" }); e.classList.add("pl-hit"); setTimeout(function(){ e.classList.remove("pl-hit"); }, 1600);
+  return true;
+}
 function plHandle(a, el){
   if(STUDENT_PAGE || SMODE) return;
   var p = getPack(UI.packId);
-  if(a === "pl-open"){ UI.plFrom = UI.view === "sheet" ? "sheet" : "pack"; UI.plEdit = false; UI.plOutline = false; go("plan"); return; }
+  if(a === "pl-open"){ UI.plFrom = UI.view === "sheet" ? "sheet" : "pack"; UI.plEdit = false; UI.plOutline = false; UI.plHwMenu = false; go("plan"); return; }
   if(a === "pl-go"){ if(!p) return; UI.plFrom = "sheet"; UI.plEdit = false; UI.plOutline = false; UI.planAt = { bl: el.getAttribute("data-bl") || "", c: el.getAttribute("data-c") || "" }; go("plan"); return; }
   if(!p) return;
   var id = plDocId(p);
-  if(a === "pl-back"){ UI.plOutline = false; UI.plEdit = false; go(UI.plFrom === "pack" || !rsSpec(p) ? "pack" : "sheet"); return; }
+  if(a === "pl-back"){ UI.plOutline = false; UI.plEdit = false; UI.plHwMenu = false; go(UI.plFrom === "pack" || !rsSpec(p) ? "pack" : "sheet"); return; }
   if(a === "pl-refresh"){ if(id){ PL.err[id] = ""; plFetch(p.id, id); } return; }
   if(a === "pl-outline"){ UI.plOutline = true; $("app").insertAdjacentHTML("beforeend", plOutlineHtml()); return; }
   if(a === "pl-outline-x"){ UI.plOutline = false; var ov = $("plOut"); if(ov) ov.remove(); return; }
+  if(a === "pl-hw-x"){ UI.plHwMenu = false; var hm0 = $("plHwMenu"); if(hm0) hm0.remove(); return; }
+  if(a === "pl-hw"){
+    var want = el && el.getAttribute && el.getAttribute("data-id") || "", hws = (UI.view === "plan" && PL.built && PL.built.hw) || [];
+    UI.plHwMenu = false; var hm = $("plHwMenu"); if(hm) hm.remove();
+    if(UI.view !== "plan" || !hws.length){ UI.plFrom = UI.view === "sheet" ? "sheet" : "pack"; UI.plEdit = false; UI.plOutline = false; UI.planAt = { hw:true }; go("plan"); return; }
+    if(!want && hws.length > 1){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); return; }
+    if(!plHwGo(want || hws[0].id)) toast("The homework key isn’t in this copy of the plan. Tap ↻ to fetch it again.");
+    return;
+  }
   if(a === "pl-to"){
     UI.plOutline = false; var o2 = $("plOut"); if(o2) o2.remove();
     var h = document.getElementById(el.getAttribute("data-id")); if(h && h.closest(".pl-doc")) h.scrollIntoView({ block:"start" }); return;
