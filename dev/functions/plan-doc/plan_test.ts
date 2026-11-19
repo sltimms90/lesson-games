@@ -45,7 +45,7 @@ function req(body: unknown, auth?: string, method = "POST") {
 function assert(c: unknown, m: string) { if (!c) throw new Error(m); }
 
 Deno.test("nobody but the teacher gets anything, and Drive is never asked", async () => {
-  Deno.env.set("GOOGLE_SERVICE_ACCOUNT", SA);
+  Deno.env.set("GOOGLE_SA_KEY", SA);
   for (const [auth, teacher] of [[undefined, true], ["Bearer STUDENT", true], ["Bearer TEACHER", false]] as const) {
     const w: World = { teacher, mime: DOCX, calls: [] };
     const r = await handle(req({ docId: ID }, auth), fake(w));
@@ -55,7 +55,7 @@ Deno.test("nobody but the teacher gets anything, and Drive is never asked", asyn
   }
 });
 Deno.test("the teacher gets a .docx plan as plain HTML", async () => {
-  Deno.env.set("GOOGLE_SERVICE_ACCOUNT", SA);
+  Deno.env.set("GOOGLE_SA_KEY", SA);
   const w: World = { teacher: true, mime: DOCX, calls: [] };
   const r = await handle(req({ docId: ID }, "Bearer TEACHER"), fake(w));
   assert(r.status === 200, "200, got " + r.status);

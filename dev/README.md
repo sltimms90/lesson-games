@@ -33,7 +33,7 @@ Every script ends with "N failures". `fit.py` fails only on iPad and desktop; on
 
 `functions/plan-doc/` is the Edge Function behind the Plan tab (deployed as `plan-doc`, verify_jwt off: it checks
 `am_i_teacher` with the caller's token itself). It reads the LP file with a Google service account whose JSON key is the
-secret `GOOGLE_SERVICE_ACCOUNT`; .docx files go through mammoth, native Docs through files.export. Test it with Deno:
+secret `GOOGLE_SA_KEY`; .docx files go through mammoth, native Docs through files.export. Test it with Deno:
 `deno test --allow-env --allow-read dev/functions/plan-doc/plan_test.ts`. `tests/plan_sample.docx` is a made-up plan in
 the LP layout (`make_plan_sample.py`); `tests/plan_sample.html` is the same plan as the function returns it.
 

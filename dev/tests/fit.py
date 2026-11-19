@@ -1,5 +1,6 @@
 """Screen-fit sweep: every game type with long content at landscape iPad, desktop and phone.
-Nothing may scroll or spill off screen. Screenshots go to dev/tests/shots/ (not committed)."""
+Nothing may scroll or spill off screen. Screenshots go to dev/tests/shots/ (not committed).
+Also the class-link bar (#clsBar) on the lesson page and run sheet, from phone to wide desktop:  python3 fit.py clsbar"""
 import os, sys
 from lg import *
 LONG = "internationalisation"
@@ -68,4 +69,36 @@ with sync_playwright() as p:
             elif pg.locator("[data-a=backlesson]").count(): pg.click("[data-a=backlesson]"); pg.wait_for_timeout(250)
         check(not errs, "%s no page errors %s" % (name, errs[:3]))
         ctx.close()
+    # Class-link bar (19 Nov: "In person · class link only if needed" became a one-word column over the run sheet,
+    # a laptop at half width): full width, text and Class link on one line or the button cleanly below, nothing overlapping.
+    if not only or "clsbar" in only:
+        rs = {"student":"Maximilian-Alexander", "lp":3, "date":"2026-11-14", "start":"17:00", "length":20, "format":"in person",
+              "blocks":[{"label":"0 Arrival", "mins":10, "lines":[{"type":"cue", "label":"0A Warm-up chat"}]}, {"label":"1 Game", "mins":10, "lines":[{"type":"cue", "label":"1A Hangman"}]}]}
+        cpacks = [dict(pack, id="cls-in", title="Bar in person", runsheet=rs, games=games[:2]),
+                  dict(pack, id="cls-on", title="Bar online", runsheet=dict(rs, format="online · Google Meet"), games=games[:2])]
+        BAR = """() => { const b = document.getElementById('clsBar'); if (!b) return { err: 'no bar' };
+          const R = e => e.getBoundingClientRect(), br = R(b), par = b.parentElement, pc = getComputedStyle(par);
+          const inner = par.clientWidth - parseFloat(pc.paddingLeft) - parseFloat(pc.paddingRight);
+          const sp = R(b.querySelector(':scope > span')), bt = R(b.querySelector(':scope > button')), nx = b.nextElementSibling ? R(b.nextElementSibling) : null;
+          const inside = r => r.left >= br.left - 1 && r.right <= br.right + 1 && r.top >= br.top - 1 && r.bottom <= br.bottom + 1;
+          const sameRow = bt.top < sp.bottom && sp.top < bt.bottom, below = bt.top >= sp.bottom - 1;
+          const out = [];
+          if (br.width < inner - 2) out.push('bar ' + Math.round(br.width) + ' of ' + Math.round(inner) + ' wide');
+          if (!inside(sp) || !inside(bt)) out.push('content spills out of the bar');
+          if (sameRow ? bt.left < sp.right - 1 : !below) out.push('text and button overlap');
+          if (sp.width < Math.min(200, br.width - 40)) out.push('text squeezed to ' + Math.round(sp.width) + 'px');
+          if (nx && nx.top < br.bottom - 1) out.push('overlaps what follows');
+          return { out, rows: sameRow ? 1 : 2, h: Math.round(br.height) }; }"""
+        for w in (320, 390, 480, 560, 640, 720, 820, 1024, 1180, 1440):
+            ctx = b.new_context(viewport={"width":w, "height":800}); errs = []; pg = teacher(ctx, seed_db(cpacks), errs)
+            for cp in cpacks:
+                go_lesson(pg, cp["title"], "Maximilian"); pg.wait_for_selector(".rs-blk"); pg.wait_for_timeout(150)
+                for where in ("run sheet", "lesson page"):
+                    if where == "lesson page": pg.click("[data-a=rs-games]"); pg.wait_for_selector(".head h2"); pg.wait_for_timeout(150)
+                    r = pg.evaluate(BAR)
+                    check(not r.get("err") and not r["out"], "class-link bar, %s, %s, %dpx: %s" % (("in person" if cp["id"] == "cls-in" else "online"), where, w, r.get("err") or r["out"] or "fits (%d row%s, %dpx tall)" % (r["rows"], "s" if r["rows"] > 1 else "", r["h"])))
+                    if w in (390, 720): pg.screenshot(path=os.path.join(HERE, "shots", "clsbar-%s-%s-%d.png" % (cp["id"], where.split()[0], w)))
+                pg.click("[data-a=student]") if pg.locator("[data-a=student]").count() else None
+            check(not errs, "class-link bar sweep %dpx: no page errors %s" % (w, errs[:2]))
+            ctx.close()
 done()

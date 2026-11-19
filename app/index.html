@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-tMX73u9RWi+EexvBySvkwGKkqA1PizVfVFKXtrqJg/0='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-C8F9C4cr+o2/NwtDVhckFse4pdITj8v+ntuTLsgpS5Q='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -820,7 +820,9 @@ li > .pl-fold{margin:0;display:inline-block;vertical-align:top}
 .clsbar.on{border-color:#1E8A5A;color:#1E8A5A}
 .clsbar .muted{font-weight:400}
 .livepill{display:flex;align-items:center;gap:8px}.livepill .lo{font:inherit;font-size:18px;line-height:1;border:none;background:none;cursor:pointer;padding:0 2px}.livepill.ov{border-color:#C2397A;color:#C2397A}
-.clsbar.mini{padding:6px 10px;flex-wrap:nowrap;justify-content:space-between;gap:10px;font-size:15px}
+.clsbar.slim{padding:6px 10px;gap:6px 10px;font-size:15px}
+.clsbar > span{flex:1 1 16em;min-width:0}
+.clsbar > .btn{flex:none;margin-left:auto}
 .daybar{margin:6px 0 10px;flex-wrap:wrap;gap:8px}
 .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:12px}
 .folder{position:relative;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:4px 14px 14px 14px;padding:16px 14px 14px;display:flex;flex-direction:column;gap:4px;cursor:pointer;margin-top:10px}
@@ -5285,7 +5287,7 @@ function clsBarHtml(p){
   var btn = '<button class="btn sm' + (on ? " ghost" : "") + '" data-a="clink">Class link</button>';
   /* An in-person lesson (run sheet format) with nobody on the link: one slim line, so the run sheet starts higher on a phone. */
   var sp = rsSpec(p);
-  if(!on && sp && !rsOnline(sp)) return '<div class="clsbar mini" id="clsBar" role="status"><span class="muted">In person · class link only if needed</span><button class="btn ghost sm" data-a="clink">Class link</button></div>';
+  if(!on && sp && !rsOnline(sp)) return '<div class="clsbar slim" id="clsBar" role="status"><span class="muted">In person · class link only if needed</span><button class="btn ghost sm" data-a="clink">Class link</button></div>';
   return '<div class="clsbar' + (on ? " on" : "") + '" id="clsBar" role="status">' + (on ? '<span>● ' + esc(nm) + ' is on the class link. <span class="muted">Tap Play on any game to put it on ' + esc(nm) + '’s screen.</span></span>' : !p.liveRoom ? '<span>Online class? <span class="muted">Send the class link once; then every game you start appears on the student’s screen.</span></span>' : '<span>○ Class link: nobody connected. <span class="muted">When the student opens it, they wait for your first game.</span></span>') + btn + '</div>';
 }
 function clsOverlay(p){

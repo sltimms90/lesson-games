@@ -4,7 +4,7 @@
 
    - Who: the caller's token is checked by the database itself (rpc am_i_teacher), the same rule as RLS.
    - Drive: a Google service account, read-only scope. Its JSON key is the Edge Function secret
-     GOOGLE_SERVICE_ACCOUNT. It sees only what Sam has shared with its email (the Tutorial Lesson Plans folder: one sub-folder per student).
+     GOOGLE_SA_KEY. It sees only what Sam has shared with its email (the Tutorial Lesson Plans folder: one sub-folder per student).
    - Native Google Docs come back through files.export (text/html). The LP files are .docx on Drive,
      so those are downloaded and turned into plain HTML here (mammoth: headings, bold, lists; no styles).
    - The app cleans the HTML again before showing it; nothing here is trusted by the page.
@@ -53,7 +53,7 @@ function b64url(b: ArrayBuffer | Uint8Array | string): string {
 }
 async function googleToken(fetchFn = fetch): Promise<string> {
   if (TOKEN && TOKEN.exp > Date.now() + 60_000) return TOKEN.v;
-  const raw = Deno.env.get("GOOGLE_SERVICE_ACCOUNT");
+  const raw = Deno.env.get("GOOGLE_SA_KEY");
   if (!raw) throw new Failure(503, "not_set_up");
   let sa: { client_email: string; private_key: string; token_uri?: string };
   try { sa = JSON.parse(raw); } catch { throw new Failure(503, "bad_key"); }
