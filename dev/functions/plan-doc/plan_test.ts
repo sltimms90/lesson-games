@@ -11,7 +11,7 @@ const SA = JSON.stringify({ client_email: "plans@test.iam.gserviceaccount.com", 
 Deno.env.set("SUPABASE_URL", "https://proj.supabase.co");
 Deno.env.set("SUPABASE_ANON_KEY", "anon");
 
-type World = { teacher: boolean; mime: string; calls: string[] };
+type World = { teacher: boolean; mime: string; calls: string[]; parents?: unknown };
 function fake(w: World) {
   return async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const u = String(input); w.calls.push(u);
@@ -32,7 +32,8 @@ function fake(w: World) {
       if (!u.includes(ID)) return new Response("{}", { status: 404 });
       if (u.includes("alt=media")) return new Response(sample);
       if (u.includes("/export?")) return new Response("<html><body><h2>SEGMENT 1 — NATIVE</h2></body></html>");
-      return new Response(JSON.stringify({ name: "Kit_LP12_20261120.docx", mimeType: w.mime, modifiedTime: "2026-11-19T06:00:00Z", size: String(sample.length) }));
+      if (!/[?&]fields=[^&]*\bparents\b/.test(u)) return new Response("{}", { status: 400 });
+      return new Response(JSON.stringify({ name: "Kit_LP12_20261120.docx", mimeType: w.mime, modifiedTime: "2026-11-19T06:00:00Z", size: String(sample.length), parents: "parents" in w ? w.parents : ["1KitFolderIdForTests_abcdef"] }));
     }
     return new Response("unexpected " + u, { status: 599 });
   };
@@ -65,6 +66,15 @@ Deno.test("the teacher gets a .docx plan as plain HTML", async () => {
   assert(/<strong>Key<\/strong>/.test(j.html), "bold labels kept");
   assert(!/style=/.test(j.html), "no inline styles");
   assert(j.name === "Kit_LP12_20261120.docx" && j.mime === DOCX, "name and type");
+  assert(j.folderId === "1KitFolderIdForTests_abcdef", "the plan's folder, from the same metadata call");
+  assert(w.calls.filter((u) => u.startsWith("https://www.googleapis.com/drive/v3/files/") && !/alt=media|\/export\?/.test(u)).length === 1, "one metadata call");
+});
+Deno.test("no folder, or an odd one, gives an empty folderId", async () => {
+  for (const parents of [undefined, [], ["../../x"], "notalist"]) {
+    const w: World = { teacher: true, mime: DOCX, calls: [], parents };
+    const j = await (await handle(req({ docId: ID }, "Bearer TEACHER"), fake(w))).json();
+    assert(j.folderId === "" && typeof j.html === "string", "empty folderId for " + JSON.stringify(parents));
+  }
 });
 Deno.test("a native Google Doc is exported as HTML", async () => {
   const w: World = { teacher: true, mime: "application/vnd.google-apps.document", calls: [] };

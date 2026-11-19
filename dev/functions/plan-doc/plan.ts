@@ -1,6 +1,7 @@
 /* plan-doc — the lesson plan for the teacher app's Plan tab (Nov 2026).
    POST { docId } with the teacher's own sign-in (Authorization: Bearer <access token>) →
-   { html, name, modified, mime }.  Anyone else gets 401 and nothing from Drive.
+   { html, name, modified, mime, folderId }.  folderId is the file's Drive folder (the student's lesson-plan folder,
+   where the WS, print pack and HW PDFs are filed), from the same metadata call, or "" if Drive doesn't say.  Anyone else gets 401 and nothing from Drive.
 
    - Who: the caller's token is checked by the database itself (rpc am_i_teacher), the same rule as RLS.
    - Drive: a Google service account, read-only scope. Its JSON key is the Edge Function secret
@@ -77,7 +78,7 @@ class Failure extends Error { constructor(public status: number, public code: st
 const DRIVE = "https://www.googleapis.com/drive/v3/files/";
 export async function planHtml(docId: string, fetchFn = fetch) {
   const tok = await googleToken(fetchFn), h = { Authorization: "Bearer " + tok };
-  const m = await fetchFn(DRIVE + encodeURIComponent(docId) + "?fields=name,mimeType,modifiedTime,size&supportsAllDrives=true", { headers: h });
+  const m = await fetchFn(DRIVE + encodeURIComponent(docId) + "?fields=name,mimeType,modifiedTime,size,parents&supportsAllDrives=true", { headers: h });
   if (m.status === 404 || m.status === 403) throw new Failure(404, "not_found");
   if (!m.ok) throw new Failure(502, "drive");
   const meta = await m.json();
@@ -96,7 +97,9 @@ export async function planHtml(docId: string, fetchFn = fetch) {
     html = out.value;
   } else throw new Failure(415, "not_a_doc");
   if (html.length > MAX_BYTES) throw new Failure(413, "too_big");
-  return { html, name: String(meta.name || ""), modified: String(meta.modifiedTime || ""), mime: meta.mimeType };
+  const parent = Array.isArray(meta.parents) ? String(meta.parents[0] || "") : "";
+  const folderId = /^[A-Za-z0-9_-]{10,128}$/.test(parent) ? parent : "";
+  return { html, name: String(meta.name || ""), modified: String(meta.modifiedTime || ""), mime: meta.mimeType, folderId };
 }
 
 export async function handle(req: Request, fetchFn = fetch): Promise<Response> {
