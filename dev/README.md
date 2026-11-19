@@ -22,6 +22,7 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 hw.py                       # homework links: Student link results save themselves (submit_homework), refused tokens, offline fallback, New link
     python3 rs_every.py                 # 19 Nov: run sheet opens for every lesson; phone/iPad comfort; home by day; lesson page order; edited games on top
     python3 fix19.py                    # 19 Nov feedback: Look selects, run sheet paste under Advanced, Quick game word source line, spelling size/zoom
+    python3 plan.py                     # Plan tab: fetch through plan-doc, device copy + ↻, run sheet jumps, outline, scroll kept, folds, no code from the file, never on student pages
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
@@ -29,6 +30,12 @@ they inject a hook into the script; `hostile.py` checks the real, untouched page
 
 Every script ends with "N failures". `fit.py` fails only on iPad and desktop; on phones it prints NOTE lines
 (very long content on a sideways phone hits the half-size floor). New scripts share helpers in `lg.py`.
+
+`functions/plan-doc/` is the Edge Function behind the Plan tab (deployed as `plan-doc`, verify_jwt off: it checks
+`am_i_teacher` with the caller's token itself). It reads the LP file with a Google service account whose JSON key is the
+secret `GOOGLE_SERVICE_ACCOUNT`; .docx files go through mammoth, native Docs through files.export. Test it with Deno:
+`deno test --allow-env --allow-read dev/functions/plan-doc/plan_test.ts`. `tests/plan_sample.docx` is a made-up plan in
+the LP layout (`make_plan_sample.py`); `tests/plan_sample.html` is the same plan as the function returns it.
 
 `sql/submit_homework.sql` is the database function student pages call to save a homework result (applied to the project as
 migrations `submit_homework` and `submit_homework_anon_only`). `mock-supabase.js` has a copy of its checks for the tests.

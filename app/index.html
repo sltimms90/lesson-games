@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-J+UuyieERDwSLbTeO8Gm8bBBVITp1hpKzEPorVaxpoA='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-tMX73u9RWi+EexvBySvkwGKkqA1PizVfVFKXtrqJg/0='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -763,6 +763,41 @@ main.rs{padding-bottom:45vh}
   .rs-pages{padding-left:4px}
   .rs-nd{margin-left:0}
 }
+/* ---------- plan (the lesson plan, read-only, teacher only) ---------- */
+.pl.wrap{max-width:820px;padding-top:12px;padding-bottom:85vh}
+.pl-top .t{font-size:18px}
+.pl-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;color:var(--muted);font-size:15px;margin:0 0 8px}
+.pl-doc{font-size:19px;line-height:1.55;overflow-wrap:anywhere}
+.pl-doc h1{font:700 24px/1.25 "Baloo 2",system-ui,sans-serif;margin:.2em 0 .5em}
+.pl-doc h2{font:700 22px/1.25 "Baloo 2",system-ui,sans-serif;margin:1.6em 0 .4em;padding:6px 12px;background:var(--soft);border-radius:10px}
+.pl-doc h3{font:700 20px/1.3 "Baloo 2",system-ui,sans-serif;margin:1.3em 0 .3em;padding-bottom:3px;border-bottom:2px solid var(--line)}
+.pl-doc h4{font-size:19px;margin:1em 0 .3em}
+.pl-doc p{margin:.45em 0}
+.pl-doc ul,.pl-doc ol{padding-left:1.4em;margin:.4em 0}
+.pl-doc li{margin:.25em 0}
+.pl-doc [id]{scroll-margin-top:72px}
+.pl-doc .pl-hit{outline:3px solid var(--ball);outline-offset:4px;border-radius:8px}
+.pl-tbl{overflow-x:auto}
+.pl-doc table{border-collapse:collapse;margin:.5em 0}
+.pl-doc td,.pl-doc th{border:1px solid var(--line);padding:4px 8px;vertical-align:top}
+.pl-fold{margin:.35em 0}
+li > .pl-fold{margin:0;display:inline-block;vertical-align:top}
+.pl-doc li:has(> .pl-fold){list-style:none}
+.pl-fold > summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:3px 14px;border:2px dashed var(--amber);border-radius:999px;font-weight:700;font-size:16px;color:var(--ink);touch-action:manipulation}
+.pl-fold > summary::-webkit-details-marker{display:none}
+.pl-fold > summary::after{content:"▸";color:var(--amber)}
+.pl-fold[open] > summary{border-style:solid}
+.pl-fold[open] > summary::after{content:"▾"}
+.pl-fold > .pl-in{display:block;padding:4px 0 2px 12px;border-left:3px solid var(--amber);margin-top:4px}
+.pl-paste{background:var(--surface);border:2px solid var(--ball);border-radius:16px;padding:14px;margin:6px 0}
+.pl-paste input{width:100%;font:inherit;font-size:17px;padding:10px 12px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);margin:6px 0}
+.pl-out{list-style:none;padding:0;margin:4px 0 10px;max-height:60vh;overflow:auto;text-align:left}
+.pl-out li{margin:0}
+.pl-out button{display:block;width:100%;text-align:left;font:inherit;font-size:17px;color:var(--ink);background:none;border:0;border-top:1px solid var(--line);padding:10px 6px;min-height:44px;cursor:pointer}
+.pl-out .l2 button{padding-left:26px;font-size:16px;color:var(--muted)}
+.rs .pl-j{cursor:pointer}
+.rs .pl-j b,.rs-bar b.pl-j{text-decoration:underline dotted var(--muted);text-decoration-thickness:2px;text-underline-offset:4px}
+@media (max-width:560px){.pl.wrap{padding-left:12px;padding-right:12px}.pl-doc{font-size:18px}}
 @media (max-width:440px){.bar{gap:6px;padding:8px 8px}.bar .lp{font-size:15px;padding:4px 7px}.bar .clock{font-size:15px}}
 .livepill{position:fixed;left:12px;bottom:12px;z-index:50;font:600 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:999px;background:var(--surface);border:2px solid var(--line);color:var(--muted,#667)}
 .livepill.on{border-color:#1E8A5A;color:#1E8A5A}
@@ -813,6 +848,7 @@ main.rs{padding-bottom:45vh}
    packs may also carry runsheet: the rs_build.py run sheet spec (Gate 5); marks go in
    sheets/<packId>  { id, packId, student, lp, date, updatedAt, marks, finished, finishedAt, rows, gaps, summary }
    students/<slug> may carry runsheet: "online" | "always" (when lessons open on the run sheet)
+   packs may also carry plan: { docId } (the LP file on Drive, for the teacher-only Plan view; see PLAN)
    STORAGE: every read/write goes through STORE (watchPacks, watchResults, savePack,
    deletePack, saveResult, deleteResult). Swap the adapter to move hosts.
    ===================================================================== */
@@ -1118,7 +1154,7 @@ function resultsFor(packId, gameId){ return RESULTS.filter(function(r){ return r
 function packTitle(p){ return p.title || ((p.student || "Lesson") + (p.lp ? " · LP" + p.lp : "")); }
 function students(){ var s = {}; PACKS.forEach(function(p){ if(p.student) s[p.student] = 1; }); return Object.keys(s).sort(function(a,b){ return a.localeCompare(b); }); }
 function touchPack(p){ p.updatedAt = nowIso(); return STORE.savePack(p).catch(saveErr); }
-function go(view, extra){ if(UI.view === "sheet" && UI.packId) rsFlush(UI.packId); UI.view = view; if(extra) Object.keys(extra).forEach(function(k){ UI[k] = extra[k]; }); saveUI(); render(); window.scrollTo(0,0); }
+function go(view, extra){ if(UI.view === "sheet" && UI.packId) rsFlush(UI.packId); UI.view = view; if(extra) Object.keys(extra).forEach(function(k){ UI[k] = extra[k]; }); saveUI(); SCROLL_PEND = true; render(); if(SCROLL_PEND){ SCROLL_PEND = false; window.scrollTo(0,0); } }
 
 /* =====================================================================
    Games. Each type: label, letter, blurb, blockHint, placeholder,
@@ -4352,6 +4388,7 @@ function render(){
   if(v === "done") return viewDone();
   if(!LOADED.packs && STATUS !== "error") return loadingView();
   if(v === "sheet") return viewSheet();
+  if(v === "plan" && !STUDENT_PAGE) return viewPlan();
   if(v === "bgmine") return viewBgMine();
   if(v === "pack") return viewPack();
   if(v === "student") return viewStudent();
@@ -4616,7 +4653,7 @@ function viewPack(){
   }).join("");
   var add = '<div class="add">' + TYPE_ORDER.map(function(t){ return '<button data-a="addgame" data-t="' + t + '">' + ball(t) + TYPES[t].label + '</button>'; }).join("") + '</div>';
   var hasRes = resultsFor(p.id).length;
-  $("app").innerHTML = '<div class="wrap"><div class="spread">' + '<div class="row">' + (rsVia(p.id) ? '<button class="btn sm" data-a="rs-open">‹ Run sheet</button>' : "") + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">‹ ' + esc(p.student) + '</button>' : '<button class="btn ghost sm" data-a="home">‹ All students</button>') + '</div>' + statusPill() + '</div>' +
+  $("app").innerHTML = '<div class="wrap"><div class="spread">' + '<div class="row">' + (rsVia(p.id) ? '<button class="btn sm" data-a="rs-open">‹ Run sheet</button>' : "") + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">‹ ' + esc(p.student) + '</button>' : '<button class="btn ghost sm" data-a="home">‹ All students</button>') + '<button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button></div>' + statusPill() + '</div>' +
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
     clsBarHtml(p) + rsPackCard(p) + '<h3 style="margin:26px 0 4px">Games</h3>' + (games || '<p class="notice">No games in this lesson yet.</p>') + bankSection(p) +
     '<details class="section fold" id="addSec"' + ((p.games || []).length ? "" : " open") + '><summary><h3>Add other games</h3><span class="muted">' + TYPE_ORDER.length + ' kinds</span></summary>' + add + '</details>' +
@@ -4638,6 +4675,7 @@ function viewPack(){
   }
   foldRestore();
   if(UI.clink) $("app").insertAdjacentHTML("beforeend", clsOverlay(p));
+  scrollRestore();
   if(UI.sres){
     $("app").insertAdjacentHTML("beforeend", '<div class="overlay" role="dialog" aria-modal="true" aria-label="Add a student’s result"><div class="pop setpop"><h3 style="margin-bottom:8px">Add a student’s result</h3><p class="muted" style="margin-top:0">Paste the whole message the student sent from their game.</p><textarea id="sresIn" style="min-height:120px"></textarea><p class="err" id="sresErr" role="alert"></p><div class="row"><button class="btn" data-a="sres-add">Add</button><button class="btn ghost" data-a="sres-close">Cancel</button></div></div></div>');
   }
@@ -5588,17 +5626,17 @@ function rsSeg(pid, k, opts, label){
 }
 function rsIn(pid, k, ph, label){ return '<input type="text" class="rs-in" data-rsin="' + esc(k) + '" value="' + esc(rsGet(pid, k)) + '" placeholder="' + esc(ph || "") + '" aria-label="' + esc(label || ph || "") + '" autocomplete="off">'; }
 function rsWho(s){ return s ? '<span class="rs-who">' + esc(s) + '</span>' : ""; }
-function rsLine(p, x, G, gk){
-  var ln = x.ln, k = x.key, t = ln.type, pid = p.id, gap = gk && gk[k] ? " gap" : "";
+function rsLine(p, x, G, gk, ja){
+  var ln = x.ln, k = x.key, t = ln.type, pid = p.id, gap = gk && gk[k] ? " gap" : "", tx = ja ? '<span class="rs-tx pl-j"' + ja + '>' : '<span class="rs-tx">';
   if(t === "cue"){
     var lab = (ln.label ? '<b>' + esc(ln.label) + '</b> ' : "") + '<span class="muted">' + esc(ln.text || "") + '</span>';
-    if(ln.nobox) return '<div class="rs-ln"><span class="rs-tx">' + lab + '</span></div>';
-    return '<div class="rs-ln' + gap + '">' + rsTick(pid, k, ln.label || "step") + '<span class="rs-tx">' + lab + '</span></div>';
+    if(ln.nobox) return '<div class="rs-ln">' + tx + lab + '</span></div>';
+    return '<div class="rs-ln' + gap + '">' + rsTick(pid, k, ln.label || "step") + tx + lab + '</span></div>';
   }
   if(t === "pages") return '<div class="rs-ln rs-pages">' + (ln.items || []).map(function(it, i){ return '<span class="rs-pg' + (gk && gk[k + ".p" + i] ? " gap" : "") + '">' + rsTick(pid, k + ".p" + i, it) + '<span>' + esc(it) + '</span></span>'; }).join("") + '</div>';
   if(t === "score"){
     var nd = rsGet(pid, k + ".x") === "n";
-    return '<div class="rs-ln rs-score' + gap + (nd ? " off" : "") + '"><div class="rs-sc-top"><b>' + esc(ln.label) + '</b>' +
+    return '<div class="rs-ln rs-score' + gap + (nd ? " off" : "") + '"><div class="rs-sc-top">' + (ja ? '<span class="pl-j"' + ja + '><b>' + esc(ln.label) + '</b></span>' : '<b>' + esc(ln.label) + '</b>') +
       G.map(function(s){ var kk = rsPer(k, s); return '<label class="rs-num">' + rsWho(s) + '<input type="text" inputmode="numeric" data-rsin="' + esc(kk) + '" value="' + esc(rsGet(pid, kk)) + '" aria-label="' + esc(ln.label + " score" + (s ? " " + s : "")) + '" autocomplete="off"><span>/' + esc(ln.n) + '</span></label>'; }).join("") +
       (ln.tag ? '<span class="rs-tag">' + esc(ln.tag) + '</span>' : "") + (ln.trap ? '<span class="rs-tag">trap: item ' + esc(ln.trap) + '</span>' : "") +
       '<button class="rs-nd' + (nd ? " on" : "") + '" data-a="rs-nd" data-k="' + esc(k) + '" aria-pressed="' + nd + '">not done</button></div>' +
@@ -5607,22 +5645,22 @@ function rsLine(p, x, G, gk){
   if(t === "app"){
     var r = rsAppResult(p, ln), gm = rsAppGame(p, ln);
     return '<div class="rs-ln' + gap + '">' + (r ? '<span class="rs-tk y auto" title="Played in the app">✓</span>' : rsTick(pid, k, ln.label)) +
-      '<span class="rs-tx"><b>' + esc((ln._code ? ln._code + " " : "") + ln.label) + '</b> <span class="muted">' + esc(ln._note || (gm ? "app game" : "")) + (gm ? "" : " — app game not found in this lesson") + '</span>' +
+      tx + '<b>' + esc((ln._code ? ln._code + " " : "") + ln.label) + '</b> <span class="muted">' + esc(ln._note || (gm ? "app game" : "")) + (gm ? "" : " — app game not found in this lesson") + '</span>' +
       (r ? '<small class="rs-res">Played · ' + esc(r.score && r.score.text ? r.score.text : "saved") + '</small>' : "") + '</span>' +
       (gm ? '<button class="btn sm' + (r ? " ghost" : "") + '" data-a="rs-play" data-g="' + esc(gm.id) + '">' + (r ? "Play again" : "Play") + '</button>' : "") + '</div>';
   }
-  if(t === "trap") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><span class="rs-trapb">TRAP</span>“' + esc(ln.spring) + '”</span>' +
+  if(t === "trap") return '<div class="rs-ln' + gap + '">' + tx + '<span class="rs-trapb">TRAP</span>“' + esc(ln.spring) + '”</span>' +
     G.map(function(s){ return '<span class="rs-grp">' + rsWho(s) + rsSeg(pid, rsPer(k, s), [["r", "right", "ok"], ["w", "wrong", "no"]], "Trap" + (s ? " " + s : "")) + '</span>'; }).join("") + '</div>';
   if(t === "judge") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><span class="rs-tag">' + esc(ln.tag) + '</span></span>' +
     G.map(function(s){ return '<span class="rs-grp">' + rsWho(s) + rsSeg(pid, rsPer(k, s), [["met", "met", "ok"], ["part", "part", "amb"], ["not", "not", "no"]], ln.tag + (s ? " " + s : "")) + '</span>'; }).join("") + '</div>';
   if(t === "clock") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><b>' + esc(ln.text) + '</b> <span class="muted">· actual</span></span><input type="time" class="rs-time" data-rsin="' + esc(k) + '" value="' + esc(rsGet(pid, k)) + '" aria-label="' + esc(ln.text) + ' actual"><button class="btn ghost sm" data-a="rs-now" data-k="' + esc(k) + '">Now</button></div>';
-  if(t === "done") return '<div class="rs-ln' + gap + '"><span class="rs-tx"><b>Done =</b> ' + esc(ln.text) + '</span>' + (ln.blanks || []).map(function(n, i){ return '<label class="rs-blank"><span>' + esc(n) + '</span>' + rsIn(pid, k + ".x" + i, "", n) + '</label>'; }).join("") + '</div>';
+  if(t === "done") return '<div class="rs-ln' + gap + '">' + tx + '<b>Done =</b> ' + esc(ln.text) + '</span>' + (ln.blanks || []).map(function(n, i){ return '<label class="rs-blank"><span>' + esc(n) + '</span>' + rsIn(pid, k + ".x" + i, "", n) + '</label>'; }).join("") + '</div>';
   if(t === "listen") return '<div class="rs-ln"><span class="rs-tx rs-info">Listen for: ' + esc(ln.text) + '</span></div>';
   if(t === "words"){
     var circ = rsGet(pid, k); circ = Array.isArray(circ) ? circ : [];
     return '<div class="rs-ln rs-words"><span class="rs-info">Words · tap a stumble:</span><span class="chips">' + (ln.words || []).slice(0, 8).map(function(w){ var on = circ.indexOf(w) !== -1; return '<button class="chip' + (on ? " on" : "") + '" data-a="rs-word" data-k="' + esc(k) + '" data-w="' + esc(w) + '" aria-pressed="' + on + '">' + esc(w) + '</button>'; }).join("") + '</span></div>';
   }
-  if(t === "box") return '<div class="rs-ln' + gap + '">' + rsTick(pid, k, ln.text) + '<span class="rs-tx">' + esc(ln.text) + '</span></div>';
+  if(t === "box") return '<div class="rs-ln' + gap + '">' + rsTick(pid, k, ln.text) + tx + esc(ln.text) + '</span></div>';
   if(t === "write") return '<div class="rs-ln"><span class="rs-lbl">' + esc(ln.label) + '</span>' + rsIn(pid, k, "", ln.label) + '</div>';
   return "";
 }
@@ -5642,11 +5680,13 @@ function viewSheet(){
   var nowM = rsHm(rsNow()), isToday = p.date === today(), endM = rsEnd(spec), nowBlk = null;
   if(isToday) lay.forEach(function(b){ if(nowM >= b.start && nowM < b.start + b.mins) nowBlk = b; });
   var resume = inProgressHtml(true, pid);
+  var plOn = !!plDocId(p);
   var blocks = lay.map(function(b){
-    var skip = rsGet(pid, b.key + ".skip") === "y";
-    return '<section class="rs-blk' + (skip ? " skip" : "") + (nowBlk === b ? " now" : "") + '" id="' + esc(b.key) + '"><div class="rs-bar"><span class="rs-clock">' + rsFmt(b.start) + '</span><b>' + esc(b.label) + '</b>' + (b.material ? '<span class="rs-mat">' + esc(b.material) + '</span>' : "") +
+    var skip = rsGet(pid, b.key + ".skip") === "y", cur = "";
+    function ja(x){ var c = plCode(x.ln.label) || plCode(x.ln._code) || cur; cur = c; return plOn ? plJumpAttrs(b.label, c) : ""; }
+    return '<section class="rs-blk' + (skip ? " skip" : "") + (nowBlk === b ? " now" : "") + '" id="' + esc(b.key) + '"><div class="rs-bar"><span class="rs-clock">' + rsFmt(b.start) + '</span>' + (plOn ? '<b class="pl-j"' + plJumpAttrs(b.label, "") + '>' : '<b>') + esc(b.label) + '</b>' + (b.material ? '<span class="rs-mat">' + esc(b.material) + '</span>' : "") +
       '<span class="rs-min">' + b.mins + ' min</span><button class="rs-skip' + (skip ? " on" : "") + '" data-a="rs-skip" data-k="' + esc(b.key) + '" aria-pressed="' + skip + '">skip</button></div><div class="rs-body">' +
-      b.lines.map(function(x){ return rsLine(p, x, G, gk); }).join("") + '</div></section>';
+      b.lines.map(function(x){ return rsLine(p, x, G, gk, ja(x)); }).join("") + '</div></section>';
   }).join("");
   var plan = rsGet(pid, "end.plan"); plan = Array.isArray(plan) ? plan : [];
   function gl(k){ return gk && gk[k] ? " gap" : ""; }
@@ -5661,7 +5701,7 @@ function viewSheet(){
     '<div class="rs-ln"><span class="rs-lbl">Parent said</span>' + rsIn(pid, "end.parent", "", "Parent said") + '</div>' +
     '<div class="rs-ln"><span class="rs-lbl">Other mistakes</span><textarea class="rs-ta" data-rsin="end.other" aria-label="Other mistakes">' + esc(rsGet(pid, "end.other")) + '</textarea></div>' +
     '</div></section>';
-  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games">‹ Games</button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
+  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games">‹ Games</button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button><button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
     '<main class="wrap rs"><p class="rs-meta">' + esc([spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · ")) + '</p>' +
     (spec.spine ? '<p class="rs-spine"><b>Spine:</b> ' + esc(spec.spine) + '</p>' : "") +
     '<div class="rs-state"><span class="pill" id="rsState"><i></i></span>' + (isToday ? '<span class="pill">Now ' + rsNow() + (nowBlk ? " · " + esc(nowBlk.label) : nowM >= endM ? " · lesson time over" : "") + '</span>' : "") + '</div>' +
@@ -5679,6 +5719,7 @@ function viewSheet(){
   var saved = SHEETS[pid];
   if(saved && !RS_DIRTY[pid] && saved.summary !== info.summary){ RS_DIRTY[pid] = true; RS_LOCAL[pid] = clone(saved); clearTimeout(RS_TIMER); RS_TIMER = setTimeout(function(){ rsFlush(pid); }, 900); }
   if(!RS_TICK) RS_TICK = setInterval(function(){ if(UI.view === "sheet" && !rsTyping() && !UI.rsFinish) render(); }, 30000);
+  scrollRestore();
 }
 function rsPackCard(p){
   var spec = rsSpec(p), modeRow = "";
@@ -5742,6 +5783,234 @@ function rsHandle(a, el){
     render(); return;
   }
 }
+/* =====================================================================
+   PLAN — the lesson plan, read-only, on the teacher's screen only (Nov 2026).
+   packs/<id>.plan  { docId }  the Drive id of the LP file, saved by the planning chat at Gate 5 (or pasted once here).
+   The app fetches the file itself through the plan-doc Edge Function (teacher's sign-in only; dev/functions/plan-doc),
+   keeps a copy on this device (localStorage lessonGames.plan.<docId>) and shows that until ↻ fetches it again.
+   Nothing here goes into student links, class links or live messages, and the student page never shows this view.
+   The HTML is rebuilt from scratch (a short list of plain tags, no attributes), so nothing in the file can run.
+   Anchors: "SEGMENT 2 — …" → pl-seg-2, "2A · …" → pl-step-2A. Keys ("Key", "… key") and the trap's
+   Right / Also right / Expect lines start folded, so a glance at the iPad shows steps, not answers.
+   ===================================================================== */
+var PL = { busy:{}, err:{}, built:null }, PL_KEY = "lessonGames.plan.", PL_MAX = 25;
+function plDocId(p){ var d = p && p.plan && p.plan.docId; return typeof d === "string" && /^[A-Za-z0-9_-]{20,128}$/.test(d) ? d : ""; }
+function plIdFrom(s){
+  s = String(s || "").trim();
+  var m = /\/d\/([A-Za-z0-9_-]{20,128})/.exec(s) || /[?&]id=([A-Za-z0-9_-]{20,128})/.exec(s) || /^([A-Za-z0-9_-]{20,128})$/.exec(s);
+  return m ? m[1] : "";
+}
+function plCacheGet(id){ var o = loadLocal(PL_KEY + id); return o && typeof o.html === "string" ? o : null; }
+function plCacheKeys(){ var out = []; try{ for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if(k && k.indexOf(PL_KEY) === 0) out.push(k); } }catch(e){} return out; }
+function plCacheTrim(keep, max){
+  var ks = plCacheKeys().filter(function(k){ return k !== PL_KEY + keep; }).map(function(k){ var o = loadLocal(k); return { k:k, at: (o && o.at) || "" }; });
+  ks.sort(function(a, b){ return a.at.localeCompare(b.at); });
+  var drop = ks.slice(0, Math.max(0, ks.length - max));
+  drop.forEach(function(x){ try{ localStorage.removeItem(x.k); }catch(e){} });
+  return drop.length;
+}
+function plCacheSet(id, o){
+  for(var i = 0; i < 8; i++){
+    try{ localStorage.setItem(PL_KEY + id, JSON.stringify(o)); plCacheTrim(id, PL_MAX - 1); return true; }
+    catch(e){ if(!plCacheTrim(id, Math.max(0, plCacheKeys().length - 2 - i))) return false; }
+  }
+  return false;
+}
+function plErrText(code, cached){
+  var t = { not_teacher: "Only your own sign-in can fetch plans. Sign in again.", signin: "Sign in again to fetch the plan.",
+    not_found: "Google Drive won’t give this file to the plan reader. Share the folder with it (Viewer), or check the link.",
+    not_set_up: "The plan reader isn’t set up yet: its Google key is missing.", bad_key: "The plan reader’s Google key doesn’t work.",
+    google_auth: "Google refused the plan reader’s key.", not_a_doc: "That link isn’t a Word file or a Google Doc.", too_big: "That file is too big to show.",
+    bad_id: "That doesn’t look like a Google Drive link.", offline: "This app isn’t the online one, so it can’t fetch plans." }[code];
+  return (t || "Couldn’t fetch the plan (" + (/fetch|network|load failed/i.test(code || "") ? "no connection" : code || "error") + ").") + (cached ? " Showing the copy on this device." : "");
+}
+function plFetch(pid, id){
+  if(STUDENT_PAGE || SMODE || !id || PL.busy[id]) return;
+  if(!SB_MODE || !SB){ PL.err[id] = plErrText("offline", !!plCacheGet(id)); plRepaint(pid); return; }
+  PL.busy[id] = true; PL.err[id] = ""; plRepaint(pid);
+  SB.auth.getSession().then(function(r){
+    var s = r && r.data && r.data.session; if(!s) throw new Error("signin");
+    return fetch(SB_URL + "/functions/v1/plan-doc", { method:"POST", headers:{ "Content-Type":"application/json", apikey:SB_KEY, Authorization:"Bearer " + (s.access_token || "") }, body: JSON.stringify({ docId:id }) });
+  }).then(function(res){
+    return res.json().catch(function(){ return {}; }).then(function(j){ if(!res.ok || !j || typeof j.html !== "string") throw new Error((j && j.error) || "http " + res.status); return j; });
+  }).then(function(j){
+    PL.busy[id] = false;
+    var o = { html:j.html, name:String(j.name || ""), modified:String(j.modified || ""), at:nowIso() };
+    if(!plCacheSet(id, o)) PL.mem = { id:id, o:o };   /* storage full or blocked: keep it for this visit */
+    plRepaint(pid);
+  }, function(e){ PL.busy[id] = false; PL.err[id] = plErrText(e && e.message, !!plCopy(id)); plRepaint(pid); });
+}
+function plCopy(id){ return plCacheGet(id) || (PL.mem && PL.mem.id === id ? PL.mem.o : null); }
+/* Redraw the plan after a fetch without moving the page (a first fetch lands on the pending jump or saved place). */
+function plRepaint(pid){
+  if(UI.view !== "plan" || UI.packId !== pid) return;
+  var y = window.scrollY || 0, own = SCROLL_PEND || !!UI.planAt; render();
+  if(!own) window.scrollTo(0, y);
+}
+
+/* The file's HTML → plain tags only, then anchors and folds. */
+function plBuild(html){
+  var src = new DOMParser().parseFromString(String(html || ""), "text/html"), boldC = {}, itC = {};
+  var BOLD = /font-weight\s*:\s*(bold|[6-9]00)/i, ITAL = /font-style\s*:\s*italic/i;
+  Array.prototype.forEach.call(src.querySelectorAll("style"), function(st){
+    String(st.textContent || "").replace(/\.([\w-]+)\s*\{([^}]*)\}/g, function(_, c, body){ if(BOLD.test(body)) boldC[c] = 1; if(ITAL.test(body)) itC[c] = 1; return ""; });
+  });
+  var KEEP = { H1:"h1", H2:"h2", H3:"h3", H4:"h4", H5:"h4", H6:"h4", P:"p", BR:"br", STRONG:"b", B:"b", EM:"i", I:"i", U:"u", UL:"ul", OL:"ol", LI:"li",
+    TABLE:"table", THEAD:"thead", TBODY:"tbody", TR:"tr", TD:"td", TH:"th", BLOCKQUOTE:"blockquote", SUB:"sub", SUP:"sup", HR:"hr" };
+  var DROP = { SCRIPT:1, STYLE:1, TITLE:1, HEAD:1, IMG:1, SVG:1, IFRAME:1, FRAME:1, OBJECT:1, EMBED:1, TEMPLATE:1, NOSCRIPT:1, MATH:1, CANVAS:1, VIDEO:1, AUDIO:1,
+    FORM:1, INPUT:1, BUTTON:1, SELECT:1, TEXTAREA:1, LINK:1, META:1, BASE:1, PICTURE:1, SOURCE:1 };
+  function walk(n, out){
+    Array.prototype.forEach.call(n.childNodes, function(c){
+      if(c.nodeType === 3){ out.appendChild(document.createTextNode(c.nodeValue)); return; }
+      if(c.nodeType !== 1) return;
+      var tn = String(c.tagName).toUpperCase(), t = KEEP[tn], el = out;
+      if(DROP[tn]) return;
+      if(t){ el = document.createElement(t); out.appendChild(el); }
+      if(t === "td" || t === "th") ["colspan", "rowspan"].forEach(function(a){ var v = parseInt(c.getAttribute(a), 10); if(v > 1 && v < 50) el.setAttribute(a, String(v)); });
+      if(!t || t === "p" || t === "li" || t === "td" || t === "th"){  /* Google Docs marks bold and italic with classes or styles */
+        var cls = String(c.getAttribute("class") || "").split(/\s+/), sty = String(c.getAttribute("style") || "");
+        if(cls.some(function(x){ return boldC[x]; }) || BOLD.test(sty)){ var b = document.createElement("b"); el.appendChild(b); el = b; }
+        if(cls.some(function(x){ return itC[x]; }) || ITAL.test(sty)){ var i = document.createElement("i"); el.appendChild(i); el = i; }
+      }
+      if(t !== "br" && t !== "hr") walk(c, el);
+    });
+  }
+  var root = document.createElement("div"); walk(src.body || src.documentElement, root);
+  function txt(e){ return String(e.textContent || "").replace(/\s+/g, " ").trim(); }
+  function boldTxt(e){ return Array.prototype.map.call(e.querySelectorAll("b"), function(x){ return x.closest("b") === x ? x.textContent : ""; }).join("").replace(/\s+/g, " ").trim(); }
+  function retag(e, t){ var n = document.createElement(t); while(e.firstChild) n.appendChild(e.firstChild); e.parentNode.replaceChild(n, e); return n; }
+  Array.prototype.forEach.call(root.querySelectorAll("p"), function(p){ if(!txt(p) && !p.querySelector("br")) p.remove(); });
+  Array.prototype.forEach.call(root.querySelectorAll("table"), function(t){ var w = document.createElement("div"); w.className = "pl-tbl"; t.parentNode.insertBefore(w, t); w.appendChild(t); });
+  /* a plan written without heading styles: whole-bold "SEGMENT 2 — …" / "2A · …" paragraphs are its headings */
+  Array.prototype.forEach.call(root.querySelectorAll("p"), function(p){
+    var t = txt(p); if(!t || t.length > 160 || boldTxt(p) !== t) return;
+    if(/^SEGMENT\s+\d+\s*[—–-]/i.test(t)) retag(p, "h2"); else if(/^\d+[A-Za-z]\s*·\s*\S/.test(t)) retag(p, "h3");
+  });
+  var outline = [], used = {};
+  Array.prototype.forEach.call(root.querySelectorAll("h1,h2,h3,h4"), function(h){
+    var t = txt(h), m, id;
+    if((m = /^SEGMENT\s+(\d+)\b/i.exec(t))) id = "pl-seg-" + m[1];
+    else if((m = /^(\d+[A-Za-z])\s*·/.exec(t))) id = "pl-step-" + m[1].toUpperCase();
+    else id = "pl-h-" + slug(t).slice(0, 40);
+    if(used[id]) id += "-" + Object.keys(used).length;
+    used[id] = 1; h.id = id;
+    if(h.tagName !== "H1" && t) outline.push({ id:id, text:trunc(t, 80), lvl: h.tagName === "H2" ? 1 : 2 });
+  });
+  function fold(cls, label){
+    var d = document.createElement("details"), s = document.createElement("summary"), w = document.createElement("div");
+    d.className = "pl-fold " + cls; s.textContent = label; w.className = "pl-in"; d.appendChild(s); d.appendChild(w); return d;
+  }
+  /* Keys: a bold "Key" / "… key" line, and what follows it up to the next heading or bold label. */
+  var KEYL = /(^|[\s—–-])key\s*:?$|^(answer\s+)?key\b/i;
+  function isLabel(e){ if(!e || e.tagName !== "P") return false; var f = e.firstElementChild, t = txt(e); return !!(f && f.tagName === "B" && t.indexOf(txt(f)) === 0 && txt(f)); }
+  Array.prototype.forEach.call(root.querySelectorAll("p,h4"), function(p){
+    var t = txt(p); if(!t || t.length > 60 || !KEYL.test(t) || (p.tagName === "P" && boldTxt(p) !== t) || p.closest(".pl-fold")) return;
+    var d = fold("pl-key", "🔑 " + t), w = d.lastChild, n = p.nextElementSibling;
+    while(n && !/^(H1|H2|H3|H4|HR)$/.test(n.tagName) && !isLabel(n) && n.textContent.indexOf("⚠") === -1){ var nx = n.nextElementSibling; w.appendChild(n); n = nx; }
+    p.parentNode.replaceChild(d, p);
+  });
+  /* The trap's answers: Right / Also right / Expect, one per line. */
+  Array.prototype.forEach.call(root.querySelectorAll("li,p"), function(e){
+    var m = /^(also right|right|expect(?:ed)?)\s*:/i.exec(txt(e)); if(!m || e.closest(".pl-fold")) return;
+    var lab = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase(), d = fold("pl-ans", lab), w = d.lastChild;
+    while(e.firstChild) w.appendChild(e.firstChild);
+    e.appendChild(d);
+  });
+  return { html: root.innerHTML, outline: outline };
+}
+/* Where a run sheet line lives in the plan: its step code, else its segment, else a heading named like the block. */
+function plCode(l){ var m = /^(\d+[A-Za-z])\b/.exec(String(l || "").trim()); return m ? m[1].toUpperCase() : ""; }
+function plFind(at){
+  if(!at) return null;
+  var seg = /^(?:seg(?:ment)?\s*)?(\d+)\b/i.exec(String(at.bl || "").trim()), ids = [];
+  if(at.c) ids.push("pl-step-" + at.c);
+  if(at.c) ids.push("pl-seg-" + parseInt(at.c, 10));
+  if(seg) ids.push("pl-seg-" + seg[1]);
+  for(var i = 0; i < ids.length; i++){ var e = document.getElementById(ids[i]); if(e && e.closest(".pl-doc")) return e; }
+  var want = String(at.bl || "").replace(/^\d+\s*/, "").toUpperCase().trim();
+  if(!want) return null;
+  return Array.prototype.filter.call(document.querySelectorAll(".pl-doc h2,.pl-doc h3"), function(h){ return String(h.textContent || "").toUpperCase().indexOf(want) !== -1; })[0] || null;
+}
+function plJumpAttrs(bl, c){ return ' data-a="pl-go" data-bl="' + esc(bl) + '" data-c="' + esc(c || "") + '" role="link" tabindex="0" title="Open the plan here"'; }
+function plWhen(iso){ try{ var d = new Date(iso); return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" }) : fmtWhen(iso); }catch(e){ return ""; } }
+function viewPlan(){
+  var p = getPack(UI.packId);
+  if(!p){ go("home"); return; }
+  var id = plDocId(p), c = id ? plCopy(id) : null, back = UI.plFrom === "pack" || !rsSpec(p) ? "pack" : "sheet";
+  if(id && !c && !PL.busy[id] && !PL.err[id]) plFetch(p.id, id);
+  var head = '<header class="bar pl-top"><button class="btn ghost sm ic" data-a="pl-back" aria-label="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '" title="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '">‹</button><div class="t">' + esc(packTitle(p)) + ' · plan</div>' +
+    (id ? '<button class="btn ghost sm ic" data-a="pl-outline" aria-label="Outline" title="Outline: jump to a segment or step"' + (c ? "" : " disabled") + '>☰</button><button class="btn ghost sm ic" data-a="pl-refresh" aria-label="Fetch the plan again" title="Fetch the plan again (after you edit it)"' + (PL.busy[id] ? " disabled" : "") + '>↻</button>' : "") + '</header>';
+  var body = "";
+  if(!id || UI.plEdit){
+    body = '<section class="pl-paste"><h3 style="margin:0 0 4px">' + (id ? "Change the plan’s link" : "Which plan goes with this lesson?") + '</h3><p class="muted" style="margin:0;font-size:16px">Paste the link to the lesson plan (in Drive or Docs: Share → Copy link). You only do this once for a lesson.</p>' +
+      '<input id="plLink" type="url" autocomplete="off" spellcheck="false" placeholder="https://docs.google.com/…" aria-label="Plan link"><p class="err" id="plErr" role="alert"></p><div class="row"><button class="btn" data-a="pl-save">Save</button>' + (id ? '<button class="btn ghost" data-a="pl-edit-x">Cancel</button>' : "") + '</div></section>';
+  } else {
+    var st = PL.busy[id] ? "Fetching…" : c ? "fetched " + plWhen(c.at) : "";
+    body = '<p class="pl-meta"><span class="pill' + (PL.err[id] ? " warn" : c ? " ok" : "") + '"><i></i>' + esc(st || "Not fetched yet") + '</span>' + (c && c.name ? '<span>' + esc(c.name) + '</span>' : "") + '</p>' +
+      (PL.err[id] ? '<p class="notice" role="alert">' + esc(PL.err[id]) + (c ? "" : ' <button class="btn sm" data-a="pl-refresh">Try again</button>') + '</p>' : "") +
+      (c ? '<article class="pl-doc" id="plDoc"></article>' : PL.busy[id] ? '<p class="notice">Fetching the plan from Google Drive…</p>' : "");
+  }
+  $("app").innerHTML = head + '<main class="wrap pl">' + body + '</main>';
+  var doc = $("plDoc");
+  if(doc && c){
+    var key = id + "|" + c.at + "|" + c.html.length;
+    if(!PL.built || PL.built.key !== key) PL.built = Object.assign({ key:key }, plBuild(c.html));
+    doc.innerHTML = PL.built.html;   /* rebuilt from plain tags above: no attributes from the file */
+    if(UI.plOutline) $("app").insertAdjacentHTML("beforeend", plOutlineHtml());
+    if(UI.planAt){
+      var el = plFind(UI.planAt); UI.planAt = null; saveUI(); SCROLL_PEND = false;
+      if(el){ el.scrollIntoView({ block:"start" }); el.classList.add("pl-hit"); setTimeout(function(){ el.classList.remove("pl-hit"); }, 1600); }
+      else { window.scrollTo(0, 0); toast("That step isn’t in the plan’s headings."); }
+    } else scrollRestore();
+  }
+  var li = $("plLink"); if(li) setTimeout(function(){ try{ li.focus(); }catch(e){} }, 50);
+}
+function plOutlineHtml(){
+  var o = (PL.built && PL.built.outline) || [];
+  return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Plan outline" id="plOut"><div class="pop setpop"><h3 style="margin-bottom:4px">Outline</h3>' +
+    (o.length ? '<ul class="pl-out">' + o.map(function(x){ return '<li class="l' + x.lvl + '"><button data-a="pl-to" data-id="' + esc(x.id) + '">' + esc(x.text) + '</button></li>'; }).join("") + '</ul>' : '<p class="muted">This plan has no headings to jump to.</p>') +
+    '<div class="row"><button class="btn ghost" data-a="pl-outline-x">Close</button><button class="btn ghost sm" data-a="pl-edit">Change the plan’s link</button></div></div></div>';
+}
+function plHandle(a, el){
+  if(STUDENT_PAGE || SMODE) return;
+  var p = getPack(UI.packId);
+  if(a === "pl-open"){ UI.plFrom = UI.view === "sheet" ? "sheet" : "pack"; UI.plEdit = false; UI.plOutline = false; go("plan"); return; }
+  if(a === "pl-go"){ if(!p) return; UI.plFrom = "sheet"; UI.plEdit = false; UI.plOutline = false; UI.planAt = { bl: el.getAttribute("data-bl") || "", c: el.getAttribute("data-c") || "" }; go("plan"); return; }
+  if(!p) return;
+  var id = plDocId(p);
+  if(a === "pl-back"){ UI.plOutline = false; UI.plEdit = false; go(UI.plFrom === "pack" || !rsSpec(p) ? "pack" : "sheet"); return; }
+  if(a === "pl-refresh"){ if(id){ PL.err[id] = ""; plFetch(p.id, id); } return; }
+  if(a === "pl-outline"){ UI.plOutline = true; $("app").insertAdjacentHTML("beforeend", plOutlineHtml()); return; }
+  if(a === "pl-outline-x"){ UI.plOutline = false; var ov = $("plOut"); if(ov) ov.remove(); return; }
+  if(a === "pl-to"){
+    UI.plOutline = false; var o2 = $("plOut"); if(o2) o2.remove();
+    var h = document.getElementById(el.getAttribute("data-id")); if(h && h.closest(".pl-doc")) h.scrollIntoView({ block:"start" }); return;
+  }
+  if(a === "pl-edit"){ UI.plOutline = false; UI.plEdit = true; render(); return; }
+  if(a === "pl-edit-x"){ UI.plEdit = false; render(); return; }
+  if(a === "pl-save"){
+    var nid = plIdFrom($("plLink") && $("plLink").value);
+    if(!nid){ $("plErr").textContent = "That doesn’t look like a Google Drive or Docs link. Copy it from Share → Copy link."; return; }
+    var pp = clone(p); pp.plan = { docId:nid }; touchPack(pp); PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; });
+    UI.plEdit = false; PL.err[nid] = ""; render(); return;
+  }
+}
+
+/* Scroll memory: each lesson's run sheet, plan and games page reopen where they were left (also after a reload). */
+var SCROLL_PEND = true, SCR_T = null;
+function scrollKey(){ return ["sheet", "plan", "pack"].indexOf(UI.view) !== -1 && UI.packId ? UI.view + "|" + UI.packId : null; }
+function scrollRestore(){
+  if(!SCROLL_PEND) return; SCROLL_PEND = false;
+  var k = scrollKey(), y = k && UI.scr ? +UI.scr[k] || 0 : 0;
+  window.scrollTo(0, y);
+}
+window.addEventListener("scroll", function(){
+  if(SCROLL_PEND || STUDENT_PAGE) return;
+  var k = scrollKey(); if(!k) return;
+  UI.scr = UI.scr || {}; delete UI.scr[k]; UI.scr[k] = Math.round(window.scrollY || 0);
+  clearTimeout(SCR_T); SCR_T = setTimeout(function(){ var ks = Object.keys(UI.scr || {}); ks.slice(0, Math.max(0, ks.length - 60)).forEach(function(x){ delete UI.scr[x]; }); saveUI(); }, 400);
+}, { passive:true });
+
 /* Came to the lesson page from its run sheet (‹ Games): games started there go back to the run sheet too. */
 function rsVia(pid){ return UI.rsVia === pid && rsSpec(getPack(pid)) ? pid : null; }
 function lessonView(pid){ var p = getPack(pid); return UI.rsRet === pid && rsSpec(p) ? "sheet" : "pack"; }
@@ -5848,6 +6117,7 @@ function handle(a, el){
   if(a === "backup"){ backupDownload(); return; }
   if(a === "restore"){ var fi = $("restoreFile"); if(fi) fi.click(); return; }
   if(a.indexOf("rs-") === 0){ rsHandle(a, el); return; }
+  if(a.indexOf("pl-") === 0){ plHandle(a, el); return; }
   if(a === "home"){ UI.confirmDel = null; go("home"); return; }
   if(a === "showall"){ UI.showAll = true; render(); return; }
   if(a === "resume"){ if(run) startClock(run); go("play"); return; }
