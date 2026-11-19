@@ -1,5 +1,5 @@
 """19 Nov evening feedback: Win or Lose bets (a typed amount and All in, on a student link and a class link, through the
-same live path as the other bet buttons), the Plan tab's HW Key button, and Open plan / Folder links (teacher only)."""
+same live path as the other bet buttons), the Plan tab's HW Key button, and Open plan / Folder (now in the 🗂 Files menu; teacher only)."""
 import json, os, re, time
 import lg
 from lg import *
@@ -143,15 +143,22 @@ with sync_playwright() as p:
     pc = b.new_context(viewport={"width":1024, "height":768})
     t = tpage(pc)
     go_lesson(t, "Kit · LP12"); t.wait_for_selector(".rs-blk")
-    href = t.get_attribute(".rs-top a.pl-ext:has-text('Open plan')", "href") if t.locator(".rs-top a.pl-ext:has-text('Open plan')").count() else None
-    check(href == "https://drive.google.com/file/d/1PlanDocIdForTestsOnly_HWoneAAAA/view", "run sheet header: Open plan → the plan file in Drive (%s)" % href)
-    check(t.get_attribute(".rs-top a.pl-ext", "target") == "_blank" and "noopener" in t.get_attribute(".rs-top a.pl-ext", "rel"), "opens outside the app (new tab / Drive app), noopener")
-    check(t.locator(".rs-top a:has-text('Folder')").count() == 0 and not calls, "no Folder before the plan has been fetched, and the run sheet fetches nothing")
+    def files(pg):
+        """Open the 🗂 Files menu in the header and return {label: href}; closes it again."""
+        if not pg.locator("header [data-a=pl-files]").count(): return None
+        pg.click("header [data-a=pl-files]"); pg.wait_for_selector("#plFiles")
+        out = pg.evaluate("[...document.querySelectorAll('#plFiles a')].map(a => [a.querySelector('span:not([aria-hidden])').textContent, a.href, a.target, a.rel])")
+        pg.click("#plFiles button[data-a=pl-files-x]"); pg.wait_for_timeout(100)
+        return out
+    f0 = files(t) or []; href = dict((x[0], x[1]) for x in f0).get('Open plan')
+    check(href == "https://drive.google.com/file/d/1PlanDocIdForTestsOnly_HWoneAAAA/view", "run sheet 🗂 Files: Open plan → the plan file in Drive (%s)" % href)
+    check(f0 and all(x[2] == "_blank" and "noopener" in x[3] for x in f0), "opens outside the app (new tab / Drive app), noopener")
+    check("Folder" not in dict((x[0], x[1]) for x in f0) and not calls, "no Folder before the plan has been fetched, and the run sheet fetches nothing")
     t.click(".rs-top [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(200)
     check(calls == ["1PlanDocIdForTestsOnly_HWoneAAAA"], "opening the Plan tab fetches it once")
-    fh = t.get_attribute(".pl-meta a:has-text('Folder')", "href") if t.locator(".pl-meta a:has-text('Folder')").count() else None
-    check(fh == "https://drive.google.com/drive/folders/" + FOLDER, "Plan tab: Folder → the plan's Drive folder (%s)" % fh)
-    check(t.locator(".pl-meta a:has-text('Open plan')").count() == 1, "Plan tab: Open plan too")
+    f1 = dict((x[0], x[1]) for x in (files(t) or [])); fh = f1.get("Folder")
+    check(fh == "https://drive.google.com/drive/folders/" + FOLDER, "Plan tab 🗂 Files: Folder → the plan's Drive folder (%s)" % fh)
+    check("Open plan" in f1, "Plan tab: Open plan too")
     check(t.evaluate("JSON.parse(localStorage.getItem('lessonGames.plan.1PlanDocIdForTestsOnly_HWoneAAAA')).folder") == FOLDER, "the folder is kept with the plan's copy on the device")
     check(t.locator(".pl-top [data-a=pl-hw]").count() == 1 and t.inner_text(".pl-top [data-a=pl-hw]").strip() == "HW Key", "the Plan tab's header has an HW Key button")
     hk = t.locator("details.pl-key:has(summary:has-text('Key — HW11'))")
@@ -168,16 +175,16 @@ with sync_playwright() as p:
     check(sy > 300 and saved is not None and abs(saved - sy) <= 2, "the saved place is where the key is (%s vs %s)" % (saved, sy))
     check(t.locator("#plHwMenu").count() == 0, "one HW key: no menu")
     t.click("[data-a=pl-back]"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(200)
-    fh2 = t.get_attribute(".rs-top a:has-text('Folder')", "href") if t.locator(".rs-top a:has-text('Folder')").count() else None
-    check(fh2 == "https://drive.google.com/drive/folders/" + FOLDER, "back on the run sheet, Folder now shows in the header too (%s)" % fh2)
+    fh2 = dict((x[0], x[1]) for x in (files(t) or [])).get("Folder")
+    check(fh2 == "https://drive.google.com/drive/folders/" + FOLDER, "back on the run sheet, Folder is in the 🗂 menu too (%s)" % fh2)
     t.click(".rs-top [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(300)
     check(abs(t.evaluate("scrollY") - sy) <= 2, "📖 reopens the plan at the HW key (%s vs %s)" % (t.evaluate("scrollY"), sy))
     # phone: the run sheet header still fits
     t.set_viewport_size({"width":390, "height":844}); t.click("[data-a=pl-back]"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
     wide = t.evaluate("document.querySelector('.rs-top').scrollWidth <= document.querySelector('.rs-top').clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth + 1")
-    lbl = t.evaluate("[...document.querySelectorAll('.rs-top .pl-ext .lbl')].every(e => !e.getClientRects().length)")
-    check(wide and lbl, "phone: the run sheet header fits, Open plan / Folder as 📄 📁 icons")
-    check(t.evaluate("[...document.querySelectorAll('.rs-top a.pl-ext')].every(a => a.getAttribute('aria-label'))"), "icon links keep their names for VoiceOver")
+    lbl = t.evaluate("document.querySelector('.rs-top .t').getBoundingClientRect().width") >= 60
+    check(wide and lbl, "phone: the run sheet header fits and the title keeps room (%s px)" % t.evaluate("Math.round(document.querySelector('.rs-top .t').getBoundingClientRect().width)"))
+    check(t.evaluate("!!document.querySelector('.rs-top [data-a=pl-files]').getAttribute('aria-label')"), "the 🗂 icon keeps its name for VoiceOver")
     t.screenshot(path=HERE + "/shots/fb_rs_phone.png")
     t.set_viewport_size({"width":1024, "height":768})
     # two HW keys → a small menu
@@ -202,7 +209,7 @@ with sync_playwright() as p:
     check(t.locator("[data-a=pl-hw]").count() == 0 and t.locator("details.pl-key").count() == 2, "a plan with no homework key: no HW Key button, other keys as before")
     # no plan: no links
     t.click("[data-a=pl-back]"); t.wait_for_selector(".head h2"); go_lesson(t, "Kit · LP8"); t.wait_for_selector(".rs-blk")
-    check(t.locator(".pl-ext").count() == 0 and t.locator("#plLinks").count() == 0, "a lesson with no plan: no Open plan / Folder")
+    check(t.locator("[data-a=pl-files]").count() == 0, "a lesson with no plan and no materials: no Files button")
     check("drive.google.com" not in json.dumps(t.evaluate("__MOCK.db")), "nothing about the Drive links goes into the database")
 
     print("errors:", errs[:5])

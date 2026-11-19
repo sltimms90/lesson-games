@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-MTgPJCYK+jjl+dOOb+eHsOU3R6j7m6LP+jt9RFu1/kM='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-kwm2sC0s7SyBiWyO47eT6TSF+ly10+EJGNRNutHcd1Q='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Games</title>
@@ -782,11 +782,17 @@ main.rs{padding-bottom:45vh}
 .pl-doc [id]{scroll-margin-top:72px}
 .pl-doc .pl-hit{outline:3px solid var(--ball);outline-offset:4px;border-radius:8px}
 /* Open plan / Folder: Drive links (teacher only). Icons only on a narrow screen. */
-.pl-links{display:inline-flex;gap:6px;align-items:center}
-.pl-ext{gap:6px;text-decoration:none;color:var(--ink)}
 .pl-hwb{white-space:nowrap}
-.pl-meta .pl-links{margin-left:auto}
-@media (max-width:640px){.rs-top .pl-ext .lbl{display:none}.rs-top .pl-ext{min-width:44px;padding:8px 10px;justify-content:center}}
+/* Files menu: Open plan, Folder and the lesson's materials, each a Drive link (teacher only). */
+.pl-files{list-style:none;padding:0;margin:4px 0 10px;max-height:60vh;overflow:auto;text-align:left}
+.pl-files li{margin:0}
+.pl-files a{display:flex;gap:10px;align-items:center;font-size:17px;color:var(--ink);text-decoration:none;border-top:1px solid var(--line);padding:10px 6px;min-height:44px}
+.pl-files a small{color:var(--muted);font-size:15px;margin-left:auto;white-space:nowrap}
+.pl-files .sep{border-top:2px solid var(--line);margin-top:4px;padding-top:6px;color:var(--muted);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+/* the materials for one run sheet block, under its label */
+.rs-files{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px 2px 14px}
+@media (max-width:440px){.rs-top .rs-gl{display:none}.rs-top [data-a=rs-games]{min-width:44px;justify-content:center}}
+a.rs-file{display:inline-flex;align-items:center;gap:6px;min-height:40px;color:var(--ink);text-decoration:none;font-size:16px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pl-tbl{overflow-x:auto}
 .pl-doc table{border-collapse:collapse;margin:.5em 0}
 .pl-doc td,.pl-doc th{border:1px solid var(--line);padding:4px 8px;vertical-align:top}
@@ -5716,7 +5722,7 @@ function viewSheet(){
     var skip = rsGet(pid, b.key + ".skip") === "y", cur = "";
     function ja(x){ var c = plCode(x.ln.label) || plCode(x.ln._code) || cur; cur = c; return plOn ? plJumpAttrs(b.label, c) : ""; }
     return '<section class="rs-blk' + (skip ? " skip" : "") + (nowBlk === b ? " now" : "") + '" id="' + esc(b.key) + '"><div class="rs-bar"><span class="rs-clock">' + rsFmt(b.start) + '</span>' + (plOn ? '<b class="pl-j"' + plJumpAttrs(b.label, "") + '>' : '<b>') + esc(b.label) + '</b>' + (b.material ? '<span class="rs-mat">' + esc(b.material) + '</span>' : "") +
-      '<span class="rs-min">' + b.mins + ' min</span><button class="rs-skip' + (skip ? " on" : "") + '" data-a="rs-skip" data-k="' + esc(b.key) + '" aria-pressed="' + skip + '">skip</button></div><div class="rs-body">' +
+      '<span class="rs-min">' + b.mins + ' min</span><button class="rs-skip' + (skip ? " on" : "") + '" data-a="rs-skip" data-k="' + esc(b.key) + '" aria-pressed="' + skip + '">skip</button></div>' + rsFilesHtml(p, b.label) + '<div class="rs-body">' +
       b.lines.map(function(x){ return rsLine(p, x, G, gk, ja(x)); }).join("") + '</div></section>';
   }).join("");
   var plan = rsGet(pid, "end.plan"); plan = Array.isArray(plan) ? plan : [];
@@ -5732,7 +5738,7 @@ function viewSheet(){
     '<div class="rs-ln"><span class="rs-lbl">Parent said</span>' + rsIn(pid, "end.parent", "", "Parent said") + '</div>' +
     '<div class="rs-ln"><span class="rs-lbl">Other mistakes</span><textarea class="rs-ta" data-rsin="end.other" aria-label="Other mistakes">' + esc(rsGet(pid, "end.other")) + '</textarea></div>' +
     '</div></section>';
-  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games">‹ Games</button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button>' + plLinksHtml(p) + '<button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
+  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games" aria-label="Games">‹<span class="rs-gl"> Games</span></button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button>' + plFilesBtn(p) + '<button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
     '<main class="wrap rs"><p class="rs-meta">' + esc([spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · ")) + '</p>' +
     (spec.spine ? '<p class="rs-spine"><b>Spine:</b> ' + esc(spec.spine) + '</p>' : "") +
     '<div class="rs-state"><span class="pill" id="rsState"><i></i></span>' + (isToday ? '<span class="pill">Now ' + rsNow() + (nowBlk ? " · " + esc(nowBlk.label) : nowM >= endM ? " · lesson time over" : "") + '</span>' : "") + '</div>' +
@@ -5877,13 +5883,47 @@ function plCopy(id){ return plCacheGet(id) || (PL.mem && PL.mem.id === id ? PL.m
    with the plan and the device keeps with its copy. The run sheet never fetches (the Plan tab does), so Folder shows
    once the plan has been opened (or ↻ fetched again) on this device; until then only Open plan. */
 function plFolder(p){ var id = plDocId(p), c = id ? plCopy(id) : null, f = c && c.folder; return typeof f === "string" && /^[A-Za-z0-9_-]{10,128}$/.test(f) ? f : ""; }
-function plLinksInner(p){
-  var id = plDocId(p); if(!id || STUDENT_PAGE || SMODE) return "";
-  var f = plFolder(p);
-  return '<a class="btn ghost sm pl-ext" href="https://drive.google.com/file/d/' + esc(id) + '/view" target="_blank" rel="noopener noreferrer" aria-label="Open plan in Google Drive" title="Open the plan in Google Drive"><span aria-hidden="true">📄</span><span class="lbl">Open plan</span></a>' +
-    (f ? '<a class="btn ghost sm pl-ext" href="https://drive.google.com/drive/folders/' + esc(f) + '" target="_blank" rel="noopener noreferrer" aria-label="Folder: this student’s lesson-plan folder in Google Drive" title="This student’s lesson-plan folder in Google Drive (worksheets, print pack, homework)"><span aria-hidden="true">📁</span><span class="lbl">Folder</span></a>' : "");
+/* packs/<id>.materials (Gate 5, Nov 2026): [{ t: label, id: Drive file id, p: pages (text), seg: ["1", "2"] }], in the
+   planner's order. Every field is untrusted: an entry without a usable id or label is dropped; t and p are only ever text. */
+function plMaterials(p){
+  var m = p && p.materials; if(!Array.isArray(m) || STUDENT_PAGE || SMODE) return [];
+  var out = [];
+  m.slice(0, 60).forEach(function(x){
+    if(!x || typeof x !== "object") return;
+    var id = typeof x.id === "string" ? x.id.trim() : "", t = typeof x.t === "string" ? x.t.replace(/\s+/g, " ").trim().slice(0, 80) : "";
+    if(!/^[A-Za-z0-9_-]{10,200}$/.test(id) || !t) return;
+    var pg = typeof x.p === "string" || typeof x.p === "number" ? String(x.p).replace(/\s+/g, " ").trim().slice(0, 40) : "";
+    var seg = (Array.isArray(x.seg) ? x.seg : []).map(function(v){ return typeof v === "string" || typeof v === "number" ? String(v).trim() : ""; }).filter(function(v){ return /^\d{1,3}$/.test(v); });
+    out.push({ t:t, id:id, p:pg, seg:seg });
+  });
+  return out;
 }
-function plLinksHtml(p){ var h = plLinksInner(p); return h ? '<span class="pl-links" id="plLinks">' + h + '</span>' : ""; }
+function plMatLabel(m){ return m.t + (m.p ? " · " + m.p : ""); }
+function plFileUrl(id){ return "https://drive.google.com/file/d/" + encodeURIComponent(id) + "/view"; }
+/* The run sheet block's number: "1 SPINE Club Recruiter" → "1", "Seg 2 · …" → "2". */
+function rsBlockNum(label){ var m = /^(?:seg(?:ment)?\s*)?(\d{1,3})\b/i.exec(String(label || "").trim()); return m ? String(parseInt(m[1], 10)) : ""; }
+function rsFilesHtml(p, label){
+  var n = rsBlockNum(label); if(!n) return "";
+  var ms = plMaterials(p).filter(function(m){ return m.seg.some(function(s){ return String(parseInt(s, 10)) === n; }); });
+  return ms.length ? '<div class="rs-files">' + ms.map(function(m){ return '<a class="chip rs-file" href="' + esc(plFileUrl(m.id)) + '" target="_blank" rel="noopener noreferrer" title="Open in Google Drive"><span aria-hidden="true">📄</span>' + esc(plMatLabel(m)) + '</a>'; }).join("") + '</div>' : "";
+}
+/* One Files menu (run sheet and Plan tab headers): Open plan, Folder, then the lesson's materials. Nothing at all → no button. */
+function plFilesItems(p){
+  if(STUDENT_PAGE || SMODE || !p) return [];
+  var id = plDocId(p), f = plFolder(p), out = [];
+  if(id) out.push({ ic:"📖", t:"Open plan", url:plFileUrl(id), hint:"the plan in Drive" });
+  if(f) out.push({ ic:"📁", t:"Folder", url:"https://drive.google.com/drive/folders/" + encodeURIComponent(f), hint:"worksheets, print pack, HW" });
+  plMaterials(p).forEach(function(m, i){ out.push({ ic:"📄", t:m.t, p:m.p, url:plFileUrl(m.id), sep: i === 0 }); });
+  return out;
+}
+function plFilesBtn(p){ return plFilesItems(p).length ? '<button class="btn ghost sm ic" data-a="pl-files" aria-label="Files: the plan, its folder and this lesson’s materials" title="Files">🗂</button>' : ""; }
+function plFilesHtml(p){
+  var it = plFilesItems(p);
+  return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Files" id="plFiles"><div class="pop setpop"><h3 style="margin-bottom:4px">Files</h3><ul class="pl-files">' +
+    it.map(function(x){ return (x.sep ? '<li class="sep">This lesson’s materials</li>' : "") + '<li><a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer" data-a="pl-files-x"><span aria-hidden="true">' + x.ic + '</span><span>' + esc(x.t) + '</span>' + (x.p ? '<small>' + esc(x.p) + '</small>' : x.hint ? '<small>' + esc(x.hint) + '</small>' : "") + '</a></li>'; }).join("") +
+    '</ul>' + (plDocId(p) && !plFolder(p) ? '<p class="muted" style="font-size:15px;margin:0 0 8px">Folder shows once the plan has been fetched on this device (open 📖, or ↻).</p>' : "") +
+    '<div class="row"><button class="btn ghost" data-a="pl-files-x">Close</button></div></div></div>';
+}
 
 /* Redraw the plan after a fetch without moving the page (a first fetch lands on the pending jump or saved place). */
 function plRepaint(pid){
@@ -5997,14 +6037,14 @@ function viewPlan(){
   var hwk = id && c && !UI.plEdit && PL.built && PL.built.hw || [];
   var head = '<header class="bar pl-top"><button class="btn ghost sm ic" data-a="pl-back" aria-label="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '" title="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '">‹</button><div class="t">' + esc(packTitle(p)) + ' · plan</div>' +
     (hwk.length ? '<button class="btn sm pl-hwb" data-a="pl-hw" aria-label="HW Key: jump to the homework key" title="Jump to the homework key' + (hwk.length > 1 ? "s" : "") + '">HW Key</button>' : "") +
-    (id ? '<button class="btn ghost sm ic" data-a="pl-outline" aria-label="Outline" title="Outline: jump to a segment or step"' + (c ? "" : " disabled") + '>☰</button><button class="btn ghost sm ic" data-a="pl-refresh" aria-label="Fetch the plan again" title="Fetch the plan again (after you edit it)"' + (PL.busy[id] ? " disabled" : "") + '>↻</button>' : "") + '</header>';
+    (id ? '<button class="btn ghost sm ic" data-a="pl-outline" aria-label="Outline" title="Outline: jump to a segment or step"' + (c ? "" : " disabled") + '>☰</button><button class="btn ghost sm ic" data-a="pl-refresh" aria-label="Fetch the plan again" title="Fetch the plan again (after you edit it)"' + (PL.busy[id] ? " disabled" : "") + '>↻</button>' : "") + plFilesBtn(p) + '</header>';
   var body = "";
   if(!id || UI.plEdit){
     body = '<section class="pl-paste"><h3 style="margin:0 0 4px">' + (id ? "Change the plan’s link" : "Which plan goes with this lesson?") + '</h3><p class="muted" style="margin:0;font-size:16px">Paste the link to the lesson plan (in Drive or Docs: Share → Copy link). You only do this once for a lesson.</p>' +
       '<input id="plLink" type="url" autocomplete="off" spellcheck="false" placeholder="https://docs.google.com/…" aria-label="Plan link"><p class="err" id="plErr" role="alert"></p><div class="row"><button class="btn" data-a="pl-save">Save</button>' + (id ? '<button class="btn ghost" data-a="pl-edit-x">Cancel</button>' : "") + '</div></section>';
   } else {
     var st = PL.busy[id] ? "Fetching…" : c ? "fetched " + plWhen(c.at) : "";
-    body = '<p class="pl-meta"><span class="pill' + (PL.err[id] ? " warn" : c ? " ok" : "") + '"><i></i>' + esc(st || "Not fetched yet") + '</span>' + (c && c.name ? '<span>' + esc(c.name) + '</span>' : "") + plLinksHtml(p) + '</p>' +
+    body = '<p class="pl-meta"><span class="pill' + (PL.err[id] ? " warn" : c ? " ok" : "") + '"><i></i>' + esc(st || "Not fetched yet") + '</span>' + (c && c.name ? '<span>' + esc(c.name) + '</span>' : "") + '</p>' +
       (PL.err[id] ? '<p class="notice" role="alert">' + esc(PL.err[id]) + (c ? "" : ' <button class="btn sm" data-a="pl-refresh">Try again</button>') + '</p>' : "") +
       (c ? '<article class="pl-doc" id="plDoc"></article>' : PL.busy[id] ? '<p class="notice">Fetching the plan from Google Drive…</p>' : "");
   }
@@ -6045,6 +6085,8 @@ function plHwGo(hid){
 function plHandle(a, el){
   if(STUDENT_PAGE || SMODE) return;
   var p = getPack(UI.packId);
+  if(a === "pl-files-x"){ setTimeout(function(){ var fo = $("plFiles"); if(fo) fo.remove(); }, 0); return; }   /* after the tap, so a link still opens */
+  if(a === "pl-files"){ var fo2 = $("plFiles"); if(fo2) fo2.remove(); if(p && plFilesItems(p).length) $("app").insertAdjacentHTML("beforeend", plFilesHtml(p)); return; }
   if(a === "pl-open"){ UI.plFrom = UI.view === "sheet" ? "sheet" : "pack"; UI.plEdit = false; UI.plOutline = false; UI.plHwMenu = false; go("plan"); return; }
   if(a === "pl-go"){ if(!p) return; UI.plFrom = "sheet"; UI.plEdit = false; UI.plOutline = false; UI.planAt = { bl: el.getAttribute("data-bl") || "", c: el.getAttribute("data-c") || "" }; go("plan"); return; }
   if(!p) return;

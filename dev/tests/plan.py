@@ -14,7 +14,7 @@ spec = {"student":"Kit", "lp":12, "date":"2026-11-20", "start":"17:00", "length"
     {"label":"1 Teaching Notes: past simple", "mins":15, "lines":[{"type":"cue", "label":"1A Went, saw, ate"}, {"type":"score", "label":"1B Bomb Squad said", "n":2}]},
     {"label":"2 EXAM Paper 1", "mins":15, "lines":[{"type":"cue", "label":"2A The paper"}, {"type":"score", "label":"2A Grammar", "n":10}, {"type":"cue", "label":"2B Read, fix"}]},
     {"label":"Buffer", "mins":2, "lines":[{"type":"cue", "label":"Overrun only"}]}]}
-pack = {"id":"kit-lp12", "student":"Kit", "lp":12, "title":"Kit · LP12", "date":"2026-11-20", "updatedAt":"x", "runsheet":spec, "plan":{"docId":DOC},
+pack = {"id":"kit-lp12", "student":"Kit", "lp":12, "title":"Kit · LP12", "date":"2026-11-20", "updatedAt":"x", "runsheet":spec, "plan":{"docId":DOC}, "materials":[{"t":"Pathways 3 U3R2 SecretLabel", "id":"1MaterialFileIdLeakCheck_xyz", "p":"p.62–63", "seg":["1", "2"]}],
   "liveRoom":"0123456789abcdef0123456789abcdef",
   "games":[{"id":"g1", "type":"hangman", "title":"Past words", "block":"went\nsaw\nate", "options":{}}]}
 old = {"id":"kit-lp11", "student":"Kit", "lp":11, "title":"Kit · LP11", "date":"2026-11-13", "updatedAt":"x", "games":[{"id":"g1", "type":"hangman", "title":"Words", "block":"cat\ndog", "options":{}}]}
@@ -171,7 +171,7 @@ with sync_playwright() as p:
     slink = t3.input_value("#slinkUrl"); t3.click("[data-a=slink-close]")
     t3.click("#clsBar [data-a=clink]"); t3.wait_for_selector("#slinkUrl"); clink = t3.input_value("#slinkUrl"); t3.click("[data-a=clink-close]")
     REC = "window.__BC=[]; (function(){ const O = window.BroadcastChannel; window.BroadcastChannel = function(n){ const c = new O(n); c.addEventListener('message', e => window.__BC.push(JSON.stringify(e.data))); return c; }; })();"
-    secrets = [DOC, "Bomb Squad", "watch: goed", "I went to the park", "plan-doc"]
+    secrets = [DOC, "Bomb Squad", "watch: goed", "I went to the park", "plan-doc", "1MaterialFileIdLeakCheck_xyz", "SecretLabel"]   # the plan, and the lesson's materials (Nov 2026)
     for name, url in (("student link", slink), ("class link", clink)):
         s = ctx3.new_page(); s.on("pageerror", lambda e: errs3.append("S: " + str(e))); s.add_init_script(REC)
         sreq = []; s.on("request", lambda r: sreq.append(r.url))
@@ -193,10 +193,11 @@ with sync_playwright() as p:
         check(not [u for u in sreq if "plan-doc" in u or "/functions/" in u], "%s: the student page never calls the plan function" % name)
         s.evaluate("__T.UI.view = 'plan'; __T.UI.packId = 'kit-lp12'"); s.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
         s.evaluate("(() => { try { document.querySelector('[data-a]') && 0; } catch(e){} })()")
-        check(s.locator(".pl-doc, [data-a=pl-open], .pl-j, #plLink").count() == 0, "%s: no Plan tab, plan links or plan on the student page" % name)
+        check(s.locator(".pl-doc, [data-a=pl-open], .pl-j, #plLink, [data-a=pl-files], #plFiles, .rs-files").count() == 0, "%s: no Plan tab, plan or Files links, or material chips on the student page" % name)
         s.close()
     # in the live game, nothing the teacher sends carries the plan
     check(t3.evaluate("JSON.stringify(__T.UI.run || {})").find(DOC) == -1, "the teacher's game state has no plan id")
+    check(t3.evaluate("JSON.stringify(__T.UI.run || {})").find("1MaterialFileIdLeakCheck_xyz") == -1, "…and no material ids")
     # the student page, forced onto the plan view with the teacher's plan copy on the device, still shows no plan
     s = ctx3.new_page(); s.add_init_script("localStorage.setItem('lessonGames.student.v1', JSON.stringify({ view:'plan', packId:'kit-lp12' }));")
     s.route("**/*", lambda r: r.fulfill(body=MOCK, content_type="application/javascript") if r.request.url.endswith("supabase.js") else (r.fulfill(body=APP2, content_type="text/html") if "/lesson-games/" in r.request.url else r.abort()))
