@@ -1,6 +1,6 @@
 """Header and home tidy (19 Nov): the lesson page's run sheet card becomes a 📋 header icon with a state dot; the home page is
 "Lesson Desk" (heading and browser tab; student pages stay "Lesson Games"); › steps past today to planned lessons; the Plan
-tab header is ☰ · HW Key · 🗂 (the "fetched" chip refreshes, no ↻), and HW Key shortens to HW on a narrow phone."""
+tab header is ☰ · HW Key · 📂 (the "fetched" chip refreshes, no ↻), and HW Key shortens to HW on a narrow phone."""
 import datetime, json, os
 import lg
 from lg import *
@@ -98,7 +98,7 @@ with sync_playwright() as p:
     t.click("[data-a=student]"); t.wait_for_timeout(200); t.click("text=Alice · LP5"); t.wait_for_selector(".rs-blk")
     t.click(".rs-top [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(200)
     order = head_order(t)
-    check(order == ["pl-back", "title", "pl-outline", "pl-hw", "pl-files"], "Plan header: ‹ · title · ☰ · HW Key · 🗂, no ↻ (%s)" % order)
+    check(order == ["pl-back", "title", "pl-outline", "pl-hw", "pl-files"], "Plan header: ‹ · title · ☰ · HW Key · 📂, no ↻ (%s)" % order)
     chip = t.locator(".pl-meta [data-a=pl-refresh]")
     check(chip.count() == 1 and "fetched" in chip.inner_text() and chip.evaluate("e => e.tagName") == "BUTTON", "the 'fetched HH:MM' chip is a button (%s)" % chip.inner_text())
     n0 = len(t.calls); chip.click(); t.wait_for_timeout(150)

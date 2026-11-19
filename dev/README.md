@@ -24,8 +24,8 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 fix19.py                    # 19 Nov feedback: Look selects, run sheet paste under Advanced, Quick game word source line, spelling size/zoom
     python3 plan.py                     # Plan tab: fetch through plan-doc, device copy + ↻, run sheet jumps, outline, scroll kept, folds, no code from the file, never on student pages
     python3 fb1119b.py                  # 19 Nov evening: Win or lose typed bet + All in (student link, class link), Plan tab HW Key, Open plan / Folder links
-    python3 materials.py                # lesson materials: the 🗂 Files menu (Open plan, Folder, materials) and per-block chips on the run sheet; bad entries dropped, text only
-    python3 tidy.py                     # header and home tidy: 📋 run sheet icon with a state dot, Lesson Desk, › past today, Plan header ☰ · HW Key · 🗂 with the fetched chip as refresh
+    python3 materials.py                # lesson materials: the 📂 Files menu (Open plan, Folder, materials) and per-block chips on the run sheet; bad entries dropped, text only
+    python3 tidy.py                     # header and home tidy: 📋 run sheet icon with a state dot, Lesson Desk, › past today, Plan header ☰ · HW Key · 📂 with the fetched chip as refresh
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because

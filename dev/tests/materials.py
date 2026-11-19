@@ -1,4 +1,4 @@
-"""Lesson materials (Nov 2026): packs.materials [{t, id, p, seg}] from Gate 5 → the 🗂 Files menu (Open plan, Folder, then
+"""Lesson materials (Nov 2026): packs.materials [{t, id, p, seg}] from Gate 5 → the 📂 Files menu (Open plan, Folder, then
 each material) on the run sheet and Plan tab headers, and a chip per material under each run sheet block named in its seg.
 Untrusted fields: a bad id or missing label drops the entry; labels are text, never HTML. Teacher only (plan.py checks
 that nothing reaches student or class links). Phone, iPad and desktop sizes."""
@@ -60,7 +60,7 @@ with sync_playwright() as p:
     t = tpage(ctx, errs)
     go_lesson(t, "Ray · LP605", who="Ray"); t.wait_for_selector(".rs-blk")
     m = menu(t)
-    check(m is not None, "the run sheet header has the 🗂 Files button")
+    check(m is not None, "the run sheet header has the 📂 Files button")
     names = [x["t"] for x in (m or [])]
     check(names == ["Open plan", "Pathways 3 U3R2", "His Dark Materials", "WS605", "<img src=x onerror=alert(1)>Reader", "Glossary", "Numbers seg"],
           "Files lists Open plan, then the materials in the planner's order; bad ids, short ids, no label and non-objects dropped: %s" % names)
@@ -88,7 +88,7 @@ with sync_playwright() as p:
     # Plan tab: Files in its header, with Folder once fetched
     t.click(".rs-top [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(200)
     m2 = menu(t); n2 = [x["t"] for x in (m2 or [])]
-    check(n2[:2] == ["Open plan", "Folder"] and "Pathways 3 U3R2" in n2, "Plan tab 🗂 Files: Open plan, Folder (now fetched), then the materials: %s" % n2[:4])
+    check(n2[:2] == ["Open plan", "Folder"] and "Pathways 3 U3R2" in n2, "Plan tab 📂 Files: Open plan, Folder (now fetched), then the materials: %s" % n2[:4])
     close(t)
     t.click("[data-a=pl-back]"); t.wait_for_selector(".rs-blk")
     check("Folder" in [x["t"] for x in (menu(t) or [])], "back on the run sheet, the Files menu has Folder too"); close(t)

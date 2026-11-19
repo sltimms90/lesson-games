@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-IDa7s0YmNi2vPw/UTCRYd1WwvKYde6yA1YOH4PDMyRo='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-51JZmPrxKwwyz7wj2POQOtTTX+VyCDKUWY+NskM9r8M='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -5924,7 +5924,7 @@ function plFilesItems(p){
   plMaterials(p).forEach(function(m, i){ out.push({ ic:"📄", t:m.t, p:m.p, url:plFileUrl(m.id), sep: i === 0 }); });
   return out;
 }
-function plFilesBtn(p){ return plFilesItems(p).length ? '<button class="btn ghost sm ic" data-a="pl-files" aria-label="Files: the plan, its folder and this lesson’s materials" title="Files">🗂</button>' : ""; }
+function plFilesBtn(p){ return plFilesItems(p).length ? '<button class="btn ghost sm ic" data-a="pl-files" aria-label="Files: the plan, its folder and this lesson’s materials" title="Files">📂</button>' : ""; }
 function plFilesHtml(p){
   var it = plFilesItems(p);
   return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Files" id="plFiles"><div class="pop setpop"><h3 style="margin-bottom:4px">Files</h3><ul class="pl-files">' +
