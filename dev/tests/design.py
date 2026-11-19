@@ -15,8 +15,9 @@ with sync_playwright() as p:
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
     t = teacher(ctx, seed_db(packs, results=results), errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     # --- 1. lesson page layout
-    order = [top(t, x) for x in ("#clsBar", ".rs-card", ".game", "#quickSec", "#addSec", "#advSec")]
-    check(0 < order[0] < order[1] < order[2] < order[3] < order[4] < order[5], "lesson page order: class link, run sheet, games, quick game, add other games, advanced %s" % order)
+    order = [top(t, x) for x in ("#clsBar", ".game", "#quickSec", "#addSec", "#advSec")]
+    check(0 < order[0] < order[1] < order[2] < order[3] < order[4], "lesson page order: class link, games, quick game, add other games, advanced %s" % order)
+    check(t.locator(".rs-card").count() == 0, "no run sheet card on the lesson page (it's the 📋 icon in the header now)")
     check(t.locator("#quickSec [data-a=qscope][data-v=missed]").is_visible(), "Missed lately button is visible")
     check(not t.evaluate("document.getElementById('addSec').open") and not t.evaluate("document.getElementById('advSec').open"), "Add other games and Advanced start folded")
     check(t.locator("[data-a=addgame]").first.is_hidden() and t.locator("#lkPack").is_hidden() and t.locator("[data-a=sres-open]").is_hidden() and t.locator("[data-a=editpack]").is_hidden(), "their controls are hidden until opened")

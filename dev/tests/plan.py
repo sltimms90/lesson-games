@@ -112,8 +112,8 @@ with sync_playwright() as p:
     t.reload(); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(300)
     check(t.evaluate("__T.UI.view") == "plan" and abs(t.evaluate("scrollY") - ry) <= 2, "after a reload the plan reopens at the same place (%s vs %s)" % (t.evaluate("scrollY"), ry))
     check(len(calls) == 1, "…from the copy on the device (no fetch)")
-    # ↻ refresh
-    t.click("[data-a=pl-refresh]"); t.wait_for_function("document.querySelector('.pl-doc') && document.querySelector('.pl-doc').textContent.includes('EDITED')", timeout=4000)
+    # refresh (the "fetched" chip under the header): tapped where the page is, without the test scrolling to it
+    t.evaluate("document.querySelector('.pl-meta [data-a=pl-refresh]').click()"); t.wait_for_function("document.querySelector('.pl-doc') && document.querySelector('.pl-doc').textContent.includes('EDITED')", timeout=4000)
     check(len(calls) == 2 and abs(t.evaluate("scrollY") - ry) <= 2, "↻ fetches it again and keeps the place")
     # a failed refresh keeps the copy
     t.unroute(FN); serve(t, calls, status=lambda n: 0)
