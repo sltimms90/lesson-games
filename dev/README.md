@@ -28,6 +28,9 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 tidy.py                     # header and home tidy: 📋 run sheet icon with a state dot, Lesson Desk, › past today, Plan header ☰ · HW Key · 📂 with the fetched chip as refresh
     (22 Nov) one nav bar on every teacher screen: 🏠 Lesson Desk · 👤 student | 🎲 games · 📋 run sheet · 📖 plan · 📂 files, no ‹ arrows;
     the tests above click [data-a=nav-games] / [data-a=rs-open] where they used to click ‹ Games / ‹ back
+    python3 phaseb.py                   # Phase B tracker: taught / needs a look / not yet, the 📝 badge on the Lesson Desk, ✅ 🚫 ↶,
+                                        # Start-up (everything before a date), a chat's row arriving live, the "LP n Phase B not done yet"
+                                        # line, phone/iPad width, backup, students never touch it
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
@@ -42,6 +45,10 @@ secret `GOOGLE_SA_KEY`; .docx files go through mammoth, native Docs through file
 (`folderId`, the first of `parents` from the same metadata call) for the app's Folder link. Test it with Deno:
 `deno test --allow-env --allow-read dev/functions/plan-doc/plan_test.ts`. `tests/plan_sample.docx` is a made-up plan in
 the LP layout (`make_plan_sample.py`); `tests/plan_sample.html` is the same plan as the function returns it.
+
+`sql/phaseb.sql` is the Phase B table (migration `phaseb`): one row per pack, `{ pack_id, status: done|skip, at, by: chat|manual, note }`,
+teacher-only RLS, in the Realtime publication. Planning chats write it at the end of Phase B; the 📝 Phase B screen writes `manual` rows.
+`mock-supabase.js` keys its `phaseb` rows by `pack_id` and supports `.in()` for the screen's deletes.
 
 `sql/submit_homework.sql` is the database function student pages call to save a homework result (applied to the project as
 migrations `submit_homework` and `submit_homework_anon_only`). `mock-supabase.js` has a copy of its checks for the tests.

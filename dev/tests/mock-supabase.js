@@ -1,7 +1,10 @@
 /* Mock of the supabase-js surface the app uses. State lives in window.__MOCK. */
 (function(){
   var M = window.__MOCK = window.__MOCK || {};
-  M.db = M.db || { packs:{}, results:{}, students:{}, boards:{}, sheets:{} };
+  M.db = M.db || {};
+  ["packs", "results", "students", "boards", "sheets", "phaseb"].forEach(function(t){ M.db[t] = M.db[t] || {}; });
+  /* phaseb rows are flat ({ pack_id, status, at, by, note }) and keyed by pack_id; the other tables are { id, data } */
+  function key(r){ return r.id != null ? r.id : r.pack_id; }
   M.log = []; M.handlers = []; M.session = M.session || null; M.teacher = M.teacher !== false; M.authCbs = [];
   function res(v){ return Promise.resolve(v); }
   function Query(t){ this.t = t; this.ops = []; }
@@ -9,19 +12,20 @@
   Query.prototype.order = function(c, o){ this.ord = c.replace("data->>", ""); return this; };
   Query.prototype.limit = function(n){ this.lim = n; return this; };
   Query.prototype.eq = function(c, v){ this.eqv = v; return this; };
+  Query.prototype.in = function(c, v){ this.inv = [].concat(v); return this; };
   Query.prototype.maybeSingle = function(){ this.single = true; return this; };
-  Query.prototype.upsert = function(rows){ this.kind = "upsert"; this.rows = [].concat(rows); return this; };
+  Query.prototype.upsert = function(rows, opts){ this.kind = "upsert"; this.rows = [].concat(rows); this.opts = opts; return this; };
   Query.prototype.delete = function(){ this.kind = "delete"; return this; };
   Query.prototype.then = function(a, b){ return this.run().then(a, b); };
   Query.prototype.run = function(){
     var t = M.db[this.t], self = this;
     if(!M.session || !M.teacher) return res({ data:null, error:{ message:"permission denied", code:"42501" } });
     if(M.failNext){ M.failNext = false; return res({ data:null, error:{ message:"network down" } }); }
-    M.log.push(this.kind + " " + this.t + (this.eqv ? " " + this.eqv : "") + (this.rows ? " x" + this.rows.length : ""));
-    if(this.kind === "upsert"){ this.rows.forEach(function(r){ t[r.id] = JSON.parse(JSON.stringify(r)); }); return res({ data:null, error:null }); }
-    if(this.kind === "delete"){ delete t[this.eqv]; return res({ data:null, error:null }); }
+    M.log.push(this.kind + " " + this.t + (this.eqv ? " " + this.eqv : "") + (this.inv ? " in " + this.inv.join(",") : "") + (this.rows ? " x" + this.rows.length : ""));
+    if(this.kind === "upsert"){ this.rows.forEach(function(r){ t[key(r)] = JSON.parse(JSON.stringify(r)); }); return res({ data:null, error:null }); }
+    if(this.kind === "delete"){ (this.inv || [this.eqv]).forEach(function(k){ delete t[k]; }); return res({ data:null, error:null }); }
     var rows = Object.keys(t).map(function(k){ return JSON.parse(JSON.stringify(t[k])); });
-    if(this.eqv) rows = rows.filter(function(r){ return r.id === self.eqv; });
+    if(this.eqv) rows = rows.filter(function(r){ return key(r) === self.eqv; });
     if(this.ord) rows.sort(function(x, y){ return String(y.data[self.ord] || "").localeCompare(String(x.data[self.ord] || "")); });
     if(this.lim) rows = rows.slice(0, this.lim);
     return res({ data: this.single ? (rows[0] || null) : rows, error:null });
@@ -51,8 +55,8 @@
     return res({ data:{ ok:true, "new":true }, error:null });
   };
   M.remote = function(t, ev, row){ /* simulate another device */
-    if(ev === "DELETE"){ delete M.db[t][row.id]; } else M.db[t][row.id] = row;
-    M.handlers.forEach(function(h){ if(h.table === t) h.cb({ eventType:ev, new: ev === "DELETE" ? {} : row, old: ev === "DELETE" ? { id:row.id } : {} }); });
+    if(ev === "DELETE"){ delete M.db[t][key(row)]; } else M.db[t][key(row)] = row;
+    M.handlers.forEach(function(h){ if(h.table === t) h.cb({ eventType:ev, new: ev === "DELETE" ? {} : row, old: ev === "DELETE" ? row : {} }); });
   };
   window.supabase = { createClient: function(url, key, opts){
     M.created = { url:url, key:key, opts:opts };

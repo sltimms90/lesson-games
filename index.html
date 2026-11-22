@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-yv+FbJ2pO5Hyhs2e/6m21zpnULratsEX4fT91QAyIbY='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-lBmf45kAxc/cIY7N5Itj1ou5vXffiCcYTGpN+R/QkPs='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -141,6 +141,26 @@ textarea{min-height:220px;resize:vertical;line-height:1.4}
 .nav-r{display:flex;gap:6px;align-items:center;margin-left:auto}
 .nav .btn.ic.on{background:var(--soft);box-shadow:inset 0 -3px 0 var(--ball)}
 .nav-stu.named{gap:6px;font-size:21px}
+.home-r{gap:8px;align-items:center}
+.pb-ent{position:relative}
+.pb-badge{position:absolute;top:-5px;right:-5px;min-width:21px;height:21px;padding:0 5px;border-radius:11px;background:var(--no);color:#fff;font:700 13px/21px system-ui,sans-serif;font-style:normal;text-align:center}
+.pb-prev{margin:4px 0 0;font-size:15px}
+.linkish{background:none;border:0;padding:0;color:var(--muted);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.pb .pb-sec h3{margin:0 0 6px}
+.pb-n{font-size:15px;font-weight:400}
+.pb-list{list-style:none;margin:0;padding:0}
+.pb-list,.pb-list *{box-sizing:border-box}   /* a <details> body doesn't pass box-sizing down in Chrome */
+.pb-row{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid var(--line)}
+.pb-row.look{flex-wrap:wrap}
+.pb-row.look .pb-b{flex:1 1 100%;justify-content:flex-start;min-width:0}
+.pb-t{flex:1 1 8em;min-width:0}
+.pb-t b{font-family:"Baloo 2",sans-serif;font-size:20px;line-height:1.15}
+.pb-lp{margin-left:8px;font-weight:700;font-size:16px}
+.pb-t small{display:block;color:var(--muted);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb-wait.late{color:var(--amber);font-weight:700}
+.pb-b{display:flex;gap:4px;flex:none;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.pb-row.look .pb-b .btn:not(.ic){font-size:15px;padding:7px 10px;min-height:40px}
+.pb input[type=date]{width:auto;flex:0 1 12em;min-width:0;font:inherit;padding:6px 8px;border-radius:8px;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
 .nav-stu .nav-nm{font-size:16px;font-weight:700;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar .t{flex:1;font-family:"Baloo 2",sans-serif;font-weight:700;font-size:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .stage{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
@@ -881,6 +901,8 @@ li > .pl-fold{margin:0;display:inline-block;vertical-align:top}
    sheets/<packId>  { id, packId, student, lp, date, updatedAt, marks, finished, finishedAt, rows, gaps, summary }
    students/<slug> may carry runsheet: "online" | "always" (when lessons open on the run sheet)
    packs may also carry plan: { docId } (the LP file on Drive, for the teacher-only Plan view; see PLAN)
+   phaseb/<packId>  { pack_id, status: done|skip, at, by: chat|manual, note }: Phase B (the after-class report) is done or
+   not needed for that lesson. A table of its own (not in packs.data), written by the planning chats and the Phase B screen.
    STORAGE: every read/write goes through STORE (watchPacks, watchResults, savePack,
    deletePack, saveResult, deleteResult). Swap the adapter to move hosts.
    ===================================================================== */
@@ -904,7 +926,8 @@ var UI = loadLocal(LKEY) || {};
 if(!UI.view) UI.view = "home";
 function saveUI(){ saveLocal(LKEY, UI); }
 
-var PACKS = [], RESULTS = [], STORE = null, STATUS = "connecting", SLOW = false, LOADED = { packs:false, results:false };
+var PACKS = [], RESULTS = [], STORE = null, STATUS = "connecting", SLOW = false, LOADED = { packs:false, results:false, sheets:false, phaseb:false };
+var PHASEB = {};   /* pack id -> { pack_id, status: done|skip, at, by: chat|manual, note } (teacher only; see PHASE B) */
 var UNDO = [];
 var STUDENTS = {}, BOARDS = {};
 
@@ -1013,7 +1036,10 @@ function dbStore(db){
     watchBoards: function(cb, err){ return db.collection("boards").limit(50).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
     saveBoard: function(o){ return q("boards/" + o.id, function(){ return db.doc("boards/" + o.id).set(clone(o)); }); },
     watchSheets: function(cb, err){ return db.collection("sheets").orderBy("updatedAt", "desc").limit(300).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
-    saveSheet: function(o){ return q("sheets/" + o.id, function(){ return db.doc("sheets/" + o.id).set(clone(o)); }); }
+    saveSheet: function(o){ return q("sheets/" + o.id, function(){ return db.doc("sheets/" + o.id).set(clone(o)); }); },
+    watchPhaseb: function(cb, err){ return db.collection("phaseb").limit(5000).onSnapshot(function(s){ cb(rows(s).map(function(o){ o.pack_id = o.pack_id || o.id; delete o.id; return o; })); }, err); },
+    savePhaseb: function(list){ return Promise.all(list.map(function(r){ return q("phaseb/" + r.pack_id, function(){ return db.doc("phaseb/" + r.pack_id).set(clone(r)); }); })); },
+    deletePhaseb: function(ids){ return Promise.all(ids.map(function(id){ return q("phaseb/" + id, function(){ return db.doc("phaseb/" + id).delete(); }); })); }
   };
 }
 /* Supabase (GitHub Pages build): one table per collection, rows are { id, data jsonb, updated_at }.
@@ -1040,7 +1066,17 @@ function supabaseStore(sb){
       var c = {}; r.data.forEach(function(x){ c[x.id] = row(x); }); cache[t] = c; emit(t);
     });
   }
-  function loadAll(){ Object.keys(subs).forEach(load); }
+  function loadAll(){ Object.keys(subs).forEach(load); if(pb.subs.length) pbLoad(); }
+  /* phaseb (Phase B done / not needed, one row per pack): its own columns, keyed by pack_id, not { id, data }. */
+  var pb = { cache:null, subs:[] };
+  function pbEmit(){ if(!pb.cache) return; var list = Object.keys(pb.cache).map(function(k){ return clone(pb.cache[k]); }); pb.subs.forEach(function(f){ f(list); }); }
+  function pbLoad(){ return sb.from("phaseb").select("pack_id,status,at,by,note").limit(5000).then(function(r){ if(r.error) return; var c = {}; (r.data || []).forEach(function(x){ c[x.pack_id] = x; }); pb.cache = c; pbEmit(); }); }
+  function pbChange(p){
+    if(!pb.cache) return;
+    if(p.eventType === "DELETE"){ var id = p.old && p.old.pack_id; if(id){ delete pb.cache[id]; pbEmit(); } return; }
+    var n = p.new || {}; if(!n.pack_id) return;
+    pb.cache[n.pack_id] = { pack_id:n.pack_id, status:n.status, at:n.at, by:n.by, note:n.note == null ? null : n.note }; pbEmit();
+  }
   function change(t, p){
     if(!cache[t]) return;
     if(p.eventType === "DELETE"){ var id = p.old && p.old.id; if(id){ delete cache[t][id]; emit(t); } return; }
@@ -1055,6 +1091,7 @@ function supabaseStore(sb){
     ["packs", "results", "students", "boards", "sheets"].forEach(function(t){
       chan = chan.on("postgres_changes", { event:"*", schema:"public", table:t }, function(p){ change(t, p); });
     });
+    chan = chan.on("postgres_changes", { event:"*", schema:"public", table:"phaseb" }, pbChange);
     var first = true;
     chan.subscribe(function(st){ if(st === "SUBSCRIBED"){ if(!first) loadAll(); first = false; } });
   }
@@ -1081,6 +1118,17 @@ function supabaseStore(sb){
     watchStudents: watch("students"), saveStudent: save("students"),
     watchBoards: watch("boards"), saveBoard: save("boards"),
     watchSheets: watch("sheets"), saveSheet: save("sheets"),
+    watchPhaseb: function(cb){ pb.subs.push(cb); ensureChannel(); if(pb.cache) setTimeout(pbEmit, 0); else pbLoad(); return function(){ pb.subs = pb.subs.filter(function(f){ return f !== cb; }); }; },
+    savePhaseb: function(list){
+      if(pb.cache){ list.forEach(function(r){ pb.cache[r.pack_id] = clone(r); }); pbEmit(); }
+      var chunks = []; for(var i = 0; i < list.length; i += 100) chunks.push(list.slice(i, i + 100));
+      return chunks.reduce(function(p, ch){ return p.then(function(){ return sb.from("phaseb").upsert(ch, { onConflict:"pack_id" }).then(ok); }); }, Promise.resolve())
+        .catch(function(e){ pbLoad(); throw e; });
+    },
+    deletePhaseb: function(ids){
+      if(pb.cache){ ids.forEach(function(id){ delete pb.cache[id]; }); pbEmit(); }
+      return sb.from("phaseb").delete().in("pack_id", ids).then(ok).catch(function(e){ pbLoad(); throw e; });
+    },
     /* restore a backup: upserts in batches, returns counts written per collection */
     restore: function(cols){
       var names = ["packs", "results", "students", "boards", "sheets"], done = {};
@@ -1091,7 +1139,12 @@ function supabaseStore(sb){
           var chunks = []; for(var i = 0; i < rows.length; i += 20) chunks.push(rows.slice(i, i + 20));
           return chunks.reduce(function(pp, ch){ return pp.then(function(){ return sb.from(t).upsert(ch).then(ok).then(function(){ done[t] += ch.length; }); }); }, Promise.resolve());
         });
-      }, Promise.resolve()).then(function(){ loadAll(); return done; });
+      }, Promise.resolve()).then(function(){
+        var pr = (cols.phaseb || []).filter(function(o){ return o && o.pack_id && (o.status === "done" || o.status === "skip"); })
+          .map(function(o){ return { pack_id:String(o.pack_id), status:o.status, at:o.at || nowIso(), by:o.by === "chat" ? "chat" : "manual", note:o.note == null ? null : String(o.note) }; });
+        if(pr.length) done.phaseb = pr.length;
+        return pr.length ? sb.from("phaseb").upsert(pr, { onConflict:"pack_id" }).then(ok) : null;
+      }).then(function(){ loadAll(); return done; });
     }
   };
 }
@@ -1102,7 +1155,8 @@ function localStore(){
   if(!data.students) data.students = {};
   if(!data.boards) data.boards = {};
   if(!data.sheets) data.sheets = {};
-  var L = { packs:[], results:[], students:[], boards:[], sheets:[] };
+  if(!data.phaseb) data.phaseb = {};
+  var L = { packs:[], results:[], students:[], boards:[], sheets:[], phaseb:[] };
   function emit(){
     saveLocal(KEY, data);
     var p = Object.keys(data.packs).map(function(k){ return clone(data.packs[k]); }).sort(function(a,b){ return String(b.updatedAt).localeCompare(String(a.updatedAt)); });
@@ -1114,6 +1168,8 @@ function localStore(){
     L.boards.forEach(function(f){ f(bd, false); });
     var sh = Object.keys(data.sheets).map(function(k){ return clone(data.sheets[k]); });
     L.sheets.forEach(function(f){ f(sh, false); });
+    var pbl = Object.keys(data.phaseb).map(function(k){ return clone(data.phaseb[k]); });
+    L.phaseb.forEach(function(f){ f(pbl); });
   }
   return {
     kind: "local",
@@ -1128,7 +1184,10 @@ function localStore(){
     watchBoards: function(cb){ L.boards.push(cb); setTimeout(emit, 0); return function(){}; },
     saveBoard: function(o){ data.boards[o.id] = clone(o); emit(); return Promise.resolve(); },
     watchSheets: function(cb){ L.sheets.push(cb); setTimeout(emit, 0); return function(){}; },
-    saveSheet: function(o){ data.sheets[o.id] = clone(o); emit(); return Promise.resolve(); }
+    saveSheet: function(o){ data.sheets[o.id] = clone(o); emit(); return Promise.resolve(); },
+    watchPhaseb: function(cb){ L.phaseb.push(cb); setTimeout(emit, 0); return function(){}; },
+    savePhaseb: function(list){ list.forEach(function(r){ data.phaseb[r.pack_id] = clone(r); }); emit(); return Promise.resolve(); },
+    deletePhaseb: function(ids){ ids.forEach(function(id){ delete data.phaseb[id]; }); emit(); return Promise.resolve(); }
   };
 }
 
@@ -1168,10 +1227,11 @@ function startStore(store, status){
   STORE.watchResults(function(list, cache){ RESULTS = list; LOADED.results = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
   STORE.watchStudents(function(list){ STUDENTS = {}; list.forEach(function(o){ STUDENTS[o.id] = o; }); refresh(); }, function(){});
   STORE.watchBoards(function(list){ BOARDS = {}; list.forEach(function(o){ BOARDS[o.id] = o; }); refresh(); }, function(){});
-  STORE.watchSheets(function(list){ SHEETS = {}; list.forEach(function(o){ SHEETS[o.id] = o; }); refresh(); }, function(){});
+  STORE.watchSheets(function(list){ SHEETS = {}; list.forEach(function(o){ SHEETS[o.id] = o; }); LOADED.sheets = true; refresh(); }, function(){});
+  if(STORE.watchPhaseb) STORE.watchPhaseb(function(list){ PHASEB = {}; list.forEach(function(o){ PHASEB[o.pack_id] = o; }); LOADED.phaseb = true; refresh(); }, function(){});
   refresh();
 }
-var LIVE_VIEWS = ["home", "pack", "student", "done", "sheet"];
+var LIVE_VIEWS = ["home", "pack", "student", "done", "sheet", "phaseb"];
 function refresh(){
   if(UI.view === "sheet" && (rsTyping() || UI.rsFinish)){ RS_PEND = true; rsPaintState(); return; }
   /* Game screens don't redraw on data changes, except while the loading screen is still up (a reload mid-game). */
@@ -4444,6 +4504,7 @@ function render(){
   if(!LOADED.packs && STATUS !== "error") return loadingView();
   if(v === "sheet") return viewSheet();
   if(v === "plan" && !STUDENT_PAGE) return viewPlan();
+  if(v === "phaseb" && !STUDENT_PAGE) return viewPhaseb();
   if(v === "bgmine") return viewBgMine();
   if(v === "pack") return viewPack();
   if(v === "student") return viewStudent();
@@ -4453,9 +4514,9 @@ function render(){
 function backupData(){
   function vals(o){ return Object.keys(o).map(function(k){ return o[k]; }); }
   return { format:"lesson-games-backup", v:1, exported:nowIso(), from: SB_MODE ? "supabase" : (STATUS === "account" ? "claude" : "device"),
-    collections:{ packs:PACKS, results:RESULTS, students:vals(STUDENTS), boards:vals(BOARDS), sheets:vals(SHEETS) } };
+    collections:{ packs:PACKS, results:RESULTS, students:vals(STUDENTS), boards:vals(BOARDS), sheets:vals(SHEETS), phaseb:vals(PHASEB) } };
 }
-function backupCounts(c){ return ["packs", "results", "students", "boards", "sheets"].map(function(t){ return t + " " + ((c[t] || []).length || 0); }).join(" · "); }
+function backupCounts(c){ return ["packs", "results", "students", "boards", "sheets"].concat(c.phaseb ? ["phaseb"] : []).map(function(t){ return t + " " + ((c[t] || []).length || 0); }).join(" · "); }
 async function backupDownload(){
   var data = backupData(), name = "lesson-games-backup-" + today() + ".json", text = JSON.stringify(data);
   var dl = null;
@@ -4472,7 +4533,7 @@ function restoreFile(file){
     if(!d || d.format !== "lesson-games-backup" || !d.collections){ toast("That file isn’t a Lesson Games backup."); return; }
     if(!window.confirm("Copy this backup into your saved games?\n" + backupCounts(d.collections) + "\nLessons with the same id are replaced by the backup copy.")) return;
     toast("Restoring…");
-    STORE.restore(d.collections).then(function(n){ toast("Restored: " + backupCounts({ packs:{length:n.packs}, results:{length:n.results}, students:{length:n.students}, boards:{length:n.boards}, sheets:{length:n.sheets} })); }, function(e){ toast("Restore stopped: " + ((e && e.message) || "error")); });
+    STORE.restore(d.collections).then(function(n){ toast("Restored: " + backupCounts({ packs:{length:n.packs}, results:{length:n.results}, students:{length:n.students}, boards:{length:n.boards}, sheets:{length:n.sheets}, phaseb: n.phaseb ? {length:n.phaseb} : null })); }, function(e){ toast("Restore stopped: " + ((e && e.message) || "error")); });
   };
   rd.readAsText(file);
 }
@@ -4506,7 +4567,7 @@ function viewHome(){
     var g = groups[k], last = g[0];
     return '<li><button class="item" data-a="student" data-s="' + esc(k) + '"><span><b>' + esc(k || "No student") + '</b><small>' + g.length + (g.length === 1 ? " lesson" : " lessons") + (last ? " · latest " + esc(last.lp ? "LP" + last.lp + ", " : "") + esc(fmtDate(last.date)) : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
   }).join("") + '</ul></details>' : "";
-  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>' + esc(APP_NAME) + '</h1>' + statusPill() + '</div>' + resume + dayBar + dayList + stuList + dataSection() + '</div>';
+  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>' + esc(APP_NAME) + '</h1><div class="row home-r">' + pbEntryHtml() + statusPill() + '</div></div>' + resume + dayBar + dayList + stuList + dataSection() + '</div>';
   foldRestore();
   var rf = $("restoreFile"); if(rf) rf.addEventListener("change", function(){ restoreFile(rf.files && rf.files[0]); rf.value = ""; });
 }
@@ -4709,7 +4770,7 @@ function viewPack(){
   var add = '<div class="add">' + TYPE_ORDER.map(function(t){ return '<button data-a="addgame" data-t="' + t + '">' + ball(t) + TYPES[t].label + '</button>'; }).join("") + '</div>';
   var hasRes = resultsFor(p.id).length;
   $("app").innerHTML = navBar("pack", p, { right: statusPill() }) + '<div class="wrap">' +
-    '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
+    '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + pbPrevHtml(p) + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
     clsBarHtml(p) + '<h3 style="margin:26px 0 4px">Games</h3>' + (games || '<p class="notice">No games in this lesson yet.</p>') + bankSection(p) +
     '<details class="section fold" id="addSec"' + ((p.games || []).length ? "" : " open") + '><summary><h3>Add other games</h3><span class="muted">' + TYPE_ORDER.length + ' kinds</span></summary>' + add + '</details>' +
     '<details class="section fold" id="advSec"><summary><h3>Advanced</h3><span class="muted">look, results, lesson details</span></summary>' + lookSection(p) + rsPasteSection(p) +
@@ -5757,7 +5818,7 @@ function viewSheet(){
     '<div class="rs-ln"><span class="rs-lbl">Other mistakes</span><textarea class="rs-ta" data-rsin="end.other" aria-label="Other mistakes">' + esc(rsGet(pid, "end.other")) + '</textarea></div>' +
     '</div></section>';
   $("app").innerHTML = navBar("sheet", p, { cls:"rs-top", title: esc(packTitle(p)) + ' · run sheet', right: '<button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button>' }) +
-    '<main class="wrap rs"><p class="rs-meta">' + esc([spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · ")) + '</p>' +
+    '<main class="wrap rs"><p class="rs-meta">' + esc([spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · ")) + '</p>' + pbPrevHtml(p) +
     (spec.spine ? '<p class="rs-spine"><b>Spine:</b> ' + esc(spec.spine) + '</p>' : "") +
     '<div class="rs-state"><span class="pill" id="rsState"><i></i></span>' + (isToday ? '<span class="pill">Now ' + rsNow() + (nowBlk ? " · " + esc(nowBlk.label) : nowM >= endM ? " · lesson time over" : "") + '</span>' : "") + '</div>' +
     '<p class="muted" style="font-size:15px;margin:4px 0 0">Tap once for ✓ ran, again for ✗ didn’t run, again to clear. Nothing marked = asked at Phase B.</p>' +
@@ -5785,7 +5846,7 @@ function navBar(cur, p, opts){
   var stu = p ? (p.student || "") : (UI.student || ""), html = '<header class="bar nav' + (opts.cls ? " " + opts.cls : "") + '"><div class="nav-b">';
   function on(k){ return cur === k ? ' on" aria-current="page' : ""; }
   html += '<button class="btn ghost sm ic" data-a="home" aria-label="Lesson Desk" title="Lesson Desk">🏠</button>';
-  if(stu || !p){
+  if(!opts.noStu && (stu || !p)){
     var named = p && packTitle(p).indexOf(stu) === -1;
     html += '<button class="btn ghost sm ic nav-stu' + (named ? " named" : "") + on("student") + '" data-a="student" data-s="' + esc(stu) + '" aria-label="' + esc((stu || "No student") + "’s lessons") + '" title="' + esc((stu || "No student") + "’s lessons") + '"><span aria-hidden="true">👤</span>' + (named ? '<span class="nav-nm">' + esc(stu) + '</span>' : "") + '</button>';
   }
@@ -6278,6 +6339,131 @@ function finishRun(){
   go("done");
 }
 
+/* =====================================================================
+   PHASE B (teacher only). After each lesson a planning chat does Phase B (run sheet + results -> Progress Tracker) and
+   writes a phaseb row. This screen shows what's still owed. Nothing here goes near student pages, links or broadcasts.
+   Taught = the run sheet has a mark, or the lesson has a result (homework results don't count). A pack dated after today
+   isn't taught yet whatever it has (a skip ticked in advance). Day taught = the pack's date, else the first sign of it.
+   Needs a look = no sign it was taught, but its date has passed (no date: the student has a newer lesson): usually a paper
+   run sheet or a postponed lesson.
+   ===================================================================== */
+var PB_DAYMS = 86400000;
+function pbLocalDay(iso){ var d = new Date(iso); if(isNaN(d)) return ""; return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function pbDaysSince(day){ var a = String(day).split("-"), b = today().split("-"); return Math.round((Date.UTC(+b[0], +b[1]-1, +b[2]) - Date.UTC(+a[0], +a[1]-1, +a[2])) / PB_DAYMS); }
+function pbFirst(name){ return splitNames(name).map(function(n){ return n.split(/\s+/)[0]; }).join(" & ") || "No student"; }
+function pbReady(){ return LOADED.packs && LOADED.results && LOADED.sheets && LOADED.phaseb; }
+/* the first sign a lesson ran: its earliest in-lesson result, or its run sheet once it has a mark */
+function pbSignal(p){
+  var at = "";
+  RESULTS.forEach(function(r){ if(r.packId === p.id && !r.homework && r.at && (!at || String(r.at) < at)) at = String(r.at); });
+  var sh = SHEETS[p.id];
+  if(sh && sh.marks && Object.keys(sh.marks).length){ var t = String(sh.updatedAt || sh.finishedAt || ""); if(!at || (t && t < at)) at = t || at || "x"; }
+  return at;
+}
+function pbAll(){
+  var td = today(), byStu = {}, out = { owed:[], look:[], done:[], launch:[], byId:{} };
+  PACKS.forEach(function(p){ var k = p.student || ""; (byStu[k] = byStu[k] || []).push(p); });
+  Object.keys(byStu).forEach(function(k){ byStu[k] = packsByDate(byStu[k]); });
+  PACKS.forEach(function(p){
+    var date = String(p.date || "").slice(0, 10), sig = pbSignal(p), row = PHASEB[p.id], mine = byStu[p.student || ""], i = mine.indexOf(p);
+    var o = { p:p, row:row || null, prev: mine[i + 1] || null, state:"later" };
+    if(sig && !(date && date > td)){ o.state = "owed"; o.day = date || pbLocalDay(sig) || td; }
+    else if(!sig && (date ? date < td : i > 0)){ o.state = "look"; o.day = date || String(p.updatedAt || "").slice(0, 10); }
+    if(row) o.state = "done";
+    out.byId[p.id] = o;
+    if(o.state === "owed") out.owed.push(o); else if(o.state === "look") out.look.push(o);
+  });
+  function old(a, b){ return String(a.day).localeCompare(String(b.day)) || String(a.p.student || "").localeCompare(String(b.p.student || "")) || (+a.p.lp || 0) - (+b.p.lp || 0); }
+  out.owed.sort(old); out.look.sort(old);
+  var since = Date.now() - 14 * PB_DAYMS;
+  Object.keys(PHASEB).forEach(function(id){
+    var r = PHASEB[id], t = Date.parse(r.at); if(!(t >= since)) return;
+    if(r.note === "launch") out.launch.push(r); else out.done.push({ row:r, p:getPack(id) });
+  });
+  out.done.sort(function(a, b){ return String(b.row.at).localeCompare(String(a.row.at)); });
+  return out;
+}
+/* Lesson Desk home: the Phase B entry, with the number owed as a badge */
+function pbEntryHtml(){
+  if(STUDENT_PAGE) return "";
+  var ready = pbReady(), n = ready ? pbAll().owed.length : 0, lbl = "Phase B" + (ready ? ": " + (n ? n + " owed" : "nothing owed") : "");
+  return '<button class="btn ghost sm ic pb-ent" data-a="pb-open" aria-label="' + esc(lbl) + '" title="' + esc(lbl) + '"><span aria-hidden="true">📝</span>' + (n ? '<i class="pb-badge" aria-hidden="true">' + n + '</i>' : "") + '</button>';
+}
+/* On a lesson (games page or run sheet): one quiet line when the student's previous lesson still owes its Phase B. */
+function pbPrevHtml(p){
+  if(STUDENT_PAGE || !p || !pbReady()) return "";
+  var A = pbAll(), o = A.byId[p.id], q = o && o.prev, qo = q && A.byId[q.id];
+  if(!qo || qo.state !== "owed") return "";
+  return '<p class="pb-prev"><button class="linkish" data-a="pb-open">' + esc((q.lp ? "LP " + q.lp : fmtDate(q.date)) + " Phase B not done yet") + '</button></p>';
+}
+function pbWait(day){ var n = pbDaysSince(day); return n <= 0 ? "today" : n === 1 ? "1 day" : n + " days"; }
+function pbOpenBtn(p){
+  var rs = !!rsSpec(p);
+  return '<button class="btn ghost sm ic" data-a="open" data-id="' + esc(p.id) + '" aria-label="' + (rs ? "Open the run sheet" : "Open the lesson") + '" title="' + (rs ? "Run sheet: notes and scores" : "The lesson and its results") + '">' + (rs ? "📋" : "🎲") + '</button>';
+}
+function pbWho(p){ return '<b>' + esc(pbFirst(p.student)) + '</b><span class="pb-lp">' + esc(p.lp ? "LP " + p.lp : "") + '</span>'; }
+/* start-up: lessons before the date with no Phase B row, owed or needing a look */
+function pbBeforeIds(A, before){ return A.owed.concat(A.look).filter(function(o){ return String(o.day) < before; }).map(function(o){ return o.p.id; }); }
+function viewPhaseb(){
+  var A = pbAll(), ready = pbReady();
+  var owed = A.owed.map(function(o){
+    var w = pbDaysSince(o.day);
+    return '<li class="pb-row" data-pid="' + esc(o.p.id) + '"><div class="pb-t">' + pbWho(o.p) + '<small>' + esc(fmtDate(o.day)) + ' · <span class="pb-wait' + (w >= 7 ? " late" : "") + '">' + pbWait(o.day) + '</span></small></div><div class="pb-b">' + pbOpenBtn(o.p) +
+      '<button class="btn ghost sm ic" data-a="pb-done" data-id="' + esc(o.p.id) + '" aria-label="Mark Phase B done" title="Phase B done">✅</button>' +
+      '<button class="btn ghost sm ic" data-a="pb-skip" data-id="' + esc(o.p.id) + '" aria-label="Not needed" title="Not needed (cancelled, or folded into another lesson)">🚫</button></div></li>';
+  }).join("");
+  var look = A.look.map(function(o){
+    return '<li class="pb-row look" data-pid="' + esc(o.p.id) + '"><div class="pb-t">' + pbWho(o.p) + '<small>' + esc(o.p.date ? fmtDate(o.day) : "no date") + ' · nothing marked in the app</small></div><div class="pb-b">' + pbOpenBtn(o.p) +
+      '<button class="btn ghost sm" data-a="pb-done" data-id="' + esc(o.p.id) + '">Taught (mark done)</button><button class="btn ghost sm" data-a="pb-skip" data-id="' + esc(o.p.id) + '">Not needed</button></div></li>';
+  }).join("");
+  var done = A.done.map(function(x){
+    var r = x.row, p = x.p;
+    return '<li class="pb-row" data-pid="' + esc(r.pack_id) + '"><div class="pb-t">' + (p ? pbWho(p) : '<b>' + esc(r.pack_id) + '</b>') + '<small>' + (r.status === "skip" ? "not needed" : "done") + ' · ' + (r.by === "chat" ? "planning chat" : "marked here") + ' · ' + esc(fmtWhen(r.at)) + '</small></div><div class="pb-b">' +
+      (r.by === "manual" ? '<button class="btn ghost sm ic" data-a="pb-undo" data-id="' + esc(r.pack_id) + '" aria-label="Undo" title="Undo: back to owed">↶</button>' : "") + '</div></li>';
+  }).join("");
+  if(A.launch.length) done += '<li class="pb-row"><div class="pb-t"><b>Start-up</b><small>' + A.launch.length + (A.launch.length === 1 ? " lesson" : " lessons") + ' marked done in one go · ' + esc(fmtWhen(A.launch[0].at)) + '</small></div><div class="pb-b"><button class="btn ghost sm ic" data-a="pb-undo-launch" aria-label="Undo the start-up marks" title="Undo the start-up marks">↶</button></div></li>';
+  var before = UI.pbBefore || today(), nBefore = pbBeforeIds(A, before).length, empty = ready && !Object.keys(PHASEB).length;
+  var launch = '<details class="section fold" id="pbLaunch"' + (empty ? " open" : "") + '><summary><h3>Start-up</h3><span class="muted">one-off</span></summary>' +
+    '<p class="muted" style="margin-top:0;font-size:15px">Marks every lesson before the date as done, including the ones under Needs a look. Then tick off whatever is really still owed.</p>' +
+    '<div class="row" style="align-items:center"><label class="muted" for="pbBefore">Before</label><input type="date" id="pbBefore" value="' + esc(before) + '">' +
+    '<button class="btn sm" data-a="pb-launch"' + (nBefore ? "" : " disabled") + '>' + (UI.pbLaunchArm ? "Tap again: mark " + nBefore : "Mark " + nBefore + " as done") + '</button></div></details>';
+  $("app").innerHTML = navBar("phaseb", null, { noStu:true, title:"Phase B", right: statusPill() }) + '<main class="wrap pb">' +
+    (!ready ? '<p class="notice">Loading…</p>' :
+    '<section class="section pb-sec" id="pbOwed"><h3>Owed <span class="muted pb-n">' + A.owed.length + '</span></h3>' + (owed ? '<ul class="pb-list">' + owed + '</ul>' : '<p class="notice">Nothing owed. Every taught lesson has its Phase B.</p>') + '</section>' +
+    '<details class="section fold" id="pbLook"' + (A.look.length ? " open" : "") + '><summary><h3>Needs a look</h3><span class="muted">' + A.look.length + '</span></summary>' + (look ? '<p class="muted" style="margin-top:0;font-size:15px">Past lessons with nothing marked in the app: a paper run sheet, or postponed?</p><ul class="pb-list">' + look + '</ul>' : '<p class="notice">Nothing here.</p>') + '</details>' +
+    '<details class="section fold" id="pbDone"><summary><h3>Done lately</h3><span class="muted">' + (A.done.length + A.launch.length) + ' · last 14 days</span></summary>' + (done ? '<ul class="pb-list">' + done + '</ul>' : '<p class="notice">Nothing in the last 14 days.</p>') + '</details>' + launch) + '</main>';
+  /* folds keep how they were left, except Needs a look follows whether it has anything (collapsed when empty) */
+  foldRestore();
+  var lk = $("pbLook"); if(lk) lk.open = !!A.look.length;
+  if(empty){ var lz = $("pbLaunch"); if(lz) lz.open = true; }
+  var bi = $("pbBefore"); if(bi) bi.addEventListener("change", function(){ UI.pbBefore = /^\d{4}-\d{2}-\d{2}$/.test(bi.value) ? bi.value : ""; UI.pbLaunchArm = false; saveUI(); render(); });
+}
+function pbSave(list, msg){ if(!STORE || !STORE.savePhaseb) return; STORE.savePhaseb(list).then(function(){ if(msg) toast(msg); }, saveErr); }
+function pbHandle(a, el){
+  var id = el && el.getAttribute ? el.getAttribute("data-id") : null;
+  if(a === "pb-open"){ UI.pbLaunchArm = false; go("phaseb"); return true; }
+  if(!STORE || !STORE.savePhaseb) return true;
+  if(a === "pb-done" || a === "pb-skip"){
+    if(!id || !getPack(id)) return true;
+    pbSave([{ pack_id:id, status: a === "pb-done" ? "done" : "skip", at:nowIso(), by:"manual", note:null }], a === "pb-done" ? "Phase B marked done." : "Marked not needed.");
+    render(); return true;
+  }
+  if(a === "pb-undo"){ if(id && PHASEB[id] && PHASEB[id].by === "manual"){ STORE.deletePhaseb([id]).catch(saveErr); render(); } return true; }
+  if(a === "pb-undo-launch"){
+    var ids = Object.keys(PHASEB).filter(function(k){ return PHASEB[k].note === "launch" && PHASEB[k].by === "manual"; });
+    if(ids.length){ STORE.deletePhaseb(ids).then(function(){ toast("Start-up marks undone: " + ids.length + "."); }, saveErr); render(); }
+    return true;
+  }
+  if(a === "pb-launch"){
+    var before = UI.pbBefore || today(), list = pbBeforeIds(pbAll(), before);
+    if(!list.length) return true;
+    if(!UI.pbLaunchArm){ UI.pbLaunchArm = true; render(); return true; }
+    UI.pbLaunchArm = false; var at = nowIso();
+    pbSave(list.map(function(k){ return { pack_id:k, status:"done", at:at, by:"manual", note:"launch" }; }), list.length + (list.length === 1 ? " lesson" : " lessons") + " marked done.");
+    render(); return true;
+  }
+  return false;
+}
 /* ---------- events ---------- */
 function handle(a, el){
   var run = UI.run;
@@ -6288,6 +6474,7 @@ function handle(a, el){
   if(a === "restore"){ var fi = $("restoreFile"); if(fi) fi.click(); return; }
   if(a.indexOf("rs-") === 0){ rsHandle(a, el); return; }
   if(a.indexOf("pl-") === 0){ plHandle(a, el); return; }
+  if(a.indexOf("pb-") === 0 && !STUDENT_PAGE && pbHandle(a, el)) return;
   if(a === "home"){ UI.confirmDel = null; go("home"); return; }
   if(a === "nav-games"){ UI.confirmDel = null; UI.rsGaps = false; UI.rsFinish = false; go("pack"); return; }
   if(a === "showall"){ UI.showAll = true; render(); return; }
