@@ -94,11 +94,11 @@ with sync_playwright() as p:
             for cp in cpacks:
                 go_lesson(pg, cp["title"], "Maximilian"); pg.wait_for_selector(".rs-blk"); pg.wait_for_timeout(150)
                 for where in ("run sheet", "lesson page"):
-                    if where == "lesson page": pg.click("[data-a=rs-games]"); pg.wait_for_selector(".head h2"); pg.wait_for_timeout(150)
+                    if where == "lesson page": pg.click("[data-a=nav-games]"); pg.wait_for_selector(".head h2"); pg.wait_for_timeout(150)
                     r = pg.evaluate(BAR)
                     check(not r.get("err") and not r["out"], "class-link bar, %s, %s, %dpx: %s" % (("in person" if cp["id"] == "cls-in" else "online"), where, w, r.get("err") or r["out"] or "fits (%d row%s, %dpx tall)" % (r["rows"], "s" if r["rows"] > 1 else "", r["h"])))
                     if w in (390, 720): pg.screenshot(path=os.path.join(HERE, "shots", "clsbar-%s-%s-%d.png" % (cp["id"], where.split()[0], w)))
-                pg.click("[data-a=student]") if pg.locator("[data-a=student]").count() else None
+                pg.click("header.nav [data-a=student]") if pg.locator("header.nav [data-a=student]").count() else None
             check(not errs, "class-link bar sweep %dpx: no page errors %s" % (w, errs[:2]))
             ctx.close()
 done()

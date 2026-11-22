@@ -90,14 +90,14 @@ with sync_playwright() as p:
     m2 = menu(t); n2 = [x["t"] for x in (m2 or [])]
     check(n2[:2] == ["Open plan", "Folder"] and "Pathways 3 U3R2" in n2, "Plan tab 📂 Files: Open plan, Folder (now fetched), then the materials: %s" % n2[:4])
     close(t)
-    t.click("[data-a=pl-back]"); t.wait_for_selector(".rs-blk")
+    t.click("[data-a=rs-open]"); t.wait_for_selector(".rs-blk")
     check("Folder" in [x["t"] for x in (menu(t) or [])], "back on the run sheet, the Files menu has Folder too"); close(t)
     # lessons without materials
-    t.click("[data-a=rs-games]"); t.wait_for_selector(".head h2"); go_lesson(t, "Ray · LP604", who="Ray"); t.wait_for_selector(".rs-blk")
+    t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2"); go_lesson(t, "Ray · LP604", who="Ray"); t.wait_for_selector(".rs-blk")
     check(t.locator("[data-a=pl-files]").count() == 0 and t.locator(".rs-files").count() == 0, "a lesson from before the change (no plan, no materials): no Files button, no chips")
-    t.click("[data-a=rs-games]"); t.wait_for_selector(".head h2"); go_lesson(t, "Ray · LP603", who="Ray"); t.wait_for_selector(".rs-blk")
+    t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2"); go_lesson(t, "Ray · LP603", who="Ray"); t.wait_for_selector(".rs-blk")
     check(t.locator("[data-a=pl-files]").count() == 0 and t.locator(".rs-files").count() == 0, "materials that aren't a list: ignored")
-    t.click("[data-a=rs-games]"); t.wait_for_selector(".head h2"); go_lesson(t, "Ray · LP602", who="Ray"); t.wait_for_selector(".rs-blk")
+    t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2"); go_lesson(t, "Ray · LP602", who="Ray"); t.wait_for_selector(".rs-blk")
     n4 = [x["t"] for x in (menu(t) or [])]
     check(n4 == ["Pathways 3 U3R2"], "materials without a plan: Files has just the materials (%s)" % n4); close(t)
     check(len(chips(t, "1") or []) == 1, "…and the chips")

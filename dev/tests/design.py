@@ -129,7 +129,7 @@ with sync_playwright() as p:
     # online lesson (run sheet says online): Say it first starts off
     op = dict(packs[1]); op["runsheet"] = {"format":"online", "student":"Mia", "lp":9, "blocks":[{"label":"0 Arrival", "mins":10, "lines":[]}]}
     ctx4 = b.new_context(viewport={"width":1180, "height":820}); t4 = teacher(ctx4, seed_db([op]), errs); go_lesson(t4, "Mia · LP9"); t4.wait_for_timeout(300)
-    if t4.locator("[data-a=rs-games]").count(): t4.click("[data-a=rs-games]"); t4.wait_for_timeout(300)
+    if t4.locator("[data-a=nav-games]").count(): t4.click("[data-a=nav-games]"); t4.wait_for_timeout(300)
     t4.click("[data-a=play][data-g=g8]"); t4.wait_for_timeout(500)
     check(t4.evaluate("__T.UI.view") == "play" and t4.evaluate("__T.UI.run.st.covered") is False and t4.evaluate("__T.UI.run.st.sayFirst") is False, "online lesson: Say it first starts off")
     ctx4.close()

@@ -26,6 +26,8 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 fb1119b.py                  # 19 Nov evening: Win or lose typed bet + All in (student link, class link), Plan tab HW Key, Open plan / Folder links
     python3 materials.py                # lesson materials: the 📂 Files menu (Open plan, Folder, materials) and per-block chips on the run sheet; bad entries dropped, text only
     python3 tidy.py                     # header and home tidy: 📋 run sheet icon with a state dot, Lesson Desk, › past today, Plan header ☰ · HW Key · 📂 with the fetched chip as refresh
+    (22 Nov) one nav bar on every teacher screen: 🏠 Lesson Desk · 👤 student | 🎲 games · 📋 run sheet · 📖 plan · 📂 files, no ‹ arrows;
+    the tests above click [data-a=nav-games] / [data-a=rs-open] where they used to click ‹ Games / ‹ back
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because

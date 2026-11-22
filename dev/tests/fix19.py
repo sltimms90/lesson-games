@@ -12,7 +12,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1920, "height":1000}); errs = []
     t = teacher(ctx, seed_db([old, pk]), errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
-    if t.evaluate("__T.UI.view") == "sheet": t.click("[data-a=rs-games]"); t.wait_for_timeout(300)
+    if t.evaluate("__T.UI.view") == "sheet": t.click("[data-a=nav-games]"); t.wait_for_timeout(300)
     check(t.locator(".rs-card #rsSpecIn").count() == 0, "run sheet card has no paste box")
     t.click("#advSec > summary"); t.click("#lookSec > summary"); t.wait_for_timeout(100)
     r1, r2 = [t.evaluate("(() => { const r = document.getElementById('%s').getBoundingClientRect(); return [r.left, r.right]; })()" % i) for i in ("lkStu", "lkPack")]

@@ -45,21 +45,22 @@ with sync_playwright() as p:
         t.click("[data-a=lesson]"); t.wait_for_timeout(300)
         check(t.evaluate("__T.UI.view") == "sheet", "‹ in the game comes straight back to the run sheet")
         # ‹ Games -> lesson page -> a game there -> back to the run sheet
-        t.click("[data-a=rs-games]"); t.wait_for_timeout(300)
-        check(t.locator("[data-a=rs-open]").first.is_visible() and "Run sheet" in t.inner_text(".wrap > .spread"), "lesson page reached from the run sheet has ‹ Run sheet at the top")
+        t.click("[data-a=nav-games]"); t.wait_for_timeout(300)
+        check(t.locator("header.nav [data-a=rs-open]").count() == 1 and t.locator("header.nav [data-a=rs-open]").is_visible(), "the games page has one 📋 run sheet tab (no extra ‹ Run sheet)")
         check(t.locator("[data-a=rs-mode]").count() == 0 and "Every lesson" not in t.inner_text("#app"), "no per-student run sheet toggle any more")
         t.click("[data-a=play][data-g=g1]"); t.wait_for_timeout(300); t.click("[data-a=lesson]"); t.wait_for_timeout(300)
-        check(t.evaluate("__T.UI.view") == "sheet", "a game started from that lesson page also comes back to the run sheet")
+        check(t.evaluate("__T.UI.view") == "pack", "a game started from the games page comes back to the games page")
+        t.click("[data-a=rs-open]"); t.wait_for_timeout(300)
         # marking still writes the same row: sheets keyed by pack id, marks inside
         t.locator(".rs-tk").first.click(); t.wait_for_timeout(1500)
         row = t.evaluate("__MOCK.db.sheets.jl && __MOCK.db.sheets.jl.data")
         check(row and row.get("packId") == "jl" and row.get("marks") and "rows" in row and "summary" in row, "a tick saves sheets/jl with marks, rows and summary")
         # a lesson without a run sheet still opens its lesson page; home -> it -> home
-        t.click("[data-a=rs-games]"); t.wait_for_timeout(200); t.click(".wrap > .spread [data-a=student]"); t.wait_for_timeout(200); t.click("[data-a=home]"); t.wait_for_timeout(200)
+        t.click("[data-a=nav-games]"); t.wait_for_timeout(200); t.click("header.nav [data-a=student]"); t.wait_for_timeout(200); t.click("[data-a=home]"); t.wait_for_timeout(200)
         t.click(".daybar ~ .list >> text=Tim · LP192"); t.wait_for_timeout(300)
         check(t.evaluate("__T.UI.view") == "pack" and t.locator("[data-a=rs-open]").count() == 0, "a lesson with no run sheet opens on its games")
         if name in ("phone", "ipad-land"):
-            t.click(".wrap > .spread [data-a=student]"); t.wait_for_timeout(200); t.click("[data-a=home]"); t.wait_for_timeout(200); t.click(".daybar ~ .list >> text=JL"); t.wait_for_timeout(300)
+            t.click("header.nav [data-a=student]"); t.wait_for_timeout(200); t.click("[data-a=home]"); t.wait_for_timeout(200); t.click(".daybar ~ .list >> text=JL"); t.wait_for_timeout(300)
             t.screenshot(path=HERE + "/shots/rs_%s.png" % name)
         check(not errs, "no errors %s" % errs)
         ctx.close()

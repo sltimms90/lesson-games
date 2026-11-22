@@ -29,7 +29,7 @@ with sync_playwright() as p:
     items = T.eval_on_selector_all(".list .item b", "els=>els.map(e=>e.textContent)")
     check(items == ["Alice · LP4","Alice · LP3"], "Alice's folder has only her lessons, newest first: %s" % items)
     T.click("text=Alice · LP4"); T.wait_for_timeout(300)
-    check("Alice" in T.inner_text("[data-a=student]"), "a lesson's back button returns to its student's folder")
+    check("Alice" in T.get_attribute("header.nav [data-a=student]", "aria-label"), "a lesson's 👤 button goes to its student's folder")
     T.click("[data-a=student]"); T.wait_for_timeout(200); T.click("[data-a=home]"); T.wait_for_timeout(200)
     go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
     links = {}

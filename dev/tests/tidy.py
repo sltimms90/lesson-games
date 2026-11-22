@@ -38,7 +38,7 @@ def tpage(ctx, errs, sheets=None):
     pg.calls = calls
     return pg
 def head_order(pg):
-    return pg.evaluate("[...document.querySelector('.pl-top').children].map(e => e.classList.contains('t') ? 'title' : (e.getAttribute('data-a') || e.tagName))")
+    return pg.evaluate("[...document.querySelector('.pl-top').querySelectorAll('button, .t')].map(e => e.classList.contains('t') ? 'title' : (e.getAttribute('data-a') || e.tagName))")
 
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
@@ -68,27 +68,27 @@ with sync_playwright() as p:
     check(t.inner_text(".daybar h3").startswith("Today"), "and › from yesterday lands on Today")
     # ---- 1. 📋 icon on the lesson page
     t.click(".daybar ~ .list .item:has-text('Alice · LP5')"); t.wait_for_selector(".rs-blk")
-    t.click("[data-a=rs-games]"); t.wait_for_selector(".head h2")
+    t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2")
     check(t.locator(".rs-card").count() == 0 and "Open run sheet" not in t.inner_text("#app"), "no run sheet card on the lesson page")
-    ic = t.locator(".wrap > .spread .rs-ic")
+    ic = t.locator("header.nav .rs-ic")
     check(ic.count() == 1, "📋 run sheet icon in the header")
-    sz = t.evaluate("(() => { const a = document.querySelector('[data-a=pl-open]').getBoundingClientRect(), b = document.querySelector('.rs-ic').getBoundingClientRect(); return [Math.round(a.width), Math.round(a.height), Math.round(b.width), Math.round(b.height), Math.round(b.left - a.right)]; })()")
+    sz = t.evaluate("(() => { const a = document.querySelector('[data-a=pl-open]').getBoundingClientRect(), b = document.querySelector('.rs-ic').getBoundingClientRect(); return [Math.round(a.width), Math.round(a.height), Math.round(b.width), Math.round(b.height), Math.round(Math.max(b.left - a.right, a.left - b.right))]; })()")
     check(sz[0] == sz[2] and sz[1] == sz[3] and 0 <= sz[4] <= 14, "same size as 📖 and right beside it %s" % sz)
     check(ic.get_attribute("title") == "Run sheet · in person · not started" and "not started" in ic.get_attribute("aria-label") and "new" in ic.get_attribute("class"), "not started: hollow dot, title 'Run sheet · in person · not started' (%s)" % ic.get_attribute("title"))
     check(t.locator("#clsBar").count() == 1, "the slim class-link line stays")
     ic.click(); t.wait_for_selector(".rs-blk")
     t.click(".rs-chk >> nth=0") if t.locator(".rs-chk").count() else t.click(".rs-body [data-a] >> nth=0")
-    t.wait_for_timeout(200); t.click("[data-a=rs-games]"); t.wait_for_selector(".head h2")
-    ic = t.locator(".wrap > .spread .rs-ic")
+    t.wait_for_timeout(200); t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2")
+    ic = t.locator("header.nav .rs-ic")
     check("on" in ic.get_attribute("class").split() and "started" in ic.get_attribute("title"), "after marking a line: amber dot, 'started · N unmarked' (%s)" % ic.get_attribute("title"))
     dot = t.evaluate("getComputedStyle(document.querySelector('.rs-ic .rs-dot')).backgroundColor")
     ic.click(); t.wait_for_selector(".rs-blk"); t.click("[data-a=rs-finish]"); t.wait_for_timeout(300)
     if t.locator(".overlay [data-a]").count() and t.evaluate("__T.UI.view") == "sheet" and not t.locator(".rs-top [data-a=rs-finish]:has-text('Finished')").count():
         btn = t.locator(".overlay button:has-text('Finish')");
         if btn.count(): btn.first.click(); t.wait_for_timeout(300)
-    if t.evaluate("__T.UI.view") == "sheet": t.click("[data-a=rs-games]")
+    if t.evaluate("__T.UI.view") == "sheet": t.click("[data-a=nav-games]")
     t.wait_for_selector(".head h2")
-    ic = t.locator(".wrap > .spread .rs-ic")
+    ic = t.locator("header.nav .rs-ic")
     check("fin" in ic.get_attribute("class").split() and ic.get_attribute("title").endswith("finished"), "finished: green dot, title says finished (%s)" % ic.get_attribute("title"))
     check(dot != t.evaluate("getComputedStyle(document.querySelector('.rs-ic .rs-dot')).backgroundColor"), "the dot's colour changes with the state")
     # a lesson with no run sheet: no icon
@@ -98,7 +98,7 @@ with sync_playwright() as p:
     t.click("[data-a=student]"); t.wait_for_timeout(200); t.click("text=Alice · LP5"); t.wait_for_selector(".rs-blk")
     t.click(".rs-top [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(200)
     order = head_order(t)
-    check(order == ["pl-back", "title", "pl-outline", "pl-hw", "pl-files"], "Plan header: ‹ · title · ☰ · HW Key · 📂, no ↻ (%s)" % order)
+    check(order == ["home", "student", "nav-games", "rs-open", "pl-open", "pl-files", "title", "pl-outline", "pl-hw"], "Plan header: 🏠 👤 | 🎲 📋 📖 📂 · title · ☰ · HW Key, no ↻ (%s)" % order)
     chip = t.locator(".pl-meta [data-a=pl-refresh]")
     check(chip.count() == 1 and "fetched" in chip.inner_text() and chip.evaluate("e => e.tagName") == "BUTTON", "the 'fetched HH:MM' chip is a button (%s)" % chip.inner_text())
     n0 = len(t.calls); chip.click(); t.wait_for_timeout(150)
@@ -115,7 +115,7 @@ with sync_playwright() as p:
         for title, who in (("Alice · LP5", None), ("Bartholomew · LP305", "Bartholomew")):
             go_lesson(pg, title, who=who); pg.wait_for_selector(".rs-blk, .head h2"); pg.wait_for_timeout(150)
             if pg.locator(".rs-top").count(): pg.click(".rs-top [data-a=pl-open]")
-            else: pg.click(".row [data-a=pl-open]")
+            else: pg.click("header.nav [data-a=pl-open]")
             pg.wait_for_selector(".pl-doc"); pg.wait_for_timeout(250)
             m = pg.evaluate("""(() => { const t = document.querySelector('.pl-top .t'), pt = t.querySelector('.pt'), h = document.querySelector('.pl-top');
               return { have: t.clientWidth, need: Math.ceil(pt.getBoundingClientRect().width), hw: (document.querySelector('.pl-hwb') || {}).textContent,
@@ -128,15 +128,14 @@ with sync_playwright() as p:
             if vw < 420 and title.startswith("Bartholomew"):
                 check(short or m["have"] + 1 >= m["need"], "%s: a long title shortens HW Key to HW rather than cut 'Bartholomew · LP305' (%s)" % (name, m))
                 pg.screenshot(path=os.path.join(HERE, "shots", "tidy_plan_%s.png" % vw))
-            pg.click("[data-a=pl-back]"); pg.wait_for_timeout(200)
-            if pg.locator("[data-a=rs-games]").count(): pg.click("[data-a=rs-games]"); pg.wait_for_timeout(150)
+            pg.click("[data-a=nav-games]"); pg.wait_for_timeout(200)
         # lesson page header with 📋 on this size
-        go_lesson(pg, "Alice · LP5"); pg.wait_for_selector(".rs-blk"); pg.click("[data-a=rs-games]"); pg.wait_for_selector(".head h2"); pg.wait_for_timeout(150)
+        go_lesson(pg, "Alice · LP5"); pg.wait_for_selector(".rs-blk"); pg.click("[data-a=nav-games]"); pg.wait_for_selector(".head h2"); pg.wait_for_timeout(150)
         check(pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1 and pg.locator(".rs-ic").is_visible(), "%s: lesson page header with 📋 fits" % name)
         if vw == 390: pg.screenshot(path=os.path.join(HERE, "shots", "tidy_lesson_390.png"))
         errs += e2; c.close()
     # student page keeps "Lesson Games"
-    c = b.new_context(viewport={"width":1024, "height":768}); t = tpage(c, errs); go_lesson(t, "Alice · LP5"); t.wait_for_selector(".rs-blk"); t.click("[data-a=rs-games]"); t.wait_for_selector(".head h2")
+    c = b.new_context(viewport={"width":1024, "height":768}); t = tpage(c, errs); go_lesson(t, "Alice · LP5"); t.wait_for_selector(".rs-blk"); t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2")
     t.click("[data-a=slink][data-g=g1]"); t.wait_for_selector("#slinkUrl"); url = t.input_value("#slinkUrl")
     s = student(c, url, errs); s.wait_for_selector("[data-a=s-start]", timeout=6000)
     check(s.title() == "Lesson Games" and "Lesson Desk" not in s.inner_text("body"), "a student page's tab still says Lesson Games (%s)" % s.title())

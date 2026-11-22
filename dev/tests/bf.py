@@ -15,7 +15,7 @@ pack = {"id":"jl","student":"Cathy & Lily","lp":27,"title":"JL","date":"2026-11-
 res = [{"id":"r1","packId":"jl","gameId":"g1","type":"auction","summary":"x","score":{"text":"9,650 money · fixed 5/5"},"at":"2026-11-18T11:00:00Z"}]
 def lesson(pg):
     go_lesson(pg, "JL", "Cathy"); pg.wait_for_timeout(300)
-    if pg.evaluate("__T.UI.view") == "sheet": pg.locator("button", has_text="Games").first.click(); pg.wait_for_timeout(300)
+    if pg.evaluate("__T.UI.view") == "sheet": pg.click("[data-a=nav-games]"); pg.wait_for_timeout(300)
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
@@ -37,7 +37,7 @@ with sync_playwright() as p:
     check(overflow(pg) == [], "nothing spills: %s" % overflow(pg))
     tk = pg.evaluate("__T.UI.run.st.cards[__T.UI.run.st.tk].map(i => i < 0 ? '*' : __T.UI.run.st.items[i].w).join(',')")
     pg.click("[data-a=lesson]"); pg.wait_for_timeout(300)
-    if pg.evaluate("__T.UI.view") == "sheet": pg.locator("button", has_text="Games").first.click(); pg.wait_for_timeout(300)
+    if pg.evaluate("__T.UI.view") == "sheet": pg.click("[data-a=nav-games]"); pg.wait_for_timeout(300)
     pg.evaluate("window.print = () => {}"); pg.click("[data-a=print][data-g=g3]"); pg.wait_for_timeout(200)
     names = pg.locator("#print .pcard .ph span:last-child").all_text_contents()
     check(names == ["Cathy", "Lily", "Teacher"], "prints Cathy, Lily and Teacher: %s" % names)

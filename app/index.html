@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-51JZmPrxKwwyz7wj2POQOtTTX+VyCDKUWY+NskM9r8M='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-yv+FbJ2pO5Hyhs2e/6m21zpnULratsEX4fT91QAyIbY='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -134,6 +134,14 @@ textarea{min-height:220px;resize:vertical;line-height:1.4}
 
 /* play shell */
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:10px;align-items:center;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.nav{flex-wrap:wrap;row-gap:4px}
+.nav-b{display:flex;gap:4px;align-items:center;flex-wrap:nowrap}
+.nav-sep{width:1px;align-self:stretch;margin:4px 4px;background:var(--line)}
+.nav-sp{flex:1}
+.nav-r{display:flex;gap:6px;align-items:center;margin-left:auto}
+.nav .btn.ic.on{background:var(--soft);box-shadow:inset 0 -3px 0 var(--ball)}
+.nav-stu.named{gap:6px;font-size:21px}
+.nav-stu .nav-nm{font-size:16px;font-weight:700;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar .t{flex:1;font-family:"Baloo 2",sans-serif;font-weight:700;font-size:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .stage{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
 .center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px}
@@ -794,7 +802,10 @@ button.pl-ref:disabled{cursor:default;opacity:.8}
 .pl-files .sep{border-top:2px solid var(--line);margin-top:4px;padding-top:6px;color:var(--muted);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 /* the materials for one run sheet block, under its label */
 .rs-files{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px 2px 14px}
-@media (max-width:440px){.rs-top .rs-gl{display:none}.rs-top [data-a=rs-games]{min-width:44px;justify-content:center}}
+/* narrow screens: the title gets its own line under the buttons */
+@media (max-width:700px){.nav .t{order:9;flex-basis:100%;font-size:17px}
+  .pl-top::before{content:"";order:8;flex-basis:100%;height:0}.pl-top .t{flex:1 1 0;min-width:0}.pl-top .nav-r{order:10}.pl-doc [id]{scroll-margin-top:110px}}
+@media (max-width:440px){.nav-b{gap:0}.nav .btn.ic{min-width:40px;padding:8px 6px}.nav-sep{margin:4px 2px}}
 a.rs-file{display:inline-flex;align-items:center;gap:6px;min-height:40px;color:var(--ink);text-decoration:none;font-size:16px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pl-tbl{overflow-x:auto}
 .pl-doc table{border-collapse:collapse;margin:.5em 0}
@@ -4556,7 +4567,7 @@ function viewStudent(){
     var head = p ? packTitle(p) + " · " + fmtDate(p.date) : (list[0].lp ? s + " · LP" + list[0].lp : s);
     return '<li><b>' + esc(head) + '</b>' + list.map(function(r){ return '<div class="when">' + esc(fmtWhen(r.at)) + '</div><pre>' + esc(r.summary) + '</pre>'; }).join("") + '</li>';
   }).join("");
-  $("app").innerHTML = '<div class="wrap"><div class="spread"><button class="btn ghost sm" data-a="home">‹ All students</button>' + statusPill() + '</div><div class="head"><h2>' + esc(s || "No student") + '</h2><p class="muted">' + mine.length + (mine.length === 1 ? " lesson" : " lessons") + ', newest first.</p></div>' +
+  $("app").innerHTML = navBar("student", null, { right: statusPill() }) + '<div class="wrap"><div class="head"><h2>' + esc(s || "No student") + '</h2><p class="muted">' + mine.length + (mine.length === 1 ? " lesson" : " lessons") + ', newest first.</p></div>' +
     (mine.length ? '<ul class="list">' + mine.map(packItemHtml).join("") + '</ul>' : '<p class="notice">No lessons yet.</p>') + progressHtml(s) +
     (hist ? '<details class="section"><summary><h3 style="display:inline">Every game played</h3></summary><ul class="hist">' + hist + '</ul></details>' : "") + '</div>';
 }
@@ -4697,7 +4708,7 @@ function viewPack(){
   }).join("");
   var add = '<div class="add">' + TYPE_ORDER.map(function(t){ return '<button data-a="addgame" data-t="' + t + '">' + ball(t) + TYPES[t].label + '</button>'; }).join("") + '</div>';
   var hasRes = resultsFor(p.id).length;
-  $("app").innerHTML = '<div class="wrap"><div class="spread">' + '<div class="row">' + (rsVia(p.id) ? '<button class="btn sm" data-a="rs-open">‹ Run sheet</button>' : "") + (p.student ? '<button class="btn ghost sm" data-a="student" data-s="' + esc(p.student) + '">‹ ' + esc(p.student) + '</button>' : '<button class="btn ghost sm" data-a="home">‹ All students</button>') + '<button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button>' + rsIconHtml(p) + '</div>' + statusPill() + '</div>' +
+  $("app").innerHTML = navBar("pack", p, { right: statusPill() }) + '<div class="wrap">' +
     '<div class="head"><h2>' + esc(packTitle(p)) + '</h2><p class="muted">' + esc(fmtDate(p.date)) + (p.source === "plan" ? " · from the plan" : "") + '</p>' + (hasRes ? '<div class="lpts" aria-label="Lesson points">★ ' + fmtPts(lessonPoints(p.id)) + ' <small>lesson points</small></div>' : "") + '</div>' +
     clsBarHtml(p) + '<h3 style="margin:26px 0 4px">Games</h3>' + (games || '<p class="notice">No games in this lesson yet.</p>') + bankSection(p) +
     '<details class="section fold" id="addSec"' + ((p.games || []).length ? "" : " open") + '><summary><h3>Add other games</h3><span class="muted">' + TYPE_ORDER.length + ' kinds</span></summary>' + add + '</details>' +
@@ -4767,7 +4778,7 @@ function viewGameEdit(){
 function viewPlay(){
   var run = UI.run; if(!run){ go("home"); return; }
   var t = TYPES[run.type], paused = !!run.paused;
-  $("app").innerHTML = '<header class="bar">' + (SMODE ? "" : '<button class="btn ghost sm ic" data-a="lesson" aria-label="Back to the lesson" title="Back to the lesson">‹</button>') + '<span class="clock" id="clock" title="Time played, not counting pauses">' + fmtClock(clockMs(run)) + '</span><div class="t">' + esc(run.title) + '</div>' +
+  $("app").innerHTML = '<header class="bar">' + (SMODE ? "" : '<button class="btn ghost sm ic" data-a="lesson" aria-label="' + backName(run.packId) + '" title="' + backName(run.packId) + '">‹</button>') + '<span class="clock" id="clock" title="Time played, not counting pauses">' + fmtClock(clockMs(run)) + '</span><div class="t">' + esc(run.title) + '</div>' +
     (SMODE ? "" : '<span class="lp" title="Lesson points so far">★ ' + fmtPts(lessonPoints(run.packId, { gameId:run.gameId, points: gamePoints(run.type, run.st, t.score ? t.score(run) : null) })) + '</span>') +
     (paused || SMODE || CH_TYPES.indexOf(run.type) === -1 ? "" : '<button class="btn ghost sm ic" data-a="challenge" aria-label="Challenge" title="Challenge: a quick language task before play carries on"' + (run.st.ch || run.st.phase === "over" || run.st.winner ? " disabled" : "") + '>⚡</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="pause" aria-label="Pause" title="Pause"' + (run.st.spinning ? " disabled" : "") + '>❚❚</button>') +
@@ -4828,7 +4839,7 @@ function viewDone(){
     (r.score ? '<div class="scorebig">' + esc(r.score.text) + '</div>' : "") + (r.packId && getPack(r.packId) ? '<div class="lpts">★ ' + fmtPts(lessonPoints(r.packId, r.points != null ? { gameId:r.gameId, points:r.points } : null)) + ' <small>lesson points' + (r.points ? " · +" + fmtPts(r.points) + " this game" : "") + '</small></div>' : "") + (r.activeSecs ? '<p class="muted" style="margin:0">Played for ' + fmtSecs(r.activeSecs) + ', not counting pauses.</p>' : "") +
     itemsTable(r.items) +
     '<h3 style="margin-top:22px">For the after-class report</h3><textarea id="res" readonly>' + esc(r.summary) + '</textarea><p class="ok-msg" id="copied" role="status"></p>' +
-    '<div class="actions"><button class="btn" data-a="backlesson">Back to the lesson</button>' + (missedItems(r).length && r.gameId ? '<button class="btn ghost" data-a="retry" data-r="' + esc(r.id) + '">Retry the ' + missedItems(r).length + (missedItems(r).length === 1 ? " miss" : " misses") + '</button>' : "") + '<button class="btn ghost" data-a="copyres">Copy</button></div></div>';
+    '<div class="actions"><button class="btn" data-a="backlesson">' + backName(r.packId || UI.packId) + '</button>' + (missedItems(r).length && r.gameId ? '<button class="btn ghost" data-a="retry" data-r="' + esc(r.id) + '">Retry the ' + missedItems(r).length + (missedItems(r).length === 1 ? " miss" : " misses") + '</button>' : "") + '<button class="btn ghost" data-a="copyres">Copy</button></div></div>';
 }
 function viewStudentOld(){
   var s = UI.student, rs = RESULTS.filter(function(r){ return r.student === s; });
@@ -5745,7 +5756,7 @@ function viewSheet(){
     '<div class="rs-ln"><span class="rs-lbl">Parent said</span>' + rsIn(pid, "end.parent", "", "Parent said") + '</div>' +
     '<div class="rs-ln"><span class="rs-lbl">Other mistakes</span><textarea class="rs-ta" data-rsin="end.other" aria-label="Other mistakes">' + esc(rsGet(pid, "end.other")) + '</textarea></div>' +
     '</div></section>';
-  $("app").innerHTML = '<header class="bar rs-top"><button class="btn ghost sm" data-a="rs-games" aria-label="Games">‹<span class="rs-gl"> Games</span></button><div class="t">' + esc(packTitle(p)) + ' · run sheet</div><button class="btn ghost sm ic" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button>' + plFilesBtn(p) + '<button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button></header>' +
+  $("app").innerHTML = navBar("sheet", p, { cls:"rs-top", title: esc(packTitle(p)) + ' · run sheet', right: '<button class="btn sm' + (d.finished ? " ghost" : "") + '" data-a="rs-finish">' + (d.finished ? "Finished ✓" : "Finish") + '</button>' }) +
     '<main class="wrap rs"><p class="rs-meta">' + esc([spec.student || p.student, "LP" + (spec.lp || p.lp || ""), spec.date || fmtDate(p.date), spec.start, spec.length ? spec.length + " min" : "", spec.format].filter(Boolean).join(" · ")) + '</p>' +
     (spec.spine ? '<p class="rs-spine"><b>Spine:</b> ' + esc(spec.spine) + '</p>' : "") +
     '<div class="rs-state"><span class="pill" id="rsState"><i></i></span>' + (isToday ? '<span class="pill">Now ' + rsNow() + (nowBlk ? " · " + esc(nowBlk.label) : nowM >= endM ? " · lesson time over" : "") + '</span>' : "") + '</div>' +
@@ -5765,13 +5776,35 @@ function viewSheet(){
   if(!RS_TICK) RS_TICK = setInterval(function(){ if(UI.view === "sheet" && !rsTyping() && !UI.rsFinish) render(); }, 30000);
   scrollRestore();
 }
+/* One nav bar on every teacher screen past the Lesson Desk, always in this order:
+   🏠 Lesson Desk · 👤 the student | 🎲 games · 📋 run sheet · 📖 plan · 📂 files, then the page's own extras.
+   No ‹ back arrows: each button goes to the same place every time. The current page's button is marked (aria-current).
+   👤 is icon-only when the page shows the student's name anyway; a lesson with its own title gets "👤 Name". */
+function navBar(cur, p, opts){
+  opts = opts || {};
+  var stu = p ? (p.student || "") : (UI.student || ""), html = '<header class="bar nav' + (opts.cls ? " " + opts.cls : "") + '"><div class="nav-b">';
+  function on(k){ return cur === k ? ' on" aria-current="page' : ""; }
+  html += '<button class="btn ghost sm ic" data-a="home" aria-label="Lesson Desk" title="Lesson Desk">🏠</button>';
+  if(stu || !p){
+    var named = p && packTitle(p).indexOf(stu) === -1;
+    html += '<button class="btn ghost sm ic nav-stu' + (named ? " named" : "") + on("student") + '" data-a="student" data-s="' + esc(stu) + '" aria-label="' + esc((stu || "No student") + "’s lessons") + '" title="' + esc((stu || "No student") + "’s lessons") + '"><span aria-hidden="true">👤</span>' + (named ? '<span class="nav-nm">' + esc(stu) + '</span>' : "") + '</button>';
+  }
+  if(p){
+    html += '<i class="nav-sep" aria-hidden="true"></i>' +
+      '<button class="btn ghost sm ic' + on("pack") + '" data-a="nav-games" aria-label="Games" title="Games">🎲</button>' +
+      rsIconHtml(p, cur === "sheet") +
+      '<button class="btn ghost sm ic' + on("plan") + '" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button>' + plFilesBtn(p);
+  }
+  html += '</div>' + (opts.title ? '<div class="t">' + opts.title + '</div>' : '<span class="nav-sp"></span>') + (opts.right ? '<div class="nav-r">' + opts.right + '</div>' : "") + '</header>';
+  return html;
+}
 /* The lesson page's 📋 run sheet button (beside 📖), with its state as a dot: hollow = not started, amber = started,
    green = finished. The full state is in its name and tooltip. No run sheet saved → no button. */
-function rsIconHtml(p){
+function rsIconHtml(p, cur){
   var spec = rsSpec(p); if(!spec) return "";
   var doc = rsDoc(p.id), marked = Object.keys(doc.marks || {}).length, st = doc.finished ? "fin" : marked ? "on" : "new";
   var txt = (spec.format ? spec.format + " · " : "") + (doc.finished ? "finished" : marked ? "started · " + rsBuildDoc(p, doc).gaps.length + " unmarked" : "not started");
-  return '<button class="btn ghost sm ic rs-ic ' + st + '" data-a="rs-open" aria-label="Run sheet: ' + esc(txt) + '" title="Run sheet · ' + esc(txt) + '"><span aria-hidden="true">📋</span><i class="rs-dot" aria-hidden="true"></i></button>';
+  return '<button class="btn ghost sm ic rs-ic ' + st + (cur ? ' on" aria-current="page' : "") + '" data-a="rs-open" aria-label="Run sheet: ' + esc(txt) + '" title="Run sheet · ' + esc(txt) + '"><span aria-hidden="true">📋</span><i class="rs-dot" aria-hidden="true"></i></button>';
 }
 /* Advanced: a way in for a run sheet the planning chat couldn't save itself (it gives the JSON instead). */
 function rsPasteSection(p){
@@ -5789,7 +5822,6 @@ function rsSpecFrom(text){
 function rsHandle(a, el){
   var pid = UI.packId, p = getPack(pid), k = el.getAttribute("data-k");
   if(a === "rs-open"){ UI.rsGaps = false; go("sheet"); return; }
-  if(a === "rs-games"){ rsFlush(pid); UI.rsGaps = false; UI.rsFinish = false; UI.rsVia = pid; go("pack"); return; }
   if(a === "rs-spec"){
     var r = rsSpecFrom($("rsSpecIn").value); if(r.err){ $("rsSpecErr").textContent = r.err; return; }
     var pp = clone(p); pp.runsheet = r.spec; touchPack(pp); PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; });
@@ -6039,14 +6071,13 @@ function plWhen(iso){ try{ var d = new Date(iso); return d.toDateString() === ne
 function viewPlan(){
   var p = getPack(UI.packId);
   if(!p){ go("home"); return; }
-  var id = plDocId(p), c = id ? plCopy(id) : null, back = UI.plFrom === "pack" || !rsSpec(p) ? "pack" : "sheet";
+  var id = plDocId(p), c = id ? plCopy(id) : null;
   if(id && !c && !PL.busy[id] && !PL.err[id]) plFetch(p.id, id);
   if(id && c && !UI.plEdit){ var bkey = id + "|" + c.at + "|" + c.html.length; if(!PL.built || PL.built.key !== bkey) PL.built = Object.assign({ key:bkey }, plBuild(c.html)); }
   var hwk = id && c && !UI.plEdit && PL.built && PL.built.hw || [];
-  var head = '<header class="bar pl-top"><button class="btn ghost sm ic" data-a="pl-back" aria-label="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '" title="Back to the ' + (back === "sheet" ? "run sheet" : "lesson") + '">‹</button><div class="t"><span class="pt">' + esc(packTitle(p)) + '</span> · plan</div>' +
+  var head = navBar("plan", p, { cls:"pl-top", title: '<span class="pt">' + esc(packTitle(p)) + '</span> · plan', right:
     (id ? '<button class="btn ghost sm ic" data-a="pl-outline" aria-label="Outline" title="Outline: jump to a segment or step"' + (c ? "" : " disabled") + '>☰</button>' : "") +
-    (hwk.length ? '<button class="btn sm pl-hwb" data-a="pl-hw" aria-label="HW Key: jump to the homework key" title="Jump to the homework key' + (hwk.length > 1 ? "s" : "") + '">HW Key</button>' : "") +
-    plFilesBtn(p) + '</header>';
+    (hwk.length ? '<button class="btn sm pl-hwb" data-a="pl-hw" aria-label="HW Key: jump to the homework key" title="Jump to the homework key' + (hwk.length > 1 ? "s" : "") + '">HW Key</button>' : "") });
   var body = "";
   if(!id || UI.plEdit){
     body = '<section class="pl-paste"><h3 style="margin:0 0 4px">' + (id ? "Change the plan’s link" : "Which plan goes with this lesson?") + '</h3><p class="muted" style="margin:0;font-size:16px">Paste the link to the lesson plan (in Drive or Docs: Share → Copy link). You only do this once for a lesson.</p>' +
@@ -6078,7 +6109,7 @@ function plFitHead(){
   var b = document.querySelector(".pl-top .pl-hwb"), t = document.querySelector(".pl-top .t"), pt = t && t.querySelector(".pt");
   if(!b || !pt) return;
   b.textContent = "HW Key";
-  if(window.innerWidth < 420 && t.clientWidth + 1 < Math.ceil(pt.getBoundingClientRect().width)) b.textContent = "HW";
+  if(t.clientWidth + 1 < Math.ceil(pt.getBoundingClientRect().width)) b.textContent = "HW";
 }
 window.addEventListener("resize", function(){ if(UI.view === "plan") plFitHead(); });
 function plOutlineHtml(){
@@ -6105,11 +6136,10 @@ function plHandle(a, el){
   var p = getPack(UI.packId);
   if(a === "pl-files-x"){ setTimeout(function(){ var fo = $("plFiles"); if(fo) fo.remove(); }, 0); return; }   /* after the tap, so a link still opens */
   if(a === "pl-files"){ var fo2 = $("plFiles"); if(fo2) fo2.remove(); if(p && plFilesItems(p).length) $("app").insertAdjacentHTML("beforeend", plFilesHtml(p)); return; }
-  if(a === "pl-open"){ UI.plFrom = UI.view === "sheet" ? "sheet" : "pack"; UI.plEdit = false; UI.plOutline = false; UI.plHwMenu = false; go("plan"); return; }
-  if(a === "pl-go"){ if(!p) return; UI.plFrom = "sheet"; UI.plEdit = false; UI.plOutline = false; UI.planAt = { bl: el.getAttribute("data-bl") || "", c: el.getAttribute("data-c") || "" }; go("plan"); return; }
+  if(a === "pl-open"){ UI.plEdit = false; UI.plOutline = false; UI.plHwMenu = false; go("plan"); return; }
+  if(a === "pl-go"){ if(!p) return; UI.plEdit = false; UI.plOutline = false; UI.planAt = { bl: el.getAttribute("data-bl") || "", c: el.getAttribute("data-c") || "" }; go("plan"); return; }
   if(!p) return;
   var id = plDocId(p);
-  if(a === "pl-back"){ UI.plOutline = false; UI.plEdit = false; UI.plHwMenu = false; go(UI.plFrom === "pack" || !rsSpec(p) ? "pack" : "sheet"); return; }
   if(a === "pl-refresh"){ if(id){ PL.err[id] = ""; plFetch(p.id, id); } return; }
   if(a === "pl-outline"){ UI.plOutline = true; $("app").insertAdjacentHTML("beforeend", plOutlineHtml()); return; }
   if(a === "pl-outline-x"){ UI.plOutline = false; var ov = $("plOut"); if(ov) ov.remove(); return; }
@@ -6117,7 +6147,7 @@ function plHandle(a, el){
   if(a === "pl-hw"){
     var want = el && el.getAttribute && el.getAttribute("data-id") || "", hws = (UI.view === "plan" && PL.built && PL.built.hw) || [];
     UI.plHwMenu = false; var hm = $("plHwMenu"); if(hm) hm.remove();
-    if(UI.view !== "plan" || !hws.length){ UI.plFrom = UI.view === "sheet" ? "sheet" : "pack"; UI.plEdit = false; UI.plOutline = false; UI.planAt = { hw:true }; go("plan"); return; }
+    if(UI.view !== "plan" || !hws.length){ UI.plEdit = false; UI.plOutline = false; UI.planAt = { hw:true }; go("plan"); return; }
     if(!want && hws.length > 1){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); return; }
     if(!plHwGo(want || hws[0].id)) toast("The homework key isn’t in this copy of the plan. Tap ↻ to fetch it again.");
     return;
@@ -6152,13 +6182,13 @@ window.addEventListener("scroll", function(){
 }, { passive:true });
 
 /* Came to the lesson page from its run sheet (‹ Games): games started there go back to the run sheet too. */
-function rsVia(pid){ return UI.rsVia === pid && rsSpec(getPack(pid)) ? pid : null; }
+function backName(pid){ return lessonView(pid) === "sheet" ? "Back to the run sheet" : "Back to the games"; }
 function lessonView(pid){ var p = getPack(pid); return UI.rsRet === pid && rsSpec(p) ? "sheet" : "pack"; }
 /* Run sheet on a phone or iPad: when a box gets the keyboard, keep it in the visible part of the screen
    (visualViewport shrinks when the keyboard opens; the sticky header covers the top). */
 function rsKeepVisible(el){
   if(!el || !el.isConnected) return;
-  var vv = window.visualViewport, top = 70, bot = vv ? vv.height + vv.offsetTop : window.innerHeight, r = el.getBoundingClientRect();
+  var hb = document.querySelector("header.bar"), vv = window.visualViewport, top = hb ? Math.round(hb.getBoundingClientRect().bottom) + 10 : 70, bot = vv ? vv.height + vv.offsetTop : window.innerHeight, r = el.getBoundingClientRect();
   if(r.top < top || r.bottom > bot - 12) window.scrollBy(0, r.top - top - Math.max(0, (bot - top - r.height) / 3));
 }
 document.addEventListener("focusin", function(e){
@@ -6259,10 +6289,11 @@ function handle(a, el){
   if(a.indexOf("rs-") === 0){ rsHandle(a, el); return; }
   if(a.indexOf("pl-") === 0){ plHandle(a, el); return; }
   if(a === "home"){ UI.confirmDel = null; go("home"); return; }
+  if(a === "nav-games"){ UI.confirmDel = null; UI.rsGaps = false; UI.rsFinish = false; go("pack"); return; }
   if(a === "showall"){ UI.showAll = true; render(); return; }
   if(a === "resume"){ if(run) startClock(run); go("play"); return; }
   if(a === "play-resume"){ if(!resumeRun(el.getAttribute("data-k"))) toast("That game isn’t waiting any more."); return; }
-  if(a === "open"){ UI.confirmDel = null; UI.rsVia = null; var opk = getPack(el.getAttribute("data-id")); UI.rsGaps = false; UI.rsFinish = false; go(opk && rsOn(opk) ? "sheet" : "pack", { packId: el.getAttribute("data-id") }); return; }
+  if(a === "open"){ UI.confirmDel = null; var opk = getPack(el.getAttribute("data-id")); UI.rsGaps = false; UI.rsFinish = false; go(opk && rsOn(opk) ? "sheet" : "pack", { packId: el.getAttribute("data-id") }); return; }
   if(a === "student"){ go("student", { student: el.getAttribute("data-s") }); return; }
   if(a === "newpack"){ UI.draftPack = { student:"", lp:"", date:today() }; go("packEdit"); return; }
   if(a === "editpack"){ var p0 = getPack(UI.packId); UI.draftPack = { id:p0.id, student:p0.student || "", lp:p0.lp || "", date:p0.date || today() }; go("packEdit"); return; }
@@ -6335,10 +6366,10 @@ function handle(a, el){
     var qg = { id:"q" + qn, app:true, type:q.t, title:q.label + " · " + qScopeName(qs) + " (on the spot)", block:q.block(qw), options:qo, spot:true, ed:nowIso() };
     var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
     var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
-    UI.rsRet = rsVia(qpp.id); UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
+    UI.rsRet = UI.view === "sheet" ? qpp.id : null; UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
   }
   if(a === "play" || a === "play-ch"){
-    UI.rsRet = rsVia(UI.packId); UI.clsPlay = true;
+    UI.rsRet = UI.view === "sheet" ? UI.packId : null; UI.clsPlay = true;
     var pk2 = getPack(UI.packId), gm = (pk2.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
     var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(pk2), gm.options || {}));
     if(bad){ toast("This game needs fixing first: " + bad); return; }
