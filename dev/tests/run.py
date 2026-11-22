@@ -78,7 +78,7 @@ with sync_playwright() as p:
     pg.once("dialog", lambda dl: dl.accept())
     pg.set_input_files("#restoreFile", "/tmp/bk.json"); pg.wait_for_timeout(800)
     counts = pg.evaluate("Object.fromEntries(Object.entries(__MOCK.db).map(([k,v])=>[k,Object.keys(v).length]))")
-    check(counts == {"packs":22,"results":66,"students":9,"boards":1,"sheets":3}, "restore writes 22/66/9/1/3: %s" % counts)
+    check(counts == {"packs":22,"results":66,"students":9,"boards":1,"sheets":3,"phaseb":0}, "restore writes 22/66/9/1/3: %s" % counts)
     # landscape iPad: home has no horizontal overflow
     check(pg.evaluate("document.documentElement.scrollWidth <= innerWidth"), "no sideways scrolling at iPad landscape")
     # sign out
