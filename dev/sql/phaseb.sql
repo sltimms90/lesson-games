@@ -26,3 +26,6 @@ grant select, insert, update, delete on public.phaseb to authenticated;
 create policy "teacher full access" on public.phaseb for all to authenticated
   using ((select private.is_teacher())) with check ((select private.is_teacher()));
 alter publication supabase_realtime add table public.phaseb;
+
+-- Weekly snapshot (migration `snapshot_phaseb`): private.take_snapshot() also copies phaseb, as whole rows
+-- (it has no `data` column): counts.phaseb and data.phaseb = jsonb_agg(to_jsonb(row)). Same schedule, same 8-week keep.

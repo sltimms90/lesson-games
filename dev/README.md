@@ -47,7 +47,7 @@ secret `GOOGLE_SA_KEY`; .docx files go through mammoth, native Docs through file
 the LP layout (`make_plan_sample.py`); `tests/plan_sample.html` is the same plan as the function returns it.
 
 `sql/phaseb.sql` is the Phase B table (migration `phaseb`): one row per pack, `{ pack_id, status: done|skip, at, by: chat|manual, note }`,
-teacher-only RLS, in the Realtime publication. Planning chats write it at the end of Phase B; the 📝 Phase B screen writes `manual` rows.
+teacher-only RLS, in the Realtime publication, and copied by the weekly snapshot (`private.take_snapshot`, migration `snapshot_phaseb`). Planning chats write it at the end of Phase B; the 📝 Phase B screen writes `manual` rows.
 `mock-supabase.js` keys its `phaseb` rows by `pack_id` and supports `.in()` for the screen's deletes.
 
 `sql/submit_homework.sql` is the database function student pages call to save a homework result (applied to the project as
