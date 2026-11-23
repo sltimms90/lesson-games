@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-lBmf45kAxc/cIY7N5Itj1ou5vXffiCcYTGpN+R/QkPs='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-7gIHwquSCKPm6HTt7mLvqlzYr79RbR4+oV/RWejREhI='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -812,6 +812,12 @@ button.pl-ref:disabled{cursor:default;opacity:.8}
 .pl-doc li{margin:.25em 0}
 .pl-doc [id]{scroll-margin-top:72px}
 .pl-doc .pl-hit{outline:3px solid var(--ball);outline-offset:4px;border-radius:8px}
+/* plan → game chips and plan → run sheet 📋 (teacher only) */
+.pl-doc .pl-game{display:inline-flex;align-items:center;gap:4px;min-height:34px;padding:2px 10px;margin:2px 2px;font:inherit;font-size:17px;line-height:1.2;vertical-align:baseline;cursor:pointer;touch-action:manipulation}
+.pl-doc .pl-rs{font-size:15px;line-height:1;padding:4px 6px;margin-left:2px;min-width:32px;min-height:32px;vertical-align:middle;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;opacity:.75;touch-action:manipulation}
+.pl-doc .pl-rs:hover,.pl-doc .pl-rs:focus-visible{opacity:1}
+.rs [data-sc],.rs .rs-blk{scroll-margin-top:72px}
+.rs .pl-hit{outline:3px solid var(--ball);outline-offset:-3px;border-radius:8px}
 /* Open plan / Folder: Drive links (teacher only). Icons only on a narrow screen. */
 .pl-hwb{white-space:nowrap}
 /* Files menu: Open plan, Folder and the lesson's materials, each a Drive link (teacher only). */
@@ -824,7 +830,8 @@ button.pl-ref:disabled{cursor:default;opacity:.8}
 .rs-files{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px 2px 14px}
 /* narrow screens: the title gets its own line under the buttons */
 @media (max-width:700px){.nav .t{order:9;flex-basis:100%;font-size:17px}
-  .pl-top::before{content:"";order:8;flex-basis:100%;height:0}.pl-top .t{flex:1 1 0;min-width:0}.pl-top .nav-r{order:10}.pl-doc [id]{scroll-margin-top:110px}}
+  .pl-top::before{content:"";order:8;flex-basis:100%;height:0}.pl-top .t{flex:1 1 0;min-width:0}.pl-top .nav-r{order:10}.pl-doc [id]{scroll-margin-top:110px}
+  .rs [data-sc],.rs .rs-blk{scroll-margin-top:110px}}
 @media (max-width:440px){.nav-b{gap:0}.nav .btn.ic{min-width:40px;padding:8px 6px}.nav-sep{margin:4px 2px}}
 a.rs-file{display:inline-flex;align-items:center;gap:6px;min-height:40px;color:var(--ink);text-decoration:none;font-size:16px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pl-tbl{overflow-x:auto}
@@ -5798,11 +5805,13 @@ function viewSheet(){
   var resume = inProgressHtml(true, pid);
   var plOn = !!plDocId(p);
   var blocks = lay.map(function(b){
-    var skip = rsGet(pid, b.key + ".skip") === "y", cur = "";
+    var skip = rsGet(pid, b.key + ".skip") === "y", cur = "", sn = rsBlockNum(b.label);
     function ja(x){ var c = plCode(x.ln.label) || plCode(x.ln._code) || cur; cur = c; return plOn ? plJumpAttrs(b.label, c) : ""; }
-    return '<section class="rs-blk' + (skip ? " skip" : "") + (nowBlk === b ? " now" : "") + '" id="' + esc(b.key) + '"><div class="rs-bar"><span class="rs-clock">' + rsFmt(b.start) + '</span>' + (plOn ? '<b class="pl-j"' + plJumpAttrs(b.label, "") + '>' : '<b>') + esc(b.label) + '</b>' + (b.material ? '<span class="rs-mat">' + esc(b.material) + '</span>' : "") +
+    /* each line carries its step code (for the plan's 📋), the block its segment number */
+    function ln(x){ var j = ja(x), h = rsLine(p, x, G, gk, j); return cur && h.indexOf("<div ") === 0 ? '<div data-sc="' + esc(cur) + '" ' + h.slice(5) : h; }
+    return '<section class="rs-blk' + (skip ? " skip" : "") + (nowBlk === b ? " now" : "") + '" id="' + esc(b.key) + '"' + (sn ? ' data-seg="' + esc(sn) + '"' : "") + '><div class="rs-bar"><span class="rs-clock">' + rsFmt(b.start) + '</span>' + (plOn ? '<b class="pl-j"' + plJumpAttrs(b.label, "") + '>' : '<b>') + esc(b.label) + '</b>' + (b.material ? '<span class="rs-mat">' + esc(b.material) + '</span>' : "") +
       '<span class="rs-min">' + b.mins + ' min</span><button class="rs-skip' + (skip ? " on" : "") + '" data-a="rs-skip" data-k="' + esc(b.key) + '" aria-pressed="' + skip + '">skip</button></div>' + rsFilesHtml(p, b.label) + '<div class="rs-body">' +
-      b.lines.map(function(x){ return rsLine(p, x, G, gk, ja(x)); }).join("") + '</div></section>';
+      b.lines.map(ln).join("") + '</div></section>';
   }).join("");
   var plan = rsGet(pid, "end.plan"); plan = Array.isArray(plan) ? plan : [];
   function gl(k){ return gk && gk[k] ? " gap" : ""; }
@@ -5835,6 +5844,11 @@ function viewSheet(){
   var saved = SHEETS[pid];
   if(saved && !RS_DIRTY[pid] && saved.summary !== info.summary){ RS_DIRTY[pid] = true; RS_LOCAL[pid] = clone(saved); clearTimeout(RS_TIMER); RS_TIMER = setTimeout(function(){ rsFlush(pid); }, 900); }
   if(!RS_TICK) RS_TICK = setInterval(function(){ if(UI.view === "sheet" && !rsTyping() && !UI.rsFinish) render(); }, 30000);
+  if(UI.sheetAt){   /* from a plan heading's 📋: that step's line, else its block */
+    var at = rsFindAt(UI.sheetAt); UI.sheetAt = null; saveUI();
+    if(at){ SCROLL_PEND = false; at.scrollIntoView({ block:"start" }); at.classList.add("pl-hit"); setTimeout(function(){ at.classList.remove("pl-hit"); }, 1600); return; }
+    toast("That step isn’t on the run sheet.");
+  }
   scrollRestore();
 }
 /* One nav bar on every teacher screen past the Lesson Desk, always in this order:
@@ -5902,14 +5916,7 @@ function rsHandle(a, el){
     else { if(a === "rs-plan") cur = cur.filter(function(x){ return x !== "no"; }); cur.push(w); }
     rsSet(pid, key, cur); render(); return;
   }
-  if(a === "rs-play"){
-    var gm = (p.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0]; if(!gm) return;
-    var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}));
-    if(bad){ toast("This game needs fixing first: " + bad); return; }
-    rsFlush(pid); UI.rsRet = pid; UI.clsPlay = true;
-    if(findRun(pid, gm.id)){ resumeRun(pid + "|" + gm.id); return; }
-    startRun(p, Object.assign({}, gm, { options: Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}), _replay: resultsFor(p.id, gm.id).length > 0 })); return;
-  }
+  if(a === "rs-play"){ playLessonGame(p, el.getAttribute("data-g"), "sheet"); return; }
   if(a === "rs-finish"){ UI.rsFinish = true; render(); return; }
   if(a === "rs-finish-x"){ UI.rsFinish = false; render(); return; }
   if(a === "rs-gaps"){ UI.rsFinish = false; UI.rsGaps = true; render(); var f = document.querySelector(".rs-ln.gap,.rs-pg.gap"); if(f) f.scrollIntoView({ block: "center" }); return; }
@@ -6090,9 +6097,13 @@ function plBuild(html){
   /* inside a key: "Pt2: …", "Part 3 …", "Watch: …", "Accept …" lines belong to it; "Key — …" starts the next key */
   var KEYPART = /^(pt\.?\s*\d+|part\s*\d+|watch\b|accept\b)/i, KEYHEAD = /^key\s*[—–-]/i;
   function isLabel(e){ if(!e || e.tagName !== "P") return false; var f = e.firstElementChild, t = txt(e); return !!(f && f.tagName === "B" && t.indexOf(txt(f)) === 0 && txt(f)); }
+  /* a whole-bold "Key — …" line is a key heading at any length (Austin LP28: "Key — WS28 p.2–3 (mock, …)", 68+ chars);
+     the loose "… key" matches stay short so a sentence ending in "key" isn't taken for one */
   Array.prototype.forEach.call(root.querySelectorAll("p,h4"), function(p){
-    var t = txt(p); if(!t || t.length > 60 || !KEYL.test(t) || (p.tagName === "P" && boldTxt(p) !== t) || p.closest(".pl-fold")) return;
-    var d = fold("pl-key", "🔑 " + t), w = d.lastChild, n = p.nextElementSibling;
+    var t = txt(p); if(!t || (p.tagName === "P" && boldTxt(p) !== t) || p.closest(".pl-fold")) return;
+    if(!(KEYHEAD.test(t) && t.length <= 250) && !(t.length <= 60 && KEYL.test(t))) return;
+    var d = fold("pl-key", "🔑 " + trunc(t, 80)), w = d.lastChild, n = p.nextElementSibling;
+    if(t.length > 80) d.firstChild.title = t;
     while(n && !/^(H1|H2|H3|H4|HR)$/.test(n.tagName) && !(isLabel(n) && !KEYPART.test(txt(n))) && !KEYHEAD.test(txt(n)) && n.textContent.indexOf("⚠") === -1){ var nx = n.nextElementSibling; w.appendChild(n); n = nx; }
     p.parentNode.replaceChild(d, p);
   });
@@ -6105,12 +6116,17 @@ function plBuild(html){
   });
   /* HW Key: the homework key ("Key — HW102 (from HW102's key page)"), else any key whose heading says HW. */
   var HWK = /^key\s*[—–-]\s*hw/i, hw = [];
-  function keyText(e){ return e.tagName === "DETAILS" ? txt(e.firstElementChild).replace(/^🔑\s*/, "") : txt(e); }
+  function keyText(e){ return e.tagName === "DETAILS" ? (e.firstElementChild.title || txt(e.firstElementChild).replace(/^🔑\s*/, "")) : txt(e); }
   Array.prototype.forEach.call(root.querySelectorAll("details.pl-key, h1, h2, h3, h4, p"), function(e){
     var t = keyText(e); if(!HWK.test(t) || hw.some(function(x){ return x.el.contains(e); })) return;
     hw.push({ el:e, text:t });
   });
   if(!hw.length) Array.prototype.forEach.call(root.querySelectorAll("details.pl-key"), function(e){ var t = keyText(e); if(/\bHW/i.test(t)) hw.push({ el:e, text:t }); });
+  /* else a key under a homework step: "2B · HW27 fixes (2 min, …)" then a bold "Key" (Justin LP28) */
+  if(!hw.length){ var lastH = null; Array.prototype.forEach.call(root.querySelectorAll("h2, h3, details.pl-key"), function(e){
+    if(e.tagName !== "DETAILS"){ lastH = e; return; }
+    var ht = lastH ? txt(lastH) : ""; if(/\bHW\s*\d+/i.test(ht)) hw.push({ el:e, text: ht.replace(/\s*\(.*$/, "") + " — key" });
+  }); }
   hw = hw.map(function(x, i){ if(!x.el.id) x.el.id = "pl-hw-" + (i + 1); return { id:x.el.id, text:trunc(x.text.replace(/\s*:.*$/, ""), 60) || "HW key" }; });
   return { html: root.innerHTML, outline: outline, hw: hw };
 }
@@ -6128,6 +6144,65 @@ function plFind(at){
   return Array.prototype.filter.call(document.querySelectorAll(".pl-doc h2,.pl-doc h3"), function(h){ return String(h.textContent || "").toUpperCase().indexOf(want) !== -1; })[0] || null;
 }
 function plJumpAttrs(bl, c){ return ' data-a="pl-go" data-bl="' + esc(bl) + '" data-c="' + esc(c || "") + '" role="link" tabindex="0" title="Open the plan here"'; }
+/* Plan → game: "Lesson Games “LP313 Taboo”, “LP313 spelling”" — each quoted title that is a game in this lesson becomes
+   a 🎲 chip that opens it as the run sheet's Play does. The chip is built from the pack's own game (id, title); the file's
+   text only picks which one. Unmatched titles stay plain text. Teacher only (the Plan tab is). */
+function plTitleKey(s){ return String(s || "").toLowerCase().replace(/[‘’`]/g, "'").replace(/\s+/g, ""); }
+function plGameChips(doc, p){
+  var byKey = {}; (p.games || []).forEach(function(g){ var k = plTitleKey(g && g.title); if(k && g.id && !byKey[k]) byKey[k] = g; });
+  if(!Object.keys(byKey).length) return;
+  var tw = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT), nodes = [], n;
+  while((n = tw.nextNode())) if(/lesson\s+games/i.test(n.nodeValue)) nodes.push(n);
+  nodes.forEach(function(tn){
+    var s = tn.nodeValue, LG = /lesson\s+games\s*:?\s*/gi, m, hits = [];
+    while((m = LG.exec(s))){
+      var i = LG.lastIndex, q;
+      while((q = /^[“"]([^”"\n]{1,100})[”"]/.exec(s.slice(i)))){
+        var g = byKey[plTitleKey(q[1])]; if(g) hits.push({ a:i, b:i + q[0].length, g:g });
+        i += q[0].length; var sep = /^\s*(?:,|&|\/|and\b)?\s*/i.exec(s.slice(i)); i += sep[0].length;
+      }
+      LG.lastIndex = Math.max(LG.lastIndex, i);
+    }
+    if(!hits.length) return;
+    var fr = document.createDocumentFragment(), at = 0;
+    hits.forEach(function(h){
+      if(h.a > at) fr.appendChild(document.createTextNode(s.slice(at, h.a)));
+      var bt = document.createElement("button"); bt.type = "button"; bt.className = "chip pl-game"; bt.setAttribute("data-a", "pl-play"); bt.setAttribute("data-g", h.g.id);
+      bt.title = "Open this game"; bt.textContent = "🎲 " + h.g.title; fr.appendChild(bt); at = h.b;
+    });
+    if(at < s.length) fr.appendChild(document.createTextNode(s.slice(at)));
+    tn.parentNode.replaceChild(fr, tn);
+  });
+}
+/* Plan → run sheet: a small 📋 at the end of each step / segment heading (only when the lesson has a run sheet). */
+function plSheetBtns(doc, p){
+  if(!rsSpec(p)) return;
+  Array.prototype.forEach.call(doc.querySelectorAll("[id^=pl-step-],[id^=pl-seg-]"), function(h){
+    if(!/^H[1-4]$/.test(h.tagName)) return;
+    var bt = document.createElement("button"), step = h.id.indexOf("pl-step-") === 0;
+    bt.type = "button"; bt.className = "pl-rs"; bt.setAttribute("data-a", "pl-rs"); bt.setAttribute(step ? "data-c" : "data-s", h.id.replace(/^pl-(step|seg)-/, ""));
+    bt.title = "Open the run sheet here"; bt.setAttribute("aria-label", "Run sheet: " + (step ? "this step" : "this segment")); bt.textContent = "📋";
+    h.appendChild(document.createTextNode("\u00a0")); h.appendChild(bt);   /* no-break: the 📋 stays with the last word */
+  });
+}
+/* Where the run sheet goes for a plan heading: the step's line, else its block, else null. */
+function rsFindAt(at){
+  if(!at) return null;
+  var c = String(at.c || "").toUpperCase(), s = at.s ? String(parseInt(at.s, 10)) : c ? String(parseInt(c, 10)) : "", e = null;
+  if(c && /^\d+[A-Z]$/.test(c)) e = document.querySelector('.rs [data-sc="' + c + '"]');
+  if(!e && /^\d+$/.test(s)) e = document.querySelector('.rs .rs-blk[data-seg="' + s + '"]');
+  return e;
+}
+/* Open a lesson game the way the run sheet's Play does; ret = where its Back goes ("sheet" or "plan"). */
+function playLessonGame(p, gid, ret){
+  var gm = (p.games || []).filter(function(x){ return x.id === gid; })[0]; if(!gm || !TYPES[gm.type]) return;
+  var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}));
+  if(bad){ toast("This game needs fixing first: " + bad); return; }
+  if(UI.view === "sheet") rsFlush(p.id);
+  UI.rsRet = ret === "sheet" ? p.id : null; UI.plRet = ret === "plan" ? p.id : null; UI.clsPlay = true;
+  if(findRun(p.id, gm.id)){ resumeRun(p.id + "|" + gm.id); return; }
+  startRun(p, Object.assign({}, gm, { options: Object.assign({}, TYPES[gm.type].defaults(p), gm.options || {}), _replay: resultsFor(p.id, gm.id).length > 0 }));
+}
 function plWhen(iso){ try{ var d = new Date(iso); return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" }) : fmtWhen(iso); }catch(e){ return ""; } }
 function viewPlan(){
   var p = getPack(UI.packId);
@@ -6155,6 +6230,7 @@ function viewPlan(){
   var doc = $("plDoc");
   if(doc && c){
     doc.innerHTML = PL.built.html;   /* rebuilt from plain tags above: no attributes from the file */
+    plGameChips(doc, p); plSheetBtns(doc, p);
     if(UI.plOutline) $("app").insertAdjacentHTML("beforeend", plOutlineHtml());
     if(UI.plHwMenu && hwk.length > 1) $("app").insertAdjacentHTML("beforeend", plHwMenuHtml());
     if(UI.planAt && UI.planAt.hw){ UI.planAt = null; saveUI(); if(hwk.length > 1 && !UI.plHwMenu){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); scrollRestore(); } else if(hwk.length === 1){ SCROLL_PEND = false; plHwGo(hwk[0].id); } else scrollRestore(); }
@@ -6200,6 +6276,12 @@ function plHandle(a, el){
   if(a === "pl-open"){ UI.plEdit = false; UI.plOutline = false; UI.plHwMenu = false; go("plan"); return; }
   if(a === "pl-go"){ if(!p) return; UI.plEdit = false; UI.plOutline = false; UI.planAt = { bl: el.getAttribute("data-bl") || "", c: el.getAttribute("data-c") || "" }; go("plan"); return; }
   if(!p) return;
+  if(a === "pl-play"){ playLessonGame(p, el.getAttribute("data-g"), "plan"); return; }
+  if(a === "pl-rs"){
+    if(!rsSpec(p)) return;
+    UI.plOutline = false; UI.plHwMenu = false; UI.rsGaps = false; UI.rsFinish = false;
+    UI.sheetAt = { c: el.getAttribute("data-c") || "", s: el.getAttribute("data-s") || "" }; go("sheet"); return;
+  }
   var id = plDocId(p);
   if(a === "pl-refresh"){ if(id){ PL.err[id] = ""; plFetch(p.id, id); } return; }
   if(a === "pl-outline"){ UI.plOutline = true; $("app").insertAdjacentHTML("beforeend", plOutlineHtml()); return; }
@@ -6243,8 +6325,8 @@ window.addEventListener("scroll", function(){
 }, { passive:true });
 
 /* Came to the lesson page from its run sheet (‹ Games): games started there go back to the run sheet too. */
-function backName(pid){ return lessonView(pid) === "sheet" ? "Back to the run sheet" : "Back to the games"; }
-function lessonView(pid){ var p = getPack(pid); return UI.rsRet === pid && rsSpec(p) ? "sheet" : "pack"; }
+function backName(pid){ var v = lessonView(pid); return v === "sheet" ? "Back to the run sheet" : v === "plan" ? "Back to the plan" : "Back to the games"; }
+function lessonView(pid){ var p = getPack(pid); return UI.rsRet === pid && rsSpec(p) ? "sheet" : UI.plRet === pid && plDocId(p) ? "plan" : "pack"; }
 /* Run sheet on a phone or iPad: when a box gets the keyboard, keep it in the visible part of the screen
    (visualViewport shrinks when the keyboard opens; the sticky header covers the top). */
 function rsKeepVisible(el){
@@ -6553,10 +6635,10 @@ function handle(a, el){
     var qg = { id:"q" + qn, app:true, type:q.t, title:q.label + " · " + qScopeName(qs) + " (on the spot)", block:q.block(qw), options:qo, spot:true, ed:nowIso() };
     var qbad = TYPES[q.t].validate(qg.block, qo); if(qbad){ toast("Couldn’t build it: " + qbad); return; }
     var qpp = clone(qp); qpp.games = (qpp.games || []).concat([qg]); touchPack(qpp); PACKS = PACKS.map(function(x){ return x.id === qpp.id ? qpp : x; });
-    UI.rsRet = UI.view === "sheet" ? qpp.id : null; UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
+    UI.rsRet = UI.view === "sheet" ? qpp.id : null; UI.plRet = null; UI.clsPlay = true; startRun(qpp, Object.assign({}, qg, { _replay:false })); return;
   }
   if(a === "play" || a === "play-ch"){
-    UI.rsRet = UI.view === "sheet" ? UI.packId : null; UI.clsPlay = true;
+    UI.rsRet = UI.view === "sheet" ? UI.packId : null; UI.plRet = null; UI.clsPlay = true;
     var pk2 = getPack(UI.packId), gm = (pk2.games || []).filter(function(x){ return x.id === el.getAttribute("data-g"); })[0];
     var bad = TYPES[gm.type].validate(gm.block, Object.assign({}, TYPES[gm.type].defaults(pk2), gm.options || {}));
     if(bad){ toast("This game needs fixing first: " + bad); return; }

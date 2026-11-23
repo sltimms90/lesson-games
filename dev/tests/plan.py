@@ -60,7 +60,7 @@ with sync_playwright() as p:
     check(re.search(r"fetched \d\d:\d\d", t.inner_text(".pl-meta")) is not None, "shows 'fetched HH:MM' (%s)" % t.inner_text(".pl-meta"))
     check(t.locator(".pl-doc h2#pl-seg-1").count() == 1 and t.locator(".pl-doc h3#pl-step-1B").count() == 1, "segment and step headings get anchors")
     check(t.locator(".pl-doc b:has-text('Rules.')").count() >= 1, "bold labels kept")
-    check(t.evaluate("[...document.querySelectorAll('.pl-doc *')].every(e => [...e.attributes].every(a => ['id','class','open','colspan','rowspan'].includes(a.name)))"), "no attributes from the file (no styles)")
+    check(t.evaluate("[...document.querySelectorAll('.pl-doc *')].filter(e => !e.matches('button.pl-rs, button.pl-game')).every(e => [...e.attributes].every(a => ['id','class','open','colspan','rowspan'].includes(a.name) || (a.name === 'title' && e.tagName === 'SUMMARY')))"), "no attributes from the file (no styles; only the app's own 📋 / 🎲 buttons carry data-a)")
     # folds
     check(t.locator("details.pl-key").count() == 2 and t.evaluate("[...document.querySelectorAll('details.pl-key')].every(d => !d.open)"), "both keys start folded")
     check(not visible(t, "watch: goed") and not visible(t, "She ate rice"), "key answers hidden")

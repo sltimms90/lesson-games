@@ -31,6 +31,9 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 phaseb.py                   # Phase B tracker: taught / needs a look / not yet, the 📝 badge on the Lesson Desk, ✅ 🚫 ↶,
                                         # Start-up (everything before a date), a chat's row arriving live, the "LP n Phase B not done yet"
                                         # line, phone/iPad width, backup, students never touch it
+    python3 plan1124.py                 # 24 Nov: long "Key — …" headings fold; HW Key finds a key under a homework step (2B · HW27 …);
+                                        # Lesson Games “title” in the plan → 🎲 chip that opens the game (back → plan); 📋 on each step /
+                                        # segment heading → that run sheet line or block; none of it reaches students (fixtures: plan_1124.py)
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
