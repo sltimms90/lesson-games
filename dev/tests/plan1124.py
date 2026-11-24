@@ -19,7 +19,7 @@ packs = [
    "runsheet":{"student":"Leo", "lp":313, "date":"2026-11-23", "start":"10:00", "length":22, "blocks":[
      {"label":"0 Arrival", "mins":10, "lines":[cue("0A HW312 check"), cue("0B Spelling")]}, {"label":"1 Game: Taboo", "mins":10, "lines":[cue("1A Taboo")]}, {"label":"Buffer", "mins":2, "lines":[cue("Overrun only")]}]}},
   {"id":"ari-lp28", "student":"Ari", "lp":28, "title":"Ari · LP28", "date":"2026-11-23", "updatedAt":"x", "plan":{"docId":"1PlanAustinLP28_ForTestsOnlyBBBB"},
-   "games":[HG(1, "Dog Days Quiz"), HG(2, "S9 Spelling Test")]},
+   "games":[HG(1, "Dog Days Quiz"), HG(2, "S9 Spelling Test"), HG(3, "Examiner's Traps"), HG(4, "U3–U4 Taboo")]},
   {"id":"jo-lp28", "student":"Jo", "lp":28, "title":"Jo · LP28", "date":"2026-11-23", "updatedAt":"x", "plan":{"docId":"1PlanJustinLP28_ForTestsOnlyCCCC"},
    "games":[HG(1, "Set 6 test"), HG(2, "Verb Bingo")], "liveRoom":"0123456789abcdef0123456789abcdef",
    "runsheet":{"student":"Jo", "lp":28, "date":"2026-11-23", "start":"19:00", "length":60, "blocks":[
@@ -73,7 +73,13 @@ with sync_playwright() as p:
     check(t.locator(".pl-rs").count() == 0, "no run sheet on this lesson → no 📋 on the headings")
     # chips: both games, a colon after Lesson Games too
     chips = t.locator(".pl-doc .pl-game").all_inner_texts()
-    check(chips.count("🎲 S9 Spelling Test") == 2 and chips.count("🎲 Dog Days Quiz") == 1, "Austin: 'S9 Spelling Test' (also after 'Lesson Games:') and 'Dog Days Quiz' are chips %s" % chips)
+    check(chips.count("🎲 S9 Spelling Test") == 3 and chips.count("🎲 Dog Days Quiz") == 2, "Austin: 'S9 Spelling Test' (also after 'Lesson Games:') and 'Dog Days Quiz' are chips %s" % chips)
+    # BEFORE CLASS: "Lesson Games pack austin-lp28: “…” · “…” (after the paper) · “…” · “…” · image search ready: “Icehotel …”"
+    bc = "[...document.querySelectorAll('.pl-doc p')].find(p => p.textContent.includes('Icehotel'))"
+    bchips = t.evaluate("[...(%s).querySelectorAll('.pl-game')].map(b => b.dataset.g + ' ' + b.textContent)" % bc)
+    check(bchips == ["g1 🎲 Dog Days Quiz", "g2 🎲 S9 Spelling Test", "g3 🎲 Examiner's Traps", "g4 🎲 U3–U4 Taboo"], "BEFORE CLASS: all four of Austin's titles are chips (pack id, · and a bracketed note between them) %s" % bchips)
+    btxt = t.evaluate("(%s).textContent" % bc)
+    check("(after the paper)" in btxt and "image search ready: “Icehotel …”" in btxt and "austin-lp28:" in btxt, "…the note, the pack id and the image search stay plain text: %s" % btxt)
 
     # ===== 2. Justin: HW Key → the key under 2B · HW27 fixes =====
     t.click("[data-a=home]"); open_plan(t, "Jo · LP28")

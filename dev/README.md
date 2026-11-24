@@ -34,6 +34,9 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 plan1124.py                 # 24 Nov: long "Key — …" headings fold; HW Key finds a key under a homework step (2B · HW27 …);
                                         # Lesson Games “title” in the plan → 🎲 chip that opens the game (back → plan); 📋 on each step /
                                         # segment heading → that run sheet line or block; none of it reaches students (fixtures: plan_1124.py)
+                                        # (24 Nov b) BEFORE CLASS "Lesson Games pack <id>: “…” · “…” (note) · …" → chips, stops at the first non-game quote
+    python3 bonus1124.py                # quiz bonus round: shuffle ×0.7 faster each level (700/490/343/240 ms), Reduce Motion 450/360/300 ms;
+                                        # new game back to level 1; student link + class link at level 3 same speed, b.pos matches; "Six cards" hint
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because

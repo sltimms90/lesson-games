@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-7gIHwquSCKPm6HTt7mLvqlzYr79RbR4+oV/RWejREhI='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-v74V350c7j7yYYWvqtyFTu4XJFY5P0FYgUVbBoY63mY='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -2172,7 +2172,7 @@ function qzBonusView(run){
   var s = run.st, b = s.bonus, down = b.stage === "shuffle" || b.stage === "pick" || (b.stage === "reveal" && !b.revealed);
   var cards = b.cards.map(function(c, k){
     var cls = "bcard" + (down ? " down" : "") + (b.revealed ? (k === b.picked ? " picked" : " other") : "");
-    return '<button class="' + cls + '" id="bc' + k + '" style="' + bPos(b.pos[k]) + '" data-a="qz-pick" data-k="' + k + '"' + (b.stage === "pick" ? "" : " disabled") + ' aria-label="Card ' + (b.pos[k] + 1) + '"><span class="in">' + qzCardFace(c) + '<span class="b">?</span></span></button>';
+    return '<button class="' + cls + '" id="bc' + k + '" style="' + bPos(b.pos[k]) + ';transition:' + qzBonusTrans(b.n) + '" data-a="qz-pick" data-k="' + k + '"' + (b.stage === "pick" ? "" : " disabled") + ' aria-label="Card ' + (b.pos[k] + 1) + '"><span class="in">' + qzCardFace(c) + '<span class="b">?</span></span></button>';
   }).join("");
   var msg = b.stage === "show" ? "Remember the cards!" : b.stage === "pick" ? "Pick a card" : b.stage === "reveal" ? (b.revealed ? qzCardLabel(b.cards[b.picked]) + "!" : "…") : "Shuffling…";
   return '<section class="center">' + qzBoard(s) + '<h2 class="bonus-h">Bonus round' + ((b.n || 1) > 1 ? " · level " + b.n : "") + '</h2><p class="covermsg" aria-live="polite">' + esc(msg) + '</p><div class="bwrap">' + cards + '</div>' +
@@ -2183,6 +2183,10 @@ function qzBoard(s){
   if(s.mode === "winlose") return '<div class="score"><span><span class="n">' + s.score + '</span><small>banked</small></span><span><span class="n pot">' + s.pot + '</span><small>at risk</small></span></div>';
   return '<div class="score"><span><span class="n">' + s.score + '</span><small>points</small></span><span><span class="n">' + right + '/' + s.log.length + '</span><small>right</small></span>' + (s.streak > 1 ? '<span><span class="n">' + s.streak + '</span><small>in a row</small></span>' : "") + '</div>';
 }
+/* Bonus shuffle speed: one move's ms at level lv (level 1 = 700 ms; ~30% faster each level, floor 200).
+   Reduce Motion: slower but still ramps (450 ms, ~20% faster a level, floor 300). Student and teacher screens use the same. */
+function qzBonusMove(lv, reduce){ lv = Math.max(1, lv || 1); return reduce ? Math.max(300, Math.round(450 * Math.pow(0.8, lv - 1))) : Math.max(200, Math.round(700 * Math.pow(0.7, lv - 1))); }
+function qzBonusTrans(lv){ var m = qzBonusMove(lv, prefersReduced()); return "left " + m + "ms ease-in-out,top " + m + "ms ease-in-out,transform .2s"; }
 function qzBonusAfter(run){
   var s = run.st, b = s.bonus, key = "b" + b.n + b.stage, reduce = prefersReduced(), lv = b.n || 1;
   if(s._animating === key) return;
@@ -2197,8 +2201,8 @@ function qzBonusAfter(run){
   } else if(b.stage === "shuffle"){
     /* Each bonus round is harder: more swaps, faster moves, and from round 4 two pairs swap at once. */
     var swaps = Math.min(18, 6 + 2 * (lv - 1)), n = 0, pairs = lv >= 4 ? 2 : 1;
-    var move = reduce ? 450 : Math.max(260, 700 - 90 * (lv - 1)), gap = move + (reduce ? 70 : 60);
-    document.querySelectorAll(".bcard").forEach(function(e){ e.style.transition = "left " + move + "ms ease-in-out,top " + move + "ms ease-in-out,transform .2s"; });
+    var move = qzBonusMove(lv, reduce), gap = move + (reduce ? 70 : 60);
+    document.querySelectorAll(".bcard").forEach(function(e){ e.style.transition = qzBonusTrans(lv); });
     function step(){
       if(!alive()) return;
       document.querySelectorAll(".bcard.moving").forEach(function(e){ e.classList.remove("moving"); });
@@ -2247,7 +2251,7 @@ TYPES.quiz = {
       '<div class="hint">Gameshow: 100 points for each right answer, with bonus rounds. Win or lose: a right answer starts or doubles the pot, then bank it, risk it all, or bet part of it on the next question; a wrong answer loses what was bet.</div></div>' +
       '<div class="field"><span class="legend">Timer for each question</span><div class="choice">' + [0, 20, 30, 45].map(function(n){ return radio("qzTimer", n, n ? n + " s" : "Off", +o.timer === n); }).join("") + '</div><div class="hint">Time running out counts as a miss. Pause stops the clock.</div></div>' +
       '<div class="field"><span class="legend">Lifelines at the start</span><div class="choice">' + radio("qzLife", "one", "One of each", o.lifelines !== "none") + radio("qzLife", "none", "None", o.lifelines === "none") + '</div><div class="hint">50:50 takes away wrong answers until one is left. Double points doubles this question. +15 seconds needs the timer.</div></div>' +
-      '<div class="field" id="qzBonusF"><label for="qzBonus">Bonus round every … questions</label><input type="number" id="qzBonus" min="0" max="20" inputmode="numeric" value="' + esc(o.bonus) + '" style="max-width:120px"><div class="hint">Gameshow only. 0 turns bonus rounds off. Five cards (points to win, points to lose, a lifeline) are shown, turned over and shuffled; the student picks one.</div></div>' +
+      '<div class="field" id="qzBonusF"><label for="qzBonus">Bonus round every … questions</label><input type="number" id="qzBonus" min="0" max="20" inputmode="numeric" value="' + esc(o.bonus) + '" style="max-width:120px"><div class="hint">Gameshow only. 0 turns bonus rounds off. Six cards (points to win, points to lose, a lifeline) are shown, turned over and shuffled; the student picks one. Each bonus round shuffles faster.</div></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="qzShufA"' + (o.shuffleAns !== false ? " checked" : "") + '><span><b>Shuffle the answers</b></span></label></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="qzShufQ"' + (o.shuffleQs ? " checked" : "") + '><span><b>Shuffle the questions</b><br><span class="muted">Off: the plan’s order on the first play. A replay is always shuffled.</span></span></label></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="qzSay"' + (o.sayFirst ? " checked" : "") + '><span><b>Say it first</b><br><span class="muted">The answers stay hidden until the student says an answer aloud; you tap whether it was right, then the answers appear. Logged separately from the tapped answer. Starts off in online lessons; Settings can turn it on.</span></span></label></div>';
@@ -6144,7 +6148,7 @@ function plFind(at){
   return Array.prototype.filter.call(document.querySelectorAll(".pl-doc h2,.pl-doc h3"), function(h){ return String(h.textContent || "").toUpperCase().indexOf(want) !== -1; })[0] || null;
 }
 function plJumpAttrs(bl, c){ return ' data-a="pl-go" data-bl="' + esc(bl) + '" data-c="' + esc(c || "") + '" role="link" tabindex="0" title="Open the plan here"'; }
-/* Plan → game: "Lesson Games “LP313 Taboo”, “LP313 spelling”" — each quoted title that is a game in this lesson becomes
+/* Plan → game: "Lesson Games “LP313 Taboo”, “LP313 spelling”" or "Lesson Games pack austin-lp28: “A” · “B” (after the paper) · “C"" — each quoted title that is a game in this lesson becomes
    a 🎲 chip that opens it as the run sheet's Play does. The chip is built from the pack's own game (id, title); the file's
    text only picks which one. Unmatched titles stay plain text. Teacher only (the Plan tab is). */
 function plTitleKey(s){ return String(s || "").toLowerCase().replace(/[‘’`]/g, "'").replace(/\s+/g, ""); }
@@ -6154,12 +6158,14 @@ function plGameChips(doc, p){
   var tw = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT), nodes = [], n;
   while((n = tw.nextNode())) if(/lesson\s+games/i.test(n.nodeValue)) nodes.push(n);
   nodes.forEach(function(tn){
-    var s = tn.nodeValue, LG = /lesson\s+games\s*:?\s*/gi, m, hits = [];
+    var s = tn.nodeValue, LG = /lesson\s+games(?:\s+pack\s+[\w.\-]{1,60})?\s*:?\s*/gi, m, hits = [];
     while((m = LG.exec(s))){
       var i = LG.lastIndex, q;
       while((q = /^[“"]([^”"\n]{1,100})[”"]/.exec(s.slice(i)))){
-        var g = byKey[plTitleKey(q[1])]; if(g) hits.push({ a:i, b:i + q[0].length, g:g });
-        i += q[0].length; var sep = /^\s*(?:,|&|\/|and\b)?\s*/i.exec(s.slice(i)); i += sep[0].length;
+        var g = byKey[plTitleKey(q[1])]; if(!g) break;   /* the first quoted text that isn't a game here ends the list */
+        hits.push({ a:i, b:i + q[0].length, g:g });
+        /* between titles: , & / · "and", and a short bracketed note after a title, e.g. (after the paper) */
+        i += q[0].length; var sep = /^\s*(?:\([^()\n]{1,40}\)\s*)?(?:,|&|\/|·|and\b)?\s*/i.exec(s.slice(i)); i += sep[0].length;
       }
       LG.lastIndex = Math.max(LG.lastIndex, i);
     }

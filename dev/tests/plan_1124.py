@@ -1,7 +1,8 @@
 """Plans from 23 Nov 2026, sanitised (made-up names, answers shortened), in the shape mammoth 1.8.0 gives them
 (what plan-doc sends). Each keeps the part the 24 Nov fixes are about:
   LUCAS  — "Key — HW312 …" (HW Key's main rule) and "Lesson Games “LP313 Taboo”, “LP313 spelling” — iPad"
-  AUSTIN — two answer keys whose bold "Key — …" headings are longer than 60 characters (they used to render open)
+  AUSTIN — the BEFORE CLASS line "Lesson Games pack austin-lp28: “…” · “…” (after the paper) · … · image search ready: “…”";
+           two answer keys whose bold "Key — …" headings are longer than 60 characters (they used to render open)
   JUSTIN — a plain bold "Key" under the step "2B · HW27 fixes (…)" (HW Key's new third rule)
 Every bold line starting "Key" must end up folded inside details.pl-key (see plan1124.py)."""
 
@@ -22,6 +23,7 @@ LUCAS = (
 
 AUSTIN = (
  "<h1>LP28 · Ari · Sunday, November 23, 2026</h1><h2>LESSON AT A GLANCE</h2><p><strong>Last time:</strong> HW27 marked from photos.</p>"
+ "<h2>BEFORE CLASS</h2><p>iPad — Lesson Games pack austin-lp28: “Dog Days Quiz” · “S9 Spelling Test” (after the paper) · “Examiner’s Traps” · “U3–U4 Taboo” · image search ready: “Icehotel …”</p>"
  "<h2>SEGMENT 0 — ARRIVAL (~10 min, 14:00–14:10)</h2><p>Material: Lesson Games “S9 Spelling Test” — iPad</p>"
  "<h3>0A · S9 spelling test (10 min, 14:00–14:10)</h3><p>Open Lesson Games: “S9 Spelling Test”. Say each word twice.</p>"
  "<p><strong>Key</strong></p><p>bridge · fudge · hedge</p>"
