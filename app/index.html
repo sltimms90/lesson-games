@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-VxWI1WMO5idUlsQnIVWYycbR7WwR9/JduuZEQPKfsEE='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-7kDE8NUFMMwx8pbqGXWzTn3nKB95FSrY1Np94BAlMl0='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -3547,7 +3547,7 @@ TYPES.snakes = {
   blockLabel: "Players",
   blockHint: "One player per line, in turn order (up to 6). Leave it empty for the student and Teacher.",
   placeholder: "Tank\nTeacher",
-  defaults: function(){ return { boardId:"", auto:true, exact:true, doubles:true }; },
+  defaults: function(){ return { boardId:"", auto:true, exact:false, doubles:true }; },
   optionsHtml: function(o){
     var ids = Object.keys(BOARDS), sel = o.boardId && BOARDS[o.boardId] ? o.boardId : (ids[0] || ""), b = BOARDS[sel] || {}, g = snGrid(b);
     return '<div class="field"><label for="snBoard">Board</label><div class="row"><select id="snBoard" style="font:inherit;font-size:17px;min-height:46px;border-radius:10px;border:2px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 10px">' +
@@ -3561,13 +3561,13 @@ TYPES.snakes = {
       '<div class="field"><span class="legend">Square 1 is</span><div class="choice">' + radio("snStart", "bl", "Bottom left", g.start === "bl") + radio("snStart", "br", "Bottom right", g.start === "br") + '</div><label class="check" style="margin-top:6px"><input type="checkbox" id="snZig"' + (g.zig ? " checked" : "") + '><span>Rows zig-zag (the usual layout)</span></label></div>' +
       '<div class="field"><label for="snJumps">Snakes and ladders</label><textarea id="snJumps" rows="6" placeholder="4 14\n17 7">' + esc(b.jumps || "") + '</textarea><div class="hint">One per line: start square, then where it ends (“4 14” is a ladder, “17 7” a snake).</div></div></details>' +
       '<div class="field"><span class="legend">Moving the tokens</span><div class="choice">' + radio("snAuto", "1", "Automatic", o.auto !== false) + radio("snAuto", "0", "I place them", o.auto === false) + '</div></div>' +
-      '<div class="field"><span class="legend">Finishing</span><div class="choice">' + radio("snExact", "1", "Land exactly on the last square (bounce back)", o.exact !== false) + radio("snExact", "0", "Reach it or go past", o.exact === false) + '</div></div>' +
+      '<div class="field"><span class="legend">Finishing</span><div class="choice">' + radio("snExact", "0", "Reach it or go past", o.exact !== true) + radio("snExact", "1", "Land exactly on the last square (bounce back)", o.exact === true) + '</div></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="snDouble"' + (o.doubles !== false ? " checked" : "") + '><span><b>A double gives an extra roll</b><br><span class="muted">Two dice the same: the same player rolls again.</span></span></label></div>' +
       '<div class="field sn-players"><span class="legend">Tokens</span><div id="snPlayers"></div><div class="hint">Each picture is saved with that name, so it’s there next lesson. Photos are cropped to a circle.</div></div>';
   },
   wireOptions: function(){
     function prev(){ $("snPrev").innerHTML = snPreviewHtml(snFormBoard()); }
-    function players(){ $("snPlayers").innerHTML = snPlayersHtml(); }
+    function players(){ var el = $("snPlayers"); if(el) el.innerHTML = snPlayersHtml(); }   /* a picture can finish loading after the edit screen has gone */
     ["snRows", "snCols", "snL", "snR", "snT", "snB", "snJumps", "snZig"].forEach(function(k){ var e = $(k); if(e) e.addEventListener("input", prev); });
     document.querySelectorAll('input[name="snStart"]').forEach(function(e){ e.addEventListener("change", prev); });
     $("snBoard").addEventListener("change", function(){ var b = BOARDS[$("snBoard").value] || {}, g = snGrid(b); $("snRows").value = g.rows; $("snCols").value = g.cols; $("snL").value = g.l; $("snR").value = g.r; $("snT").value = g.t; $("snB").value = g.bm; $("snZig").checked = g.zig; $("snJumps").value = b.jumps || ""; var r = document.querySelector('input[name="snStart"][value="' + g.start + '"]'); if(r) r.checked = true; prev(); });
@@ -3596,12 +3596,12 @@ TYPES.snakes = {
   readOptions: function(){
     var b = snFormBoard();
     if(b){ b.updatedAt = nowIso(); BOARDS[b.id] = b; STORE.saveBoard(b).catch(saveErr); }
-    return { boardId: b ? b.id : "", auto: checkedVal("snAuto", "1") === "1", exact: checkedVal("snExact", "1") === "1", doubles: $("snDouble") ? $("snDouble").checked : true };
+    return { boardId: b ? b.id : "", auto: checkedVal("snAuto", "1") === "1", exact: checkedVal("snExact", "0") === "1", doubles: $("snDouble") ? $("snDouble").checked : true };
   },
   validate: function(block, o){ if(!o || !o.boardId || !BOARDS[o.boardId]) return "Choose or upload a board."; return null; },
   start: function(game, pack){
     var o = game.options || {}, b = BOARDS[o.boardId] || {};
-    return { boardId:o.boardId, auto:o.auto !== false, exact:o.exact !== false, doubles:o.doubles !== false, players: snPlayers(game.block, pack).map(function(n){ return { name:n, pos:0 }; }), turn:0, phase:"roll", dice:[1,1], roll:null, fix:null, msg:"", log:[], winner:null };
+    return { boardId:o.boardId, auto:o.auto !== false, exact:o.exact === true, doubles:o.doubles !== false, players: snPlayers(game.block, pack).map(function(n){ return { name:n, pos:0 }; }), turn:0, phase:"roll", dice:[1,1], roll:null, fix:null, msg:"", log:[], winner:null };
   },
   view: function(run){
     var s = run.st, b = BOARDS[s.boardId];
@@ -6391,6 +6391,11 @@ document.addEventListener("visibilitychange", function(){ if(document.hidden) rs
 function saveRun(){ saveUI(); liveOut(); }
 /* Games left part-way: UI.run is the one on screen (or last on screen); UI.parked holds the others,
    one per lesson game, so several games can be left and picked up again. Their clocks stop while away. */
+/* What a saved game plays as: title, words and options (defaults filled in, keys in order), so a re-save that changes nothing matches. */
+function gameSig(g, p){
+  var t = TYPES[g.type], o = Object.assign({}, t && t.defaults ? t.defaults(p) : {}, g.options || {});
+  return JSON.stringify([g.title || "", g.block || "", Object.keys(o).sort().map(function(k){ return [k, o[k]]; })]);
+}
 function rkey(r){ return r.packId + "|" + r.gameId; }
 function stopClock(r){ if(r && !r.left){ r.act = clockMs(r); r.left = true; } }
 function startClock(r){ if(r && r.left){ r.left = false; r.resumedAt = Date.now(); } if(r && r.st){ r.st._animating = false; r.st.spinning = false; } }
@@ -6645,6 +6650,13 @@ function handle(a, el){
     pp.games = pp.games || [];
     var at = pp.games.map(function(x){ return x.id; }).indexOf(dg.id);
     if(at === -1) pp.games.push(game); else pp.games[at] = game;
+    /* A game left part-way (▶ Resume) would bring back the old words, names and settings: changing the game clears it. */
+    if(was && gameSig(was, pp) !== gameSig(game, pp)){
+      var rk = pp.id + "|" + game.id, dropped = false;
+      if(UI.parked && UI.parked[rk]){ delete UI.parked[rk]; dropped = true; }
+      if(UI.run && rkey(UI.run) === rk){ UI.run = null; UNDO = []; dropped = true; }
+      if(dropped){ saveUI(); toast("Saved. The game you’d left part-way starts fresh next time."); }
+    }
     touchPack(pp); PACKS = PACKS.map(function(x){ return x.id === pp.id ? pp : x; });
     go("pack"); return;
   }

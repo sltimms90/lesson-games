@@ -17,7 +17,8 @@ tabs in one browser can play a live game together). Nothing here talks to the re
     python3 prog.py                     # missed-words warm-up and the student progress view
     python3 hostile.py                  # crafted links and poisoned live messages never run code; the CSP holds
     python3 review.py                   # review fixes: two teacher devices, save acknowledgement, class ✕, stale tabs
-    python3 design.py                   # review design changes: lesson page layout, Hard mode, Undo toast
+    python3 design.py                   # review design changes: lesson page layout, Hard mode, Undo toast; (24 Nov, from design-tweaks-2)
+                                        # editing a game clears its half-played copy, Snakes & Ladders defaults to Reach it or go past, token list after leaving
     python3 bf.py                       # 18 Nov feedback: bingo card each for pairs, called line, print 2-up + teacher, My card; run sheet step merge
     python3 hw.py                       # homework links: Student link results save themselves (submit_homework), refused tokens, offline fallback, New link
     python3 rs_every.py                 # 19 Nov: run sheet opens for every lesson; phone/iPad comfort; home by day; lesson page order; edited games on top
