@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-v74V350c7j7yYYWvqtyFTu4XJFY5P0FYgUVbBoY63mY='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-VxWI1WMO5idUlsQnIVWYycbR7WwR9/JduuZEQPKfsEE='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -814,8 +814,11 @@ button.pl-ref:disabled{cursor:default;opacity:.8}
 .pl-doc .pl-hit{outline:3px solid var(--ball);outline-offset:4px;border-radius:8px}
 /* plan → game chips and plan → run sheet 📋 (teacher only) */
 .pl-doc .pl-game{display:inline-flex;align-items:center;gap:4px;min-height:34px;padding:2px 10px;margin:2px 2px;font:inherit;font-size:17px;line-height:1.2;vertical-align:baseline;cursor:pointer;touch-action:manipulation}
-.pl-doc .pl-rs{font-size:15px;line-height:1;padding:4px 6px;margin-left:2px;min-width:32px;min-height:32px;vertical-align:middle;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;opacity:.75;touch-action:manipulation}
-.pl-doc .pl-rs:hover,.pl-doc .pl-rs:focus-visible{opacity:1}
+/* plan → run sheet: the step / segment heading itself is the link (only when the lesson has a run sheet); a quiet dotted underline, no icon */
+.pl-doc .pl-rs{cursor:pointer;text-decoration:underline dotted var(--ball);text-decoration-thickness:2px;text-underline-offset:4px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pl-doc .pl-rs:hover{text-decoration-style:solid}
+.pl-doc .pl-rs:active{opacity:.6}
+.pl-doc .pl-rs:focus-visible{outline:3px solid var(--ball);outline-offset:3px;border-radius:8px}
 .rs [data-sc],.rs .rs-blk{scroll-margin-top:72px}
 .rs .pl-hit{outline:3px solid var(--ball);outline-offset:-3px;border-radius:8px}
 /* Open plan / Folder: Drive links (teacher only). Icons only on a narrow screen. */
@@ -851,6 +854,7 @@ li > .pl-fold{margin:0;display:inline-block;vertical-align:top}
 .pl-out{list-style:none;padding:0;margin:4px 0 10px;max-height:60vh;overflow:auto;text-align:left}
 .pl-out li{margin:0}
 .pl-out button{display:block;width:100%;text-align:left;font:inherit;font-size:17px;color:var(--ink);background:none;border:0;border-top:1px solid var(--line);padding:10px 6px;min-height:44px;cursor:pointer}
+.pl-out a{display:block;text-align:left;font-size:17px;color:var(--ink);text-decoration:none;border-top:1px solid var(--line);padding:10px 6px;min-height:44px}
 .pl-out .l2 button{padding-left:26px;font-size:16px;color:var(--muted)}
 .rs .pl-j{cursor:pointer}
 .rs .pl-j b,.rs-bar b.pl-j{text-decoration:underline dotted var(--muted);text-decoration-thickness:2px;text-underline-offset:4px}
@@ -6180,16 +6184,37 @@ function plGameChips(doc, p){
     tn.parentNode.replaceChild(fr, tn);
   });
 }
-/* Plan → run sheet: a small 📋 at the end of each step / segment heading (only when the lesson has a run sheet). */
+/* Plan → run sheet: each step / segment heading (h2/h3) is itself the link (only when the lesson has a run sheet). */
 function plSheetBtns(doc, p){
   if(!rsSpec(p)) return;
-  Array.prototype.forEach.call(doc.querySelectorAll("[id^=pl-step-],[id^=pl-seg-]"), function(h){
-    if(!/^H[1-4]$/.test(h.tagName)) return;
-    var bt = document.createElement("button"), step = h.id.indexOf("pl-step-") === 0;
-    bt.type = "button"; bt.className = "pl-rs"; bt.setAttribute("data-a", "pl-rs"); bt.setAttribute(step ? "data-c" : "data-s", h.id.replace(/^pl-(step|seg)-/, ""));
-    bt.title = "Open the run sheet here"; bt.setAttribute("aria-label", "Run sheet: " + (step ? "this step" : "this segment")); bt.textContent = "📋";
-    h.appendChild(document.createTextNode("\u00a0")); h.appendChild(bt);   /* no-break: the 📋 stays with the last word */
+  Array.prototype.forEach.call(doc.querySelectorAll("h2[id^=pl-step-],h2[id^=pl-seg-],h3[id^=pl-step-],h3[id^=pl-seg-]"), function(h){
+    var step = h.id.indexOf("pl-step-") === 0;
+    h.classList.add("pl-rs"); h.setAttribute("data-a", "pl-rs"); h.setAttribute(step ? "data-c" : "data-s", h.id.replace(/^pl-(step|seg)-/, ""));
+    h.setAttribute("role", "link"); h.setAttribute("tabindex", "0"); h.title = "Open the run sheet here";
   });
+}
+/* A heading link fires on a plain tap or click only: not after a drag or scroll, a long press, or with text selected in it. */
+var PL_TAP = null;
+document.addEventListener("pointerdown", function(e){ var h = e.target.closest && e.target.closest(".pl-doc .pl-rs"); PL_TAP = h ? { h:h, x:e.clientX, y:e.clientY, t:Date.now() } : null; }, true);
+function plPlainTap(h, e){
+  if(e && e.detail === 0) return true;   /* keyboard (Enter) */
+  var sel = window.getSelection && window.getSelection();
+  if(sel && !sel.isCollapsed && sel.toString().trim() && h.contains(sel.anchorNode)) return false;
+  if(!PL_TAP || PL_TAP.h !== h) return true;
+  return Math.abs(e.clientX - PL_TAP.x) <= 10 && Math.abs(e.clientY - PL_TAP.y) <= 10 && Date.now() - PL_TAP.t < 600;
+}
+document.addEventListener("keydown", function(e){
+  var h = e.target && e.target.closest && e.target.closest(".pl-doc .pl-rs[role=link]");
+  if(h && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); handle("pl-rs", h); }
+});
+/* HW Key when the plan has no homework key: the previous lesson's homework file (its key is at the end).
+   Previous lesson = same student, latest date before this one; its last material whose label names HWnn. */
+function plPrevHw(p){
+  if(STUDENT_PAGE || SMODE || !p || !p.date || !p.student) return null;
+  var prev = PACKS.filter(function(x){ return x && x.id !== p.id && x.student === p.student && x.date && String(x.date) < String(p.date); })
+    .sort(function(a, b){ return String(a.date) < String(b.date) ? -1 : String(a.date) > String(b.date) ? 1 : 0; }).pop();
+  var hw = plMaterials(prev).filter(function(m){ return /(^|[^A-Za-z])HW\s*\d+/i.test(m.t); }).pop();
+  return hw ? { t:hw.t, url:plFileUrl(hw.id), from:prev } : null;
 }
 /* Where the run sheet goes for a plan heading: the step's line, else its block, else null. */
 function rsFindAt(at){
@@ -6216,10 +6241,11 @@ function viewPlan(){
   var id = plDocId(p), c = id ? plCopy(id) : null;
   if(id && !c && !PL.busy[id] && !PL.err[id]) plFetch(p.id, id);
   if(id && c && !UI.plEdit){ var bkey = id + "|" + c.at + "|" + c.html.length; if(!PL.built || PL.built.key !== bkey) PL.built = Object.assign({ key:bkey }, plBuild(c.html)); }
-  var hwk = id && c && !UI.plEdit && PL.built && PL.built.hw || [];
+  var hwk = id && c && !UI.plEdit && PL.built && PL.built.hw || [], hwPrev = id && c && !UI.plEdit && !hwk.length ? plPrevHw(p) : null;
   var head = navBar("plan", p, { cls:"pl-top", title: '<span class="pt">' + esc(packTitle(p)) + '</span> · plan', right:
     (id ? '<button class="btn ghost sm ic" data-a="pl-outline" aria-label="Outline" title="Outline: jump to a segment or step"' + (c ? "" : " disabled") + '>☰</button>' : "") +
-    (hwk.length ? '<button class="btn sm pl-hwb" data-a="pl-hw" aria-label="HW Key: jump to the homework key" title="Jump to the homework key' + (hwk.length > 1 ? "s" : "") + '">HW Key</button>' : "") });
+    (hwk.length ? '<button class="btn sm pl-hwb" data-a="pl-hw" aria-label="HW Key: jump to the homework key" title="Jump to the homework key' + (hwk.length > 1 ? "s" : "") + '">HW Key</button>' :
+     hwPrev ? '<button class="btn sm pl-hwb" data-a="pl-hw" aria-label="HW Key: open the homework file (key at the end)" title="The plan has no homework key: open the homework file">HW Key</button>' : "") });
   var body = "";
   if(!id || UI.plEdit){
     body = '<section class="pl-paste"><h3 style="margin:0 0 4px">' + (id ? "Change the plan’s link" : "Which plan goes with this lesson?") + '</h3><p class="muted" style="margin:0;font-size:16px">Paste the link to the lesson plan (in Drive or Docs: Share → Copy link). You only do this once for a lesson.</p>' +
@@ -6238,8 +6264,8 @@ function viewPlan(){
     doc.innerHTML = PL.built.html;   /* rebuilt from plain tags above: no attributes from the file */
     plGameChips(doc, p); plSheetBtns(doc, p);
     if(UI.plOutline) $("app").insertAdjacentHTML("beforeend", plOutlineHtml());
-    if(UI.plHwMenu && hwk.length > 1) $("app").insertAdjacentHTML("beforeend", plHwMenuHtml());
-    if(UI.planAt && UI.planAt.hw){ UI.planAt = null; saveUI(); if(hwk.length > 1 && !UI.plHwMenu){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); scrollRestore(); } else if(hwk.length === 1){ SCROLL_PEND = false; plHwGo(hwk[0].id); } else scrollRestore(); }
+    if(UI.plHwMenu && (hwk.length > 1 || (!hwk.length && hwPrev))) $("app").insertAdjacentHTML("beforeend", plHwMenuHtml());
+    if(UI.planAt && UI.planAt.hw){ UI.planAt = null; saveUI(); if(hwk.length > 1 && !UI.plHwMenu){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); scrollRestore(); } else if(hwk.length === 1){ SCROLL_PEND = false; plHwGo(hwk[0].id); } else if(hwPrev && !UI.plHwMenu){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); scrollRestore(); } else scrollRestore(); }
     else if(UI.planAt){
       var el = plFind(UI.planAt); UI.planAt = null; saveUI(); SCROLL_PEND = false;
       if(el){ el.scrollIntoView({ block:"start" }); el.classList.add("pl-hit"); setTimeout(function(){ el.classList.remove("pl-hit"); }, 1600); }
@@ -6262,9 +6288,11 @@ function plOutlineHtml(){
     '<div class="row"><button class="btn ghost" data-a="pl-outline-x">Close</button><button class="btn ghost sm" data-a="pl-edit">Change the plan’s link</button></div></div></div>';
 }
 function plHwMenuHtml(){
-  var hw = (PL.built && PL.built.hw) || [];
-  return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Homework keys" id="plHwMenu"><div class="pop setpop"><h3 style="margin-bottom:4px">HW Key</h3><p class="muted" style="margin:0 0 6px;font-size:16px">This plan has more than one homework key.</p>' +
-    '<ul class="pl-out">' + hw.map(function(x){ return '<li class="l1"><button data-a="pl-hw" data-id="' + esc(x.id) + '">🔑 ' + esc(x.text) + '</button></li>'; }).join("") + '</ul>' +
+  var hw = (PL.built && PL.built.hw) || [], prev = hw.length ? null : plPrevHw(getPack(UI.packId));
+  return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Homework keys" id="plHwMenu"><div class="pop setpop"><h3 style="margin-bottom:4px">HW Key</h3><p class="muted" style="margin:0 0 6px;font-size:16px">' +
+    (prev ? "This plan has no homework key. The homework file from the last lesson has one." : "This plan has more than one homework key.") + '</p>' +
+    '<ul class="pl-out">' + (prev ? '<li class="l1"><a class="pl-hwf" href="' + esc(prev.url) + '" target="_blank" rel="noopener noreferrer" data-a="pl-hw-x">🔑 Open ' + esc(prev.t) + ' (key at the end)</a></li>' :
+      hw.map(function(x){ return '<li class="l1"><button data-a="pl-hw" data-id="' + esc(x.id) + '">🔑 ' + esc(x.text) + '</button></li>'; }).join("")) + '</ul>' +
     '<div class="row"><button class="btn ghost" data-a="pl-hw-x">Close</button></div></div></div>';
 }
 /* Unfold the key (and any fold it sits in), then bring it clear of the header. Scrolling saves the place as usual. */
@@ -6292,10 +6320,11 @@ function plHandle(a, el){
   if(a === "pl-refresh"){ if(id){ PL.err[id] = ""; plFetch(p.id, id); } return; }
   if(a === "pl-outline"){ UI.plOutline = true; $("app").insertAdjacentHTML("beforeend", plOutlineHtml()); return; }
   if(a === "pl-outline-x"){ UI.plOutline = false; var ov = $("plOut"); if(ov) ov.remove(); return; }
-  if(a === "pl-hw-x"){ UI.plHwMenu = false; var hm0 = $("plHwMenu"); if(hm0) hm0.remove(); return; }
+  if(a === "pl-hw-x"){ UI.plHwMenu = false; setTimeout(function(){ var hm0 = $("plHwMenu"); if(hm0) hm0.remove(); }, 0); return; }   /* after the tap, so the link still opens */
   if(a === "pl-hw"){
     var want = el && el.getAttribute && el.getAttribute("data-id") || "", hws = (UI.view === "plan" && PL.built && PL.built.hw) || [];
     UI.plHwMenu = false; var hm = $("plHwMenu"); if(hm) hm.remove();
+    if(UI.view === "plan" && !hws.length && !want && plPrevHw(p)){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); return; }
     if(UI.view !== "plan" || !hws.length){ UI.plEdit = false; UI.plOutline = false; UI.planAt = { hw:true }; go("plan"); return; }
     if(!want && hws.length > 1){ UI.plHwMenu = true; $("app").insertAdjacentHTML("beforeend", plHwMenuHtml()); return; }
     if(!plHwGo(want || hws[0].id)) toast("The homework key isn’t in this copy of the plan. Tap ↻ to fetch it again.");
@@ -6730,6 +6759,7 @@ function handle(a, el){
 document.addEventListener("click", function(e){
   var b = e.target.closest("[data-a]");
   if(!b || b.disabled) return;
+  if(b.classList.contains("pl-rs") && !plPlainTap(b, e)) return;
   handle(b.getAttribute("data-a"), b);
 });
 document.addEventListener("keydown", function(e){

@@ -3,14 +3,20 @@
     sweep: every bold line starting "Key" in the three 23 Nov plans ends up inside details.pl-key
  2. HW Key also finds a key under a homework step ("2B · HW27 fixes" + a bold "Key", Justin LP28); Lucas unchanged
  3a. Lesson Games “title” in the plan → a 🎲 chip that opens that game (as the run sheet's Play), back returns to the plan
- 3b. 📋 at the end of each step / segment heading → the run sheet at that step's line, else its block, else a toast
+ 3b. each step / segment heading is itself the link (no 📋 since 24 Nov b) → the run sheet at that step's line, else its block,
+     else a toast; not on a drag / text selection / long press; Enter works
+ 4. HW Key fallback (24 Nov b): no homework key in the plan → the previous lesson's (same student, latest earlier date)
+    last "HWnn" material, as a menu link "🔑 Open <t> (key at the end)"; none → no button; the plan's own key wins
  3c. none of it reaches a student link, a class link or live messages
 Fixtures: plan_1124.py (sanitised copies of the relevant parts of the three plans)."""
 import json, os, re
 from lg import *
 from plan_1124 import LUCAS, AUSTIN, JUSTIN
 APP2 = APP.replace("window.__T={", "window.__T={get SMODE(){return SMODE},", 1)
-DOCS = {"1PlanLucasLP313_ForTestsOnlyAAAA": LUCAS, "1PlanAustinLP28_ForTestsOnlyBBBB": AUSTIN, "1PlanJustinLP28_ForTestsOnlyCCCC": JUSTIN}
+DOCS = {"1PlanLucasLP313_ForTestsOnlyAAAA": LUCAS, "1PlanAustinLP28_ForTestsOnlyBBBB": AUSTIN, "1PlanJustinLP28_ForTestsOnlyCCCC": JUSTIN,
+        "1PlanKaiLP5_NoHWKey_ForTestsOnlyDD": AUSTIN}
+HW27 = "1xdIOsEJg7jdynHSOkXKXjiZve4fuqWwP"   # austin-lp27's homework file (key on the last page)
+def MAT(t, i, seg="4", pg=None): return dict({"t":t, "id":i, "seg":[seg]}, **({"p":pg} if pg else {}))
 def HG(i, title): return {"id":"g%d" % i, "type":"hangman", "title":title, "block":"went\nsaw\nate", "options":{}}
 def cue(l): return {"type":"cue", "label":l}
 packs = [
@@ -20,6 +26,17 @@ packs = [
      {"label":"0 Arrival", "mins":10, "lines":[cue("0A HW312 check"), cue("0B Spelling")]}, {"label":"1 Game: Taboo", "mins":10, "lines":[cue("1A Taboo")]}, {"label":"Buffer", "mins":2, "lines":[cue("Overrun only")]}]}},
   {"id":"ari-lp28", "student":"Ari", "lp":28, "title":"Ari · LP28", "date":"2026-11-23", "updatedAt":"x", "plan":{"docId":"1PlanAustinLP28_ForTestsOnlyBBBB"},
    "games":[HG(1, "Dog Days Quiz"), HG(2, "S9 Spelling Test"), HG(3, "Examiner's Traps"), HG(4, "U3–U4 Taboo")]},
+  # HW Key fallback: the previous lesson (same student, latest date before) has the homework file in its materials
+  {"id":"ari-lp27", "student":"Ari", "lp":27, "title":"Ari · LP27", "date":"2026-11-16", "updatedAt":"x", "games":[],
+   "materials":[MAT("WS27 p.1", "1WorksheetWS27_abcdefghij"), MAT("Austin_HW27_20261116", HW27, pg="key on the last page")]},
+  {"id":"ari-lp26", "student":"Ari", "lp":26, "title":"Ari · LP26", "date":"2026-11-09", "updatedAt":"x", "games":[], "materials":[MAT("Austin_HW26_20261109", "1OlderHW26file_abcdefghij")]},
+  {"id":"ari-nodate", "student":"Ari", "lp":99, "title":"Ari · no date", "updatedAt":"x", "games":[], "materials":[MAT("Austin_HW99", "1NoDateHW99file_abcdefghij")]},
+  {"id":"ari-lp29", "student":"Ari", "lp":29, "title":"Ari · LP29", "date":"2026-11-30", "updatedAt":"x", "games":[], "materials":[MAT("Austin_HW29_20261130", "1LaterHW29file_abcdefghijk")]},
+  {"id":"bo-lp28", "student":"Bo", "lp":28, "title":"Bo · LP28", "date":"2026-11-23", "updatedAt":"x", "games":[], "materials":[MAT("Bo_HW28", "1BoOtherStudentHW_abcdefg")]},
+  {"id":"kai-lp5", "student":"Kai", "lp":5, "title":"Kai · LP5", "date":"2026-11-23", "updatedAt":"x", "plan":{"docId":"1PlanKaiLP5_NoHWKey_ForTestsOnlyDD"}, "games":[]},
+  {"id":"kai-lp4", "student":"Kai", "lp":4, "title":"Kai · LP4", "date":"2026-11-16", "updatedAt":"x", "games":[], "materials":[MAT("Kai worksheet 4", "1KaiWorksheet4_abcdefghij")]},
+  {"id":"kai-lp3", "student":"Kai", "lp":3, "title":"Kai · LP3", "date":"2026-11-09", "updatedAt":"x", "games":[], "materials":[MAT("Kai_HW3", "1KaiHW3file_abcdefghijk")]},
+  {"id":"leo-lp312", "student":"Leo", "lp":312, "title":"Leo · LP312", "date":"2026-11-16", "updatedAt":"x", "games":[], "materials":[MAT("Lucas_HW312", "1LucasHW312file_abcdefghij")]},
   {"id":"jo-lp28", "student":"Jo", "lp":28, "title":"Jo · LP28", "date":"2026-11-23", "updatedAt":"x", "plan":{"docId":"1PlanJustinLP28_ForTestsOnlyCCCC"},
    "games":[HG(1, "Set 6 test"), HG(2, "Verb Bingo")], "liveRoom":"0123456789abcdef0123456789abcdef",
    "runsheet":{"student":"Jo", "lp":28, "date":"2026-11-23", "start":"19:00", "length":60, "blocks":[
@@ -68,9 +85,18 @@ with sync_playwright() as p:
     long = t.locator("details.pl-key > summary:has-text('Examiner')")
     lt = long.inner_text(); full = long.get_attribute("title") or ""
     check(len(lt) <= 84 and lt.endswith("…") and full.startswith("Key — Examiner’s Traps") and full.endswith("U4 P.87–89 rules)"), "the label is shortened for display, the full heading is its title (%d chars)" % len(lt))
-    check(t.locator("[data-a=pl-hw]").count() == 0, "Austin: no homework key in the plan → no HW Key button")
+    # HW Key fallback: no key in the plan → the previous lesson's homework file
+    check(t.locator(".pl-top [data-a=pl-hw]").count() == 1, "Austin: no homework key in the plan, but LP27 has the HW27 file → HW Key shows")
+    check(t.locator("details.pl-key[id^=pl-hw]").count() == 0, "…(the plan itself still has no homework key)")
+    t.click(".pl-top [data-a=pl-hw]"); t.wait_for_selector("#plHwMenu")
+    links = t.evaluate("[...document.querySelectorAll('#plHwMenu a')].map(a => [a.textContent, a.getAttribute('href'), a.target, a.rel])")
+    check(links == [["🔑 Open Austin_HW27_20261116 (key at the end)", "https://drive.google.com/file/d/%s/view" % HW27, "_blank", "noopener noreferrer"]],
+          "…a menu with one link: LP27's HW27 (not LP26's, not the undated or later pack's, not another student's) %s" % links)
+    check(t.locator("#plHwMenu button[data-a=pl-hw]").count() == 0, "…and no jump-to-key buttons")
+    t.click("#plHwMenu [data-a=pl-hw-x]:not(a)"); t.wait_for_timeout(200)
+    check(t.locator("#plHwMenu").count() == 0, "Close shuts the menu")
     check(t.locator("details.pl-key").count() == bold_keys(AUSTIN), "sweep: every bold 'Key…' line is a folded key (%d of %d)" % (t.locator("details.pl-key").count(), bold_keys(AUSTIN)))
-    check(t.locator(".pl-rs").count() == 0, "no run sheet on this lesson → no 📋 on the headings")
+    check(t.locator(".pl-rs").count() == 0, "no run sheet on this lesson → headings stay plain")
     # chips: both games, a colon after Lesson Games too
     chips = t.locator(".pl-doc .pl-game").all_inner_texts()
     check(chips.count("🎲 S9 Spelling Test") == 3 and chips.count("🎲 Dog Days Quiz") == 2, "Austin: 'S9 Spelling Test' (also after 'Lesson Games:') and 'Dog Days Quiz' are chips %s" % chips)
@@ -94,6 +120,13 @@ with sync_playwright() as p:
     # Lucas: unchanged, main rule
     t.click("[data-a=home]"); open_plan(t, "Leo · LP313")
     check(t.locator(".pl-top [data-a=pl-hw]").count() == 1 and t.evaluate("document.querySelectorAll('details.pl-key[id^=pl-hw]').length") == 1 and "HW312" in t.inner_text("details.pl-key[id^=pl-hw] > summary"), "Lucas: HW Key → 'Key — HW312' as before")
+    t.evaluate("window.scrollTo(0, 0)"); t.click(".pl-top [data-a=pl-hw]"); t.wait_for_timeout(400)
+    check(t.locator("#plHwMenu").count() == 0 and t.evaluate("document.querySelector('details.pl-key[id^=pl-hw]').open"), "Lucas: the plan's own key wins over LP312's HW file (no menu, no link; the key opens)")
+    check(t.locator("a[href*='1LucasHW312file']").count() == 0, "…no link to the previous homework file anywhere")
+    # Kai: no key in the plan, and the previous lesson (LP4) has no HW file → no button (LP3's HW3 isn't the previous lesson)
+    t.click("[data-a=home]"); open_plan(t, "Kai · LP5")
+    check(t.locator(".pl-top [data-a=pl-hw]").count() == 0 and t.locator("a[href*='1KaiHW3file']").count() == 0, "Kai: previous lesson has no HW file → no HW Key button")
+    t.click("[data-a=home]"); open_plan(t, "Leo · LP313")
     check(t.locator("details.pl-key").count() == bold_keys(LUCAS), "sweep (Lucas): every bold 'Key' line is folded")
     check(not visible(t, "I have went") and not visible(t, "1 has been"), "Lucas: HW312 answers start hidden")
 
@@ -115,27 +148,42 @@ with sync_playwright() as p:
     # ===== 3b. 📋 → run sheet =====
     t.click("[data-a=home]"); open_plan(t, "Jo · LP28")
     n = t.locator(".pl-doc .pl-rs").count()
-    check(n == t.locator(".pl-doc [id^=pl-step-], .pl-doc [id^=pl-seg-]").count() and n == 12, "every step and segment heading has a 📋 (%d)" % n)
-    check(t.locator(".pl-doc h2:has-text('BEFORE CLASS') .pl-rs, .pl-doc h2:has-text('PLANNING') .pl-rs").count() == 0, "other headings don't")
-    hh = t.evaluate("(() => { const h = document.getElementById('pl-step-2B'), b = h.querySelector('.pl-rs').getBoundingClientRect(), r = h.getBoundingClientRect(); return [Math.round(b.height), Math.round(r.height)]; })()")
-    check(hh[0] <= 36 and hh[1] <= 50, "the 📋 stays small, the heading still one line on the iPad %s" % hh)
+    check(n == t.locator(".pl-doc [id^=pl-step-], .pl-doc [id^=pl-seg-]").count() and n == 12, "every step and segment heading is a run sheet link (%d)" % n)
+    check(t.locator(".pl-doc h2.pl-rs:has-text('BEFORE CLASS'), .pl-doc h2.pl-rs:has-text('PLANNING'), .pl-doc h2.pl-rs:has-text('AT A GLANCE')").count() == 0, "other headings don't")
+    check(t.evaluate("[...document.querySelectorAll('.pl-doc .pl-rs')].every(h => /^H[23]$/.test(h.tagName) && h.getAttribute('role') === 'link' && h.tabIndex === 0 && h.title === 'Open the run sheet here' && h.dataset.a === 'pl-rs' && (h.dataset.c || h.dataset.s))"),
+          "the step / segment headings themselves are the links (role=link, tabindex 0, title, data-c / data-s)")
+    check(t.locator(".pl-doc button.pl-rs").count() == 0 and "📋" not in t.inner_text(".pl-doc"), "no 📋 buttons in the plan any more")
+    look = t.evaluate("""(() => { const a = getComputedStyle(document.getElementById('pl-step-2B')), b = getComputedStyle(document.querySelector('.pl-doc h2:not(.pl-rs)')), s = getComputedStyle(document.getElementById('pl-seg-2'));
+      return [a.color === b.color, a.fontWeight === b.fontWeight, a.textDecorationLine, a.textDecorationStyle, s.color === b.color]; })()""")
+    check(look == [True, True, "underline", "dotted", True], "…normal colour and weight, a dotted underline only %s" % look)
+    hh = t.evaluate("Math.round(document.getElementById('pl-step-2B').getBoundingClientRect().height)")
+    check(hh <= 50, "the 2B heading still one line on the iPad (%s)" % hh)
+    # a text selection or a drag on the heading doesn't open the run sheet
+    t.evaluate("document.getElementById('pl-step-1A').scrollIntoView({ block:'center' })"); t.wait_for_timeout(300)
+    r = t.evaluate("(() => { const r = document.getElementById('pl-step-1A').getBoundingClientRect(); return [r.left, r.top, r.height]; })()")
+    t.mouse.move(r[0] + 6, r[1] + r[2] / 2); t.mouse.down(); t.mouse.move(r[0] + 120, r[1] + r[2] / 2, steps=8); t.mouse.up(); t.wait_for_timeout(300)
+    check(t.evaluate("__T.UI.view") == "plan", "dragging across a heading (selecting its text) doesn't open the run sheet")
+    t.evaluate("getSelection().removeAllRanges()")
+    t.mouse.move(r[0] + 6, r[1] + r[2] / 2); t.mouse.down(); t.wait_for_timeout(800); t.mouse.up(); t.wait_for_timeout(300)
+    check(t.evaluate("__T.UI.view") == "plan", "a long press doesn't either")
+    t.evaluate("window.scrollTo(0, 0)"); t.wait_for_timeout(200)
     t.evaluate("document.getElementById('pl-step-2B').scrollIntoView()"); t.wait_for_timeout(600); py = t.evaluate("scrollY")
-    t.click("#pl-step-2B .pl-rs"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
-    check(t.evaluate("__T.UI.view") == "sheet", "📋 on 2B opens the run sheet")
+    t.click("#pl-step-2B"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
+    check(t.evaluate("__T.UI.view") == "sheet", "tapping the 2B heading opens the run sheet")
     y = top_of(t, ".rs [data-sc='2B']"); txt = t.evaluate("document.querySelector('.rs [data-sc=\"2B\"]').textContent")
     check(y is not None and 40 <= y <= 120 and "2B HW27 fixes" in txt, "…at the 2B line (top %s, %s)" % (y, txt[:30]))
     check(t.locator(".rs [data-sc='2B'].pl-hit").count() == 1, "…with the brief highlight")
     t.wait_for_timeout(1800); check(t.locator(".rs .pl-hit").count() == 0, "the highlight goes")
     t.click("header.nav [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(250)
     check(abs(t.evaluate("scrollY") - py) <= 2, "📖 goes back to the plan where it was (%s vs %s)" % (t.evaluate("scrollY"), py))
-    t.click("#pl-step-1C .pl-rs"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
+    t.click("#pl-step-1C"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
     y = top_of(t, ".rs .rs-blk[data-seg='1']"); check(y is not None and 40 <= y <= 120, "a step with no run sheet line (1C) lands on its block (top %s)" % y)
     t.click("header.nav [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(250)
-    t.click("#pl-seg-3 .pl-rs"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
-    y = top_of(t, ".rs .rs-blk[data-seg='3']"); check(y is not None and 40 <= y <= 120, "📋 on SEGMENT 3 lands on block 3 (top %s)" % y)
+    t.focus("#pl-seg-3"); t.keyboard.press("Enter"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
+    y = top_of(t, ".rs .rs-blk[data-seg='3']"); check(y is not None and 40 <= y <= 120, "Enter on the focused SEGMENT 3 heading lands on block 3 (top %s)" % y)
     t.evaluate("window.scrollTo(0, 300)"); t.wait_for_timeout(600)
     t.click("header.nav [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(250)
-    t.click("#pl-seg-4 .pl-rs"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
+    t.click("#pl-seg-4"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(300)
     check("isn’t on the run sheet" in t.inner_text("body") and abs(t.evaluate("scrollY") - 300) <= 2, "no block for SEGMENT 4: a toast, the run sheet where it was (%s)" % t.evaluate("scrollY"))
     t.click("header.nav [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(250)
     # the plan's chip for an app game opens the same game as the run sheet's Play button
@@ -172,7 +220,7 @@ with sync_playwright() as p:
         d = json.loads(s.evaluate("JSON.stringify({ smode: __T.SMODE, packs: __T.PACKS, ui: __T.UI, bc: window.__BC })"))
         held = json.dumps(d) + s.inner_text("body")
         check(not [x for x in secrets if x in held], "%s: nothing from the plan or its links in what the student page holds or receives %s" % (name, [x for x in secrets if x in held]))
-        check(s.locator(".pl-game, .pl-rs, .pl-doc, [data-sc]").count() == 0, "%s: no plan chips, 📋 or run sheet lines on the student page" % name)
+        check(s.locator(".pl-game, .pl-rs, .pl-doc, [data-sc]").count() == 0, "%s: no plan chips, heading links or run sheet lines on the student page" % name)
         check(not e2, "%s: no page errors %s" % (name, e2[:2]))
         s.close()
     check(t.evaluate("JSON.stringify(__T.UI.run || {})").find("pl-") == -1 and t.evaluate("JSON.stringify(__T.UI.run || {})").find("1PlanJustin") == -1, "the teacher's game state carries nothing from the plan")
@@ -186,10 +234,10 @@ with sync_playwright() as p:
         pg = tpage(c, e4, c4); open_plan(pg, "Jo · LP28")
         wide = pg.evaluate("document.documentElement.scrollWidth - innerWidth")
         h = pg.evaluate("(() => { const h = document.getElementById('pl-step-2A'); return [Math.round(h.getBoundingClientRect().height), parseFloat(getComputedStyle(h).lineHeight)]; })()")
-        check(wide <= 1 and h[0] <= h[1] * 2 + 12, "%s: no sideways scroll (%d); '2A · Verb Bingo (…) 📋' fits in two lines at most (%s)" % (name, wide, h))
-        pg.click("#pl-step-2B .pl-rs"); pg.wait_for_selector(".rs-blk"); pg.wait_for_timeout(300)
+        check(wide <= 1 and h[0] <= h[1] * 2 + 12, "%s: no sideways scroll (%d); '2A · Verb Bingo (…)' fits in two lines at most (%s)" % (name, wide, h))
+        pg.click("#pl-step-2B"); pg.wait_for_selector(".rs-blk"); pg.wait_for_timeout(300)
         y = top_of(pg, ".rs [data-sc='2B']"); hb = pg.evaluate("Math.round(document.querySelector('header.nav').getBoundingClientRect().bottom)")
-        check(y is not None and hb <= y <= hb + 60, "%s: 📋 → 2B lands just under the header (top %s, header %s)" % (name, y, hb))
+        check(y is not None and hb <= y <= hb + 60, "%s: tapping 2B lands just under the header (top %s, header %s)" % (name, y, hb))
         if name == "phone":
             pg.click("header.nav [data-a=pl-open]"); pg.wait_for_selector(".pl-doc"); pg.wait_for_timeout(200)
             pg.evaluate("document.getElementById('pl-seg-2').scrollIntoView()"); pg.wait_for_timeout(200)

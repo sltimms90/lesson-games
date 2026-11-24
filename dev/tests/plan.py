@@ -60,7 +60,8 @@ with sync_playwright() as p:
     check(re.search(r"fetched \d\d:\d\d", t.inner_text(".pl-meta")) is not None, "shows 'fetched HH:MM' (%s)" % t.inner_text(".pl-meta"))
     check(t.locator(".pl-doc h2#pl-seg-1").count() == 1 and t.locator(".pl-doc h3#pl-step-1B").count() == 1, "segment and step headings get anchors")
     check(t.locator(".pl-doc b:has-text('Rules.')").count() >= 1, "bold labels kept")
-    check(t.evaluate("[...document.querySelectorAll('.pl-doc *')].filter(e => !e.matches('button.pl-rs, button.pl-game')).every(e => [...e.attributes].every(a => ['id','class','open','colspan','rowspan'].includes(a.name) || (a.name === 'title' && e.tagName === 'SUMMARY')))"), "no attributes from the file (no styles; only the app's own 📋 / 🎲 buttons carry data-a)")
+    check(t.evaluate("[...document.querySelectorAll('.pl-doc *')].filter(e => !e.matches('button.pl-game')).every(e => [...e.attributes].every(a => ['id','class','open','colspan','rowspan'].includes(a.name) || (a.name === 'title' && e.tagName === 'SUMMARY') || (e.matches('h2.pl-rs, h3.pl-rs') && ['role','tabindex','title','data-a','data-c','data-s'].includes(a.name))))"), "no attributes from the file (no styles; only the app's own 🎲 buttons and run sheet headings carry data-a)")
+    check(t.evaluate("[...document.querySelectorAll('.pl-doc [data-a]')].every(e => e.matches('button.pl-game[data-a=pl-play], h2.pl-rs[data-a=pl-rs], h3.pl-rs[data-a=pl-rs]'))"), "…and data-a only ever pl-play (chips) or pl-rs (headings)")
     # folds
     check(t.locator("details.pl-key").count() == 2 and t.evaluate("[...document.querySelectorAll('details.pl-key')].every(d => !d.open)"), "both keys start folded")
     check(not visible(t, "watch: goed") and not visible(t, "She ate rice"), "key answers hidden")
@@ -154,6 +155,8 @@ with sync_playwright() as p:
     go_lesson(t2, "Kit · LP12"); t2.wait_for_selector(".rs-blk"); t2.click(".rs-top [data-a=pl-open]"); t2.wait_for_selector(".pl-doc"); t2.wait_for_timeout(500)
     if t2.locator("a").count(): t2.click(".pl-doc >> text=a link")
     t2.hover(".pl-doc b >> nth=-1"); t2.click(".pl-doc h2"); t2.wait_for_timeout(300)
+    check(t2.evaluate("__T.UI.view") == "sheet" and t2.locator(".pl-doc").count() == 0, "the SEGMENT 2 heading is the app's run sheet link (its own onclick is gone)")
+    t2.click("header.nav [data-a=pl-open]"); t2.wait_for_selector(".pl-doc"); t2.wait_for_timeout(300)
     check(t2.evaluate("window.__pwn") is None, "nothing in the file runs (%s)" % t2.evaluate("window.__pwn"))
     check(t2.locator(".pl-doc img, .pl-doc script, .pl-doc iframe, .pl-doc svg, .pl-doc a, .pl-doc [style], .pl-doc [onclick]").count() == 0, "no images, scripts, frames, links, styles or handlers")
     check(t2.locator(".pl-doc b:has-text('Bold by class')").count() == 1 and t2.locator(".pl-doc i:has-text('italic by class')").count() == 1 and t2.locator(".pl-doc b:has-text('bold by style')").count() == 1, "Google Docs' bold/italic classes and styles become plain bold/italic")
