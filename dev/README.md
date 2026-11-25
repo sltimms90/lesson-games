@@ -49,6 +49,23 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # the student's page: Doc link or bare id → id; junk → error, nothing saved; Remove clears it).
                                         # plan.py's leak check covers notes_doc
 
+    python3 typhoon.py                  # 25 Nov: Typhoon. Editor (fill randomly / shuffle / clear / presets), Quick game, one-screen
+                                        # board + Settings → Teacher view; class link: lock → Let them pick → one pick → auto-lock, a tap
+                                        # while locked ignored, undo, tally only on the master, swap and swap back; leak test (state, DOM,
+                                        # class message, per-game link); fit: iPad board 3×3 / 6×6, phone master
+    python3 battleships.py              # 25 Nov: Battleships + Finish later. Placement rules, Ready gating, Let them fire / Extra shot /
+                                        # Skip my turn, undo a shot, hit / sunk / win, leak test (teacher's unsunk ships), ⚙ Show outlines
+                                        # (off after reload and Continue, never sent or saved, student screen unchanged), Finish later →
+                                        # next lesson → Continue exactly; Discard; replace prompt; partial + final results; fit iPad/phone/desktop
+
+Teacher-owned games (Typhoon, Battleships): the hidden part (Typhoon's boxes, the teacher's fleet) lives in `run.hid` on the
+teacher's device only, never in `run.st`, so it's never broadcast, linked or drawn on the student's page. The teacher's screen
+takes only what the student's side may do (`TYPES[t].liveIn`: a coordinate, a Ready fleet, Typhoon's master taps while
+swapped) and sends its own state back; the student's screen always takes the teacher's (`liveOwnedIn`). `studentLinkData`
+sends Typhoon only its size and the bonus meanings in use. Finish later keeps a game on the student's record
+(`students/<slug>.data.paused[<type>]`: state + hidden part), so backups, restore and the weekly snapshot carry it; no new
+table. The Typhoon bonus list and the Typhoon / Battleships presets are the teacher's settings, in the `students` row `~teacher`.
+
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because
 they inject a hook into the script; `hostile.py` checks the real, untouched page.
