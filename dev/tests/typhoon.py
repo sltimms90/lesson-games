@@ -10,6 +10,7 @@ grid3 = [{"t":t, "m":""} for t in ["Q71", "K82", "T", "x2", "Z93", "SWAP", "", "
 grid3[4]["m"] = "Free sweet"
 games = [
   {"id":"ty1", "type":"typhoon", "title":"Typhoon", "block":"", "options":{"size":3, "grid":grid3, "mix":"", "codes":"★ = Steal 10"}},
+  {"id":"ty2", "type":"typhoon", "title":"Against me", "block":"", "options":{"size":3, "grid":grid3, "mix":"", "codes":"", "vsT":True}},
   {"id":"ty6", "type":"typhoon", "title":"Big typhoon", "block":"", "options":{"size":6, "grid":[], "mix":"10×10, 6×20, 3×50, 2×T, 2×x2, 2×SWAP", "codes":""}},
 ]
 pack = {"id":"cl-lp4", "student":"Cathy & Lily", "lp":4, "title":"Cathy & Lily · LP4", "date":"2026-11-25", "updatedAt":"x", "games":games, "liveRoom":"0123456789abcdef0123456789abcdef"}
@@ -146,6 +147,32 @@ with sync_playwright() as p:
     check(st(s2)["open"].get("C3", {}).get("t") == "V55", "per-game link: pick works")
     check(not leaks(s2, ["V55", "Q71", "W64"]), "per-game link: nothing unrevealed on the student's page %s" % leaks(s2, ["V55", "Q71", "W64"]))   # Q71, W64: opened in the earlier game (same browser here)
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(400); s2.close()
+    # ---- 6b. against the teacher: on the teacher's turn, a random box or the student picks for the teacher
+    t.click("[data-a=editgame][data-g=ty2]"); t.wait_for_selector("#tyVsT")
+    check(t.is_checked("#tyVsT"), "editor: Teacher plays too"); t.click("[data-a=cancelgame]"); t.wait_for_timeout(300)
+    s4 = student(ctx, url, errs); s4.wait_for_timeout(800)
+    t.click("[data-a=play][data-g=ty2]"); s4.wait_for_selector(".ty-board", timeout=6000); t.wait_for_timeout(300)
+    check([x["name"] for x in st(t)["players"]] == ["Cathy", "Lily", "Teacher"], "Teacher plays too: a Teacher line in the tally")
+    t.click("[data-a=tp-turn][data-k='1']"); t.click("[data-a=tp-unlock]"); s4.wait_for_timeout(300); s4.click("[data-a=tp-pick][data-c=A1]"); s4.wait_for_timeout(600)
+    check(st(t)["turn"] == 2 and st(t)["log"][-1].get("w") == "Lily", "after Lily's pick the turn moves on to Teacher")
+    check(t.locator("main [data-a=tp-rand]").count() == 1 and "Let them pick for me" in t.inner_text("main"), "teacher's turn: Random box for me · Let them pick for me")
+    s4.wait_for_timeout(300); check("Teacher’s turn" in s4.inner_text("main"), "the board says it's the teacher's turn")
+    t.click("main [data-a=tp-rand]"); s4.wait_for_timeout(600)
+    lt = st(t)["log"][-1]
+    check(len(st(t)["open"]) == 2 and lt.get("w") == "Teacher" and lt["c"] != "A1" and st(s4)["open"].get(lt["c"]), "random box: an unopened box opens for the teacher, on both screens (%s)" % lt)
+    check(st(t)["turn"] == 0 and not st(t)["unlocked"], "then it's Cathy's turn, board locked")
+    check(("Teacher opened " + lt["c"]) in t.inner_text("main"), "master: who opened what")
+    t.click("[data-a=tp-turn][data-k='2']"); t.click("main [data-a=tp-unlock]"); s4.wait_for_timeout(400)
+    check("Pick a box for Teacher!" in s4.inner_text("main"), "Let them pick for me: the student picks for the teacher")
+    free = [c for c in ["A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"] if c not in st(s4)["open"]][0]
+    s4.click("[data-a=tp-pick][data-c=%s]" % free); s4.wait_for_timeout(600)
+    check(st(t)["log"][-1] == dict(st(t)["log"][-1], c=free, w="Teacher") and "· Teacher" in s4.locator(".ty-rc").inner_text(), "the student's pick counts as the teacher's box")
+    opened = [x["t"] for x in st(t)["log"]]
+    check(not leaks(s4, opened + ["Q71", "W64", "V55"]), "leak: still nothing unrevealed on the student's page")
+    t.click("[data-a=finish-ask]"); t.click("[data-a=finish]"); t.wait_for_timeout(500)
+    r = [x for x in t.evaluate("__T.RESULTS") if x["gameId"] == "ty2"][0]
+    check("(Teacher)" in r["summary"] and "A1 Q71 (Lily)" in r["summary"], "Phase B line names whose box it was: %s" % r["summary"])
+    t.click("[data-a=backlesson]"); t.wait_for_timeout(300); s4.close()
     # ---- 7. screen fit: iPad board 3×3 and 6×6, phone master
     for gid in ("ty1", "ty6"):
         s3 = student(ctx, url, errs); s3.wait_for_timeout(700)

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-+TrWkWu1q/3ir7lrvq8D+THuKKEPDTVZD0aV9ZlqgwU='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-vwcOb9ODMSBXVyfwyMj8RaZ/xkXcmNwSO0DYOWoXMT0='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -4572,6 +4572,10 @@ function tyPlayers(block, pack){
   if(!n.length) n = ["Student"];
   return n.slice(0, 8);
 }
+/* Typhoon against the teacher: a player called Teacher / Sam. On the teacher's turn the master offers a random box,
+   or the student picks one for the teacher. */
+function tyTurnName(s){ var p = s.turn >= 0 && s.players[s.turn]; return p ? p.name : ""; }
+function tyTeacherTurn(s){ return !!tyTurnName(s) && snIsTeacher(tyTurnName(s)); }
 
 /* ------------------------------ TYPHOON ------------------------------ */
 /* A grid of face-down boxes (rows A, B, C…, columns 1, 2, 3…). A student who answers picks a box and gets what's behind
@@ -4629,10 +4633,12 @@ function tyRole(run){
 function tyReveal(run, c){
   var s = run.st, i = tyIndex(c, s.n), g = run.hid && run.hid.grid; if(i === -1 || s.open[c] || !g) return false;
   var b = g[i] || { t:"", m:"" }, m = tyMeaning(b, run.hid.codes || {});
+  var w = tyTurnName(s);
   s.open[c] = { t:b.t || "", m:m };
-  s.log.push({ c:c, t:b.t || "" });
+  s.log.push(w ? { c:c, t:b.t || "", w:w } : { c:c, t:b.t || "" });
   s.unlocked = false; s.pick = "";
-  s.reveal = { c:c, t:b.t || "", m:m, k:s.log.length };
+  s.reveal = { c:c, t:b.t || "", m:m, k:s.log.length, w:w };
+  if(s.turn >= 0 && s.players.length) s.turn = (s.turn + 1) % s.players.length;   /* the highlight moves on (tap a name to change it) */
   if(s.swapped && s.grid) s.grid = tyMasterGrid(run);
   return true;
 }
@@ -4671,7 +4677,7 @@ function tyTally(run, master){
 function tyLegendHtml(s){ var L = s.legend || []; return L.length ? '<p class="ty-legend">' + L.map(function(x){ return '<span><b>' + esc(x.c) + '</b> ' + esc(x.m) + '</span>'; }).join("") + '</p>' : ""; }
 function tyRevealHtml(run){
   var s = run.st, r = s.reveal; if(!r || s.unlocked || TY_SEEN === (run.liveGen || run.startedAt) + ":" + r.k) return "";   /* unlocked again: the next pick comes first */
-  return '<div class="overlay ty-rev" data-a="tp-seen" role="dialog" aria-label="Box ' + esc(r.c) + '"><div class="pop ty-revpop"><div class="ty-rc">' + esc(r.c) + '</div><div class="ty-rt">' + (r.t ? esc(r.t) : "—") + '</div>' + (r.m ? '<div class="ty-rm">' + esc(r.m) + '</div>' : "") + '</div></div>';
+  return '<div class="overlay ty-rev" data-a="tp-seen" role="dialog" aria-label="Box ' + esc(r.c) + '"><div class="pop ty-revpop"><div class="ty-rc">' + esc(r.c) + (r.w ? " · " + esc(r.w) : "") + '</div><div class="ty-rt">' + (r.t ? esc(r.t) : "—") + '</div>' + (r.m ? '<div class="ty-rm">' + esc(r.m) + '</div>' : "") + '</div></div>';
 }
 TYPES.typhoon = {
   label: "Typhoon", letter: "🌀", owned: true, pausable: true,
@@ -4687,6 +4693,7 @@ TYPES.typhoon = {
       '<div class="field"><span class="legend">Boxes</span><div id="tyEd"></div><div class="hint">Up to 6 characters a box: 10, 25, -5, T, x2, SWAP, ★. Empty boxes say “Nothing!”. If every box is empty, a game starts with a fresh deal of the mix below.</div></div>' +
       '<div class="field"><label for="tyMix">Mix for Fill randomly</label><div class="row"><input type="text" id="tyMix" value="' + esc(o.mix || TY_MIX0) + '" style="flex:1;min-width:200px"><button type="button" class="btn sm" id="tyFill">Fill randomly</button><button type="button" class="btn ghost sm" id="tyShuf">Shuffle</button><button type="button" class="btn ghost sm" id="tyClear">Clear</button></div><div class="hint" id="tyMixHint"></div>' +
       '<div class="row" style="margin-top:8px;align-items:center"><select id="tyPreset" aria-label="Presets"><option value="">Presets…</option>' + ps.map(function(p){ return '<option value="' + esc(p.name) + '">' + esc(p.name + " (" + tySize(p.size) + "×" + tySize(p.size) + ")") + '</option>'; }).join("") + '</select><input type="text" id="tyPName" placeholder="Name, e.g. My usual 5×5" style="flex:1;min-width:160px"><button type="button" class="btn ghost sm" id="tyPSave">Save mix as preset</button></div><div class="hint">Quick game deals the first preset' + (ps.length ? " (" + esc(tyDefaultPreset().name) + ")" : "") + '.</div></div>' +
+      '<div class="field"><label class="check"><input type="checkbox" id="tyVsT"' + (o.vsT ? " checked" : "") + '><span><b>Teacher plays too</b><br><span class="muted">Adds a Teacher line to the tally. On your turn: a random box, or the student picks one for you.</span></span></label></div>' +
       '<div class="field"><label for="tyCodes">Bonus codes for this game</label><textarea id="tyCodes" style="min-height:64px" placeholder="★ = Steal 10 points">' + esc(o.codes || "") + '</textarea><div class="hint">One per line: code = meaning. A box with that text shows the meaning when it opens.</div></div>' +
       '<details class="field"><summary class="muted">Your bonus list (every Typhoon game)</summary><textarea id="tyBonus" style="min-height:110px;margin-top:8px">' + esc(tyBonusText()) + '</textarea><div class="hint">Saved for all your Typhoon games when you save this one.</div></details>';
   },
@@ -4723,7 +4730,7 @@ TYPES.typhoon = {
   readOptions: function(){
     var k = tySize(checkedVal("tySize", 5)), b = $("tyBonus");
     if(b && b.value !== tyBonusText()) tsetSave({ tyBonus: b.value.slice(0, 2000) });
-    return { size:k, mix: $("tyMix").value.trim().slice(0, 200), grid: tyFilled(TY_DRAFT) ? tyCleanGrid(TY_DRAFT, k) : [], codes: $("tyCodes").value.slice(0, 1000) };
+    return { size:k, mix: $("tyMix").value.trim().slice(0, 200), grid: tyFilled(TY_DRAFT) ? tyCleanGrid(TY_DRAFT, k) : [], codes: $("tyCodes").value.slice(0, 1000), vsT: $("tyVsT").checked };
   },
   validate: function(block, o){ var n = tySize(o && o.size); if(!tyFilled(o && o.grid) && !tyMixCount((o && o.mix) || tyDefaultPreset().mix)) return "Fill the boxes, or give a mix to deal at the start."; return null; },
   /* The teacher's device keeps the boxes (run.hid); the student's page gets none. */
@@ -4735,23 +4742,24 @@ TYPES.typhoon = {
   start: function(game, pack, hid){
     var o = game.options || {}, n = tySize(o.size);
     var legend = hid && hid.grid ? tyLegend(hid.grid, hid.codes || {}) : (Array.isArray(o.legend) ? o.legend.filter(function(x){ return x && typeof x.c === "string" && typeof x.m === "string"; }).slice(0, 12) : []);
-    return { n:n, players: tyPlayers(game.block, pack).map(function(nm){ return { name:nm, score:0 }; }), step:1, turn:-1, open:{}, log:[], unlocked:false, pick:"", swapped:false, legend:legend, reveal:null, started:today() };
+    var pl = tyPlayers(game.block, pack); if(o.vsT && !pl.some(snIsTeacher) && pl.length < 8) pl.push("Teacher");
+    return { n:n, players: pl.map(function(nm){ return { name:nm, score:0 }; }), step:1, turn:-1, open:{}, log:[], unlocked:false, pick:"", swapped:false, legend:legend, reveal:null, started:today() };
   },
   view: function(run){
     var s = run.st, role = tyRole(run), master = role === "master", rev = tyRevealHtml(run);
     if(!master){
-      var msg = s.swapped && !SMODE ? (s.unlocked ? "Your turn to pick a box!" : (run.student || "Your student") + " is the teacher now. Answer the question first!") : s.unlocked ? (SMODE && s.pick ? "Opening " + esc(s.pick) + "…" : "Pick a box!") : "Answer the question first!";
-      var tools = SMODE ? "" : '<div class="ty-tools">' + (s.swapped ? '<button class="btn ghost sm" data-a="tp-swap">⇄ Swap back</button>' : (s.unlocked ? '<button class="btn ghost sm" data-a="tp-lock">Lock</button>' : '<button class="btn sm" data-a="tp-unlock">Let them pick</button>') + '<button class="btn ghost sm" data-a="tp-view" data-v="master" title="Teacher view: shows what is in the boxes">Teacher view</button>') + '</div>';
+      var msg = s.swapped && !SMODE ? (s.unlocked ? "Your turn to pick a box!" : (run.student || "Your student") + " is the teacher now. Answer the question first!") : s.unlocked ? (SMODE && s.pick ? "Opening " + esc(s.pick) + "…" : tyTeacherTurn(s) ? "Pick a box for " + esc(tyTurnName(s)) + "!" : "Pick a box!") : tyTeacherTurn(s) ? esc(tyTurnName(s)) + "’s turn" : "Answer the question first!";
+      var tools = SMODE ? "" : '<div class="ty-tools">' + (s.swapped ? '<button class="btn ghost sm" data-a="tp-swap">⇄ Swap back</button>' : (s.unlocked ? '<button class="btn ghost sm" data-a="tp-lock">Lock</button>' : '<button class="btn sm" data-a="tp-unlock">Let them pick</button>' + (tyTeacherTurn(s) ? '<button class="btn sm" data-a="tp-rand">🎲 Random box</button>' : "")) + '<button class="btn ghost sm" data-a="tp-view" data-v="master" title="Teacher view: shows what is in the boxes">Teacher view</button>') + '</div>';
       return '<section class="ty ty-board"><p class="ty-msg' + (s.unlocked ? " go" : "") + '" role="status">' + msg + '</p>' + tyCells(run, "board") + tyLegendHtml(s) + tyTally(run, false) + tools + '</section>' + rev;
     }
     var live = !SMODE && liveLocked(run), who = s.turn >= 0 && s.players[s.turn] ? s.players[s.turn].name : "";
-    var big = s.unlocked ? '<div class="ty-big"><p class="ty-msg go" role="status">Waiting for a pick…</p><button class="btn ghost sm" data-a="tp-lock">Lock again</button></div>' : '<div class="ty-big"><button class="btn big-btn ty-unlock" data-a="tp-unlock">Let them pick' + (who ? " · " + esc(who) : "") + '</button></div>';
+    var big = s.unlocked ? '<div class="ty-big"><p class="ty-msg go" role="status">' + (tyTeacherTurn(s) ? "Waiting for them to pick for " + esc(who) + "…" : "Waiting for a pick…") + '</p><button class="btn ghost sm" data-a="tp-lock">Lock again</button></div>' : (tyTeacherTurn(s) && !SMODE ? '<div class="ty-big"><p class="ty-msg" role="status">' + esc(who) + '’s turn</p><div class="row" style="justify-content:center"><button class="btn big-btn ty-unlock" data-a="tp-rand">🎲 Random box for me</button><button class="btn ghost big-btn" data-a="tp-unlock">Let them pick for me</button></div></div>' : '<div class="ty-big"><button class="btn big-btn ty-unlock" data-a="tp-unlock">Let them pick' + (who ? " · " + esc(who) : "") + '</button></div>');
     var steps = '<div class="seg ty-step" role="group" aria-label="Step">' + [1, 5, 10].map(function(v){ return '<button data-a="tp-step" data-v="' + v + '" aria-pressed="' + (s.step === v) + '">±' + v + '</button>'; }).join("") + '</div>';
     var pled = !SMODE && TY_PLED ? '<div class="ty-pled">' + s.players.map(function(p, k){ return '<div class="row"><input type="text" class="ty-pname" data-k="' + k + '" value="' + esc(p.name) + '" maxlength="30" aria-label="Player ' + (k + 1) + '">' + (s.players.length > 1 ? '<button class="btn ghost sm" data-a="tp-prem" data-k="' + k + '" aria-label="Remove ' + esc(p.name) + '">✕</button>' : "") + '</div>'; }).join("") + (s.players.length < 8 ? '<button class="btn ghost sm" data-a="tp-padd">+ Add a player</button>' : "") + '</div>' : "";
     var ed = !SMODE && TY_EDIT ? (function(){ var g = run.hid && run.hid.grid || [], sel = TY_SEL >= 0 && TY_SEL < g.length && !s.open[tyCoord(TY_SEL, s.n)] ? TY_SEL : -1; return '<div class="ty-edtools"><div class="row"><input type="text" id="tyMixP" value="' + esc((run.hid && run.hid.mix) || tyDefaultPreset().mix) + '" aria-label="Mix" style="flex:1;min-width:160px"><button class="btn sm" data-a="tp-fill">Fill randomly</button><button class="btn ghost sm" data-a="tp-shuf">Shuffle</button><button class="btn ghost sm" data-a="tp-clear">Clear</button></div>' + (sel >= 0 ? '<div class="row" style="align-items:center"><label for="tyMeanP">Meaning for ' + tyCoord(sel, s.n) + '</label><input type="text" id="tyMeanP" maxlength="80" value="' + esc(g[sel].m) + '" placeholder="optional" style="flex:1;min-width:140px"></div>' : '<p class="muted" style="margin:0;font-size:15px">Opened boxes stay as they are.</p>') + '</div>'; })() : "";
     var tools = SMODE ? "" : '<div class="ty-tools"><button class="btn ghost sm" data-a="tp-edbox" aria-pressed="' + TY_EDIT + '"' + (s.swapped ? " disabled" : "") + '>' + (TY_EDIT ? "✓ Done" : "✎ Boxes") + '</button><button class="btn ghost sm" data-a="tp-pled" aria-pressed="' + TY_PLED + '">' + (TY_PLED ? "✓ Done" : "Players") + '</button><button class="btn ghost sm" data-a="tp-swap" title="Student is the teacher: their screen gets the boxes and these buttons">⇄ Swap</button><button class="btn ghost sm" data-a="tp-view" data-v="board" title="Show the board on this screen (one screen for everyone)">Board view</button></div>';
     var note = SMODE ? '<p class="ty-msg">You’re the teacher! Ask a question, then tap Let them pick.</p>' : (live ? "" : '<p class="muted ty-solo">No student screen connected: tap Board view to show the boxes face down here.</p>');
-    var last = s.reveal ? '<p class="ty-last" role="status">Opened <b>' + esc(s.reveal.c) + '</b>: <b class="ty-lt">' + (s.reveal.t ? esc(s.reveal.t) : "—") + '</b>' + (s.reveal.m ? " · " + esc(s.reveal.m) : "") + '</p>' : "";
+    var last = s.reveal ? '<p class="ty-last" role="status">' + (s.reveal.w ? esc(s.reveal.w) + " opened" : "Opened") + ' <b>' + esc(s.reveal.c) + '</b>: <b class="ty-lt">' + (s.reveal.t ? esc(s.reveal.t) : "—") + '</b>' + (s.reveal.m ? " · " + esc(s.reveal.m) : "") + '</p>' : "";
     return '<section class="ty ty-master">' + note + big + last + tyCells(run, "master") + ed + tyTally(run, true) + '<div class="ty-row2">' + steps + tools + '</div>' + pled + '</section>';
   },
   after: function(run){
@@ -4783,6 +4791,12 @@ TYPES.typhoon = {
       return tyReveal(run, c);
     }
     if(a === "tp-view"){ if(SMODE) return false; TY_VIEW = el.getAttribute("data-v") === "board" ? "board" : "master"; TY_EDIT = false; TY_PLED = false; render(); return false; }
+    if(a === "tp-rand"){   /* the teacher's turn: the app picks an unopened box (the teacher can see them all) */
+      if(SMODE || s.swapped) return false;
+      var free = []; for(var fi = 0; fi < s.n * s.n; fi++){ if(!s.open[tyCoord(fi, s.n)]) free.push(tyCoord(fi, s.n)); }
+      if(!free.length) return false;
+      return tyReveal(run, free[Math.floor(Math.random() * free.length)]);
+    }
     if(a === "tp-swap"){
       if(SMODE) return false;
       s.swapped = !s.swapped; s.unlocked = false; s.pick = "";
@@ -4833,7 +4847,7 @@ TYPES.typhoon = {
   summary: function(run){
     var s = run.st, n = s.n, base = s.base || {}, picks = s.log.length - (base.picks || 0);
     var who = s.players.map(function(p){ return p.name + " " + p.score; }).join(", ");
-    var opened = s.log.slice(base.picks || 0).map(function(x){ return x.c + " " + (x.t || "—"); }).join(", ");
+    var opened = s.log.slice(base.picks || 0).map(function(x){ return x.c + " " + (x.t || "—") + (x.w ? " (" + x.w + ")" : ""); }).join(", ");
     return "Typhoon " + n + "×" + n + (run.title && run.title !== "Typhoon" ? " · " + run.title : "") + flTag(run) + ": " + picks + (picks === 1 ? " pick" : " picks") + " (" + who + ")" + (opened ? "\nOpened: " + opened : "");
   },
   score: function(run){ var s = run.st; return { total:null, max:null, text: s.players.map(function(p){ return p.name + " " + p.score; }).join(" · ") }; },

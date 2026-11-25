@@ -53,6 +53,8 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # board + Settings → Teacher view; class link: lock → Let them pick → one pick → auto-lock, a tap
                                         # while locked ignored, undo, tally only on the master, swap and swap back; leak test (state, DOM,
                                         # class message, per-game link); fit: iPad board 3×3 / 6×6, phone master
+                                        # (26 Nov) against the teacher: Teacher plays too; on Teacher's turn 🎲 Random box or Let them pick
+                                        # for me; the turn highlight moves on after each pick; results name whose box it was
     python3 battleships.py              # 25 Nov: Battleships + Finish later. Placement rules, Ready gating, Let them fire / Extra shot /
                                         # Skip my turn, undo a shot, hit / sunk / win, leak test (teacher's unsunk ships), ⚙ Show outlines
                                         # (off after reload and Continue, never sent or saved, student screen unchanged), Finish later →
