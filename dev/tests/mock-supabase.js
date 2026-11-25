@@ -95,6 +95,7 @@
             }
             setTimeout(function(){ cb("SUBSCRIBED"); }, 10); return ch; },
           track:function(meta){ me = meta; members[key] = [meta]; if(bc) bc.postMessage({ op:"track", key:key, meta:meta }); psync(); return Promise.resolve(); },
+          untrack:function(){ me = null; delete members[key]; if(bc) bc.postMessage({ op:"leave", key:key }); psync(); return Promise.resolve(); },
           presenceState:function(){ return members; },
           send:function(m){ M.sent = (M.sent || 0) + 1; if(bc) bc.postMessage({ op:"send", payload:m.payload }); return Promise.resolve("ok"); },
           unsubscribe:function(){ if(bc){ bc.postMessage({ op:"leave", key:key }); bc.close(); bc = null; } return Promise.resolve(); }

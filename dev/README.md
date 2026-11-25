@@ -38,8 +38,10 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # (24 Nov c) no 📋: the step / segment heading itself opens the run sheet (plain tap only);
                                         # HW Key falls back to the previous lesson's HWnn material when the plan has no homework key
                                         # (24 Nov b) BEFORE CLASS "Lesson Games pack <id>: “…” · “…” (note) · …" → chips, stops at the first non-game quote
-    python3 tabs.py                     # 25 Nov: the app open in two tabs: only the tab in front is live in the game ("live in another
-                                        # tab" + Use this tab on the other); a tab that missed moves takes the student's board, never undoes it
+    python3 tabs.py                     # 25 Nov: the app open in several tabs (games · run sheet · plan): one tab per browser is live,
+                                        # the one playing the game ("live in another tab" + Use this tab on another game tab); lesson-page
+                                        # tabs only listen (never jump into the game, class bar still right, Play hands the game over);
+                                        # a tab that missed moves takes the student's board, never undoes it
     python3 bonus1124.py                # quiz bonus round: shuffle ×0.7 faster each level (700/490/343/240 ms), Reduce Motion 450/360/300 ms;
                                         # new game back to level 1; student link + class link at level 3 same speed, b.pos matches; "Six cards" hint
 

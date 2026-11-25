@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-Khw8/MN/9WOI2o4wszm9wkE9M0RKxtsLk/ZP+7gnsrc='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-Mv7WZpU1N4qsYz3/sUuNmIVovv4YKDH+U75T85qbf7U='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -5019,21 +5019,53 @@ function liveMirror(run){ return !SMODE && liveSolo(run) && liveSoloLocked(run) 
 function liveSoloLocked(run){ return liveLocked(run); }
 var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", cls:false, applyingFin:false, sent:"", away:false };
 (function(){ var a = new Uint8Array(9); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function(_, i){ a[i] = Math.random() * 256; }); LIVE.me = Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); })();
-/* One live tab: with the teacher's app open in two tabs, both joined the game, each ignored the other (another of
-   the teacher's own devices), and the tab that wasn't being used kept an old board and undid the student's moves with
-   it (Nov 2026). Now the tab in front is the live one: it tells the app's other tabs in this browser, and they leave
-   the room until they're looked at again (or Use this tab is tapped). */
+/* One live tab: with the teacher's app open in several tabs (games · run sheet · plan), every tab used to join the
+   live game. They ignored each other (another of the teacher's own devices), so a tab that wasn't being played in
+   kept an old board and undid the student's moves with it (Nov 2026). Now one tab per browser is live: the tab
+   playing the game (started or resumed there, or brought to the front while on a game, or Use this tab). The other
+   tabs only listen: they stay in the room (the class bar still shows who's connected, and a game started from the
+   run sheet carries on where the live tab was) but send nothing, join no game and show no presence. */
 var LIVE_TABS = null;
-function liveTakeOver(){ LIVE.away = false; if(LIVE_TABS) try{ LIVE_TABS.postMessage({ t:"live", id:LIVE.me }); }catch(e){} }
+function liveAnnounce(){
+  var ch = LIVE.chan; if(!ch || LIVE.away) return;
+  try{ ch.track({ role: SMODE ? "student" : "teacher", name: SMODE ? liveStudentName() : "Teacher", cls: !!(SMODE && SMODE.cls) }); }catch(e){}
+  liveSend({ t:"hello" });
+  var run = UI.run;
+  if(run && liveOn(run)){
+    var m = LIVE.last[run.gameId];   /* heard while listening: newer than this tab's copy */
+    if(m && m.gen === run.liveGen && (m.rev || 0) > (run.st._rev || 0) && liveDrawable(run, m.st)) liveApply(run, m);
+    liveOut(true);
+  }
+}
+function liveTakeOver(){
+  if(SMODE || !LIVE_TABS) return;
+  var was = LIVE.away; LIVE.away = false;
+  try{ LIVE_TABS.postMessage({ t:"live", id:LIVE.me }); }catch(e){}
+  if(was){ liveAnnounce(); if(UI.view === "play") render(); }
+}
 function liveAwayRun(run){ if(SMODE || !LIVE.away || !run || LIVE_TYPES.indexOf(run.type) === -1) return false; var p = getPack(run.packId); return !!(p && p.liveRoom); }
+function liveOnGame(){ return UI.view === "play" && !!UI.run && LIVE_TYPES.indexOf(UI.run.type) !== -1; }
 (function(){
   if(STUDENT_PAGE || !window.BroadcastChannel) return;
   try{ LIVE_TABS = new BroadcastChannel("lessonGames.liveTab"); }catch(e){ return; }
-  LIVE_TABS.onmessage = function(e){ var d = e.data || {}; if(SMODE || d.t !== "live" || d.id === LIVE.me || LIVE.away) return; LIVE.away = true; liveLeave(); if(UI.view === "play") render(); else refresh(); };
-  function front(){ if(document.hidden || SMODE) return; var was = LIVE.away; liveTakeOver(); if(was) render(); }
+  LIVE.away = true;   /* until this tab knows it's the only one, or takes over */
+  var heard = false;
+  LIVE_TABS.onmessage = function(e){
+    var d = e.data || {}; if(SMODE || d.id === LIVE.me) return;
+    if(d.t === "who"){ if(!LIVE.away) try{ LIVE_TABS.postMessage({ t:"live", id:LIVE.me }); }catch(x){} return; }
+    if(d.t === "gone"){ if(!document.hidden) liveTakeOver(); return; }
+    if(d.t !== "live") return;
+    heard = true; if(LIVE.away) return;
+    LIVE.away = true;
+    try{ if(LIVE.chan) LIVE.chan.untrack(); }catch(x){}
+    if(UI.view === "play") render(); else livePaint();
+  };
+  function front(){ if(!document.hidden && !SMODE && liveOnGame()) liveTakeOver(); }
   document.addEventListener("visibilitychange", front);
   window.addEventListener("focus", front);   /* two windows side by side: the one being used */
-  if(!document.hidden) liveTakeOver();
+  window.addEventListener("pagehide", function(){ if(!LIVE.away) try{ LIVE_TABS.postMessage({ t:"gone", id:LIVE.me }); }catch(x){} });
+  try{ LIVE_TABS.postMessage({ t:"who", id:LIVE.me }); }catch(x){}
+  setTimeout(function(){ if(!heard && LIVE.away) liveTakeOver(); else front(); }, 400);
 })();
 function liveNewRoom(){ var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); }
 function liveEnsureRoom(p){
@@ -5044,7 +5076,6 @@ function liveEnsureRoom(p){
 }
 function liveRoomFor(){
   if(SMODE) return SMODE.d.live && SMODE.d.live.r || null;
-  if(LIVE.away) return null;
   if(!SB_MODE || !SB || !STORE || STORE.kind !== "supabase" || AUTH.need) return null;
   var pid = UI.view === "play" && UI.run ? UI.run.packId : UI.packId, p = pid && getPack(pid);
   return p && p.liveRoom || null;
@@ -5079,9 +5110,7 @@ function liveJoin(room){
     });
     ch.subscribe(function(s){
       if(LIVE.chan !== ch || s !== "SUBSCRIBED") return;
-      ch.track({ role: SMODE ? "student" : "teacher", name: SMODE ? liveStudentName() : "Teacher", cls: !!(SMODE && SMODE.cls) });
-      liveSend({ t:"hello" });
-      if(UI.run && liveOn(UI.run)) liveOut(true);
+      liveAnnounce();
     });
   }, function(){ LIVE.room = null; });
 }
@@ -5091,7 +5120,7 @@ function liveStudentName(){
   if(d.g && (d.g.type === "snakes" || d.g.type === "hilo")){ var n = parseLines(d.g.block || "").map(function(x){ return x.trim(); }).filter(function(x){ return x && !snIsTeacher(x); }); if(n[0]) return n[0].slice(0, 40); }
   return "Student";
 }
-function liveSend(m){ if(!LIVE.chan) return; m.from = LIVE.me; m.r = SMODE ? "s" : "t"; try{ LIVE.chan.send({ type:"broadcast", event:"m", payload:m }); }catch(e){} }
+function liveSend(m){ if(!LIVE.chan || (LIVE.away && !SMODE)) return; m.from = LIVE.me; m.r = SMODE ? "s" : "t"; try{ LIVE.chan.send({ type:"broadcast", event:"m", payload:m }); }catch(e){} }
 function liveOn(run){
   if(!run || !LIVE.room || LIVE_TYPES.indexOf(run.type) === -1 || !run.liveGen) return false;
   if(SMODE) return true;
@@ -5215,6 +5244,11 @@ function liveRecv(m){
   if(!liveMsgOk(m)) return;
   if(!SMODE && m.r === "t") return;   /* another of the teacher's own devices: not a student */
   if(SMODE && m.r === "s") return;    /* another student page */
+  if(!SMODE && LIVE.away){   /* a listening tab: keep track of the newest copy of each game, nothing else */
+    if((m.t === "fin" || m.t === "stop") && LIVE.last[m.g] && LIVE.last[m.g].gen === m.gen) delete LIVE.last[m.g];
+    if(m.t === "st" && m.st && m.gen && !(m.p && m.p !== LIVE_PACK())){ var pv = LIVE.last[m.g]; if(!pv || (pv.gen !== m.gen ? (m.t0 || 0) >= (pv.t0 || 0) : m.rev > pv.rev)) LIVE.last[m.g] = m; }
+    return;
+  }
   var run = UI.run;
   if(m.t === "hello"){ if(run && liveOn(run)) liveOut(true); return; }
   if(m.t === "ack"){
@@ -6431,7 +6465,7 @@ function resumeRun(k){
     var r = (UI.parked || {})[k]; if(!r) return false;
     parkRun(); delete UI.parked[k]; UI.run = r;
   }
-  UI.settingsOpen = false; UI.finishAsk = false; UI.packId = UI.run.packId; startClock(UI.run); UI.clsPlay = false; go("play"); if(liveOn(UI.run)) liveOut(true); return true;
+  UI.settingsOpen = false; UI.finishAsk = false; UI.packId = UI.run.packId; startClock(UI.run); UI.clsPlay = false; if(!SMODE) liveTakeOver(); go("play"); if(liveOn(UI.run)) liveOut(true); return true;
 }
 function inProgress(){ var out = []; if(UI.run) out.push(UI.run); Object.keys(UI.parked || {}).forEach(function(k){ out.push(UI.parked[k]); }); return out.filter(function(r){ return getPack(r.packId); }); }
 function inProgressHtml(small, pid){
@@ -6450,6 +6484,7 @@ function startRun(p, g){
   UI.runKey = SMODE ? SMODE.key : null;
   if(!SMODE && LIVE.cls && LIVE.peers > 0 && UI.clsPlay) UI.liveFresh = true;
   UI.clsPlay = false;
+  if(!SMODE) liveTakeOver();
   UI.run = { gflags: (function(){ var f = {}; ["_challenge", "_only", "_replay"].forEach(function(k){ if(g[k]) f[k] = g[k]; }); return f; })(), packId:p.id, gameId:g.id, type:g.type, title:(g.title || t.label) + (g._challenge ? " (hard mode)" : "") + (g._only ? " (misses)" : ""), retry: !!g._only, prev: prev && !g._only ? prev.score.text : "", student:p.student || "", lp:p.lp || null, startedAt:nowIso(), act:0, resumedAt:Date.now(), lapAt:0, paused:false, st:t.start(g, p) };
   liveStart(UI.run);
   go("play");
