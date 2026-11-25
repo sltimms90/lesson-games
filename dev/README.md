@@ -42,6 +42,10 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # tab" + Use this tab on the other); a tab that missed moves takes the student's board, never undoes it
     python3 bonus1124.py                # quiz bonus round: shuffle ×0.7 faster each level (700/490/343/240 ms), Reduce Motion 450/360/300 ms;
                                         # new game back to level 1; student link + class link at level 3 same speed, b.pos matches; "Six cards" hint
+    python3 openall.py                  # 25 Nov: 📂 Files → Open all (every valid material in order, then the notes doc, as tabs;
+                                        # Chrome's pop-up blocker note) and the student's notes doc (students/<slug>.notes_doc, set on
+                                        # the student's page: Doc link or bare id → id; junk → error, nothing saved; Remove clears it).
+                                        # plan.py's leak check covers notes_doc
 
 **After editing `app/index.html`, run `python3 dev/build.py`.** It stamps the Content-Security-Policy with the
 script's hash (otherwise the app won't run at all) and copies the app over `index.html`. Tests strip the CSP because

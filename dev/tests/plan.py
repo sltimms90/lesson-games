@@ -166,15 +166,19 @@ with sync_playwright() as p:
     # students: the plan never reaches a student link, a class link or the student page
     errs3 = []; calls3 = []
     ctx3 = b.new_context(viewport={"width":1024, "height":768})
-    t3 = tpage(ctx3, seed_db([pack]), errs3, calls3)
+    NDOC = "1NotesDocIdLeakCheck_abcdefg"   # Kit's notes doc (students/kit.notes_doc, 25 Nov): teacher only, like the materials
+    t3 = tpage(ctx3, seed_db([pack], students=[{"id":"kit", "name":"Kit", "look":"chalk", "notes_doc":NDOC, "updatedAt":"x"}]), errs3, calls3)
     go_lesson(t3, "Kit · LP12"); t3.wait_for_selector(".rs-blk")
+    t3.click("header [data-a=pl-files]"); t3.wait_for_selector("#plFiles")
+    check(NDOC in (t3.get_attribute("#plFiles a:has-text('Notes doc')", "href") or ""), "leak check is live: the teacher's Files menu has Kit's notes doc")
+    t3.click("#plFiles button[data-a=pl-files-x]"); t3.wait_for_timeout(100)
     t3.click(".rs-tx.pl-j:has-text('0A Warm-up')"); t3.wait_for_selector(".pl-doc")
     t3.click("[data-a=nav-games]"); t3.wait_for_selector(".head h2")
     t3.click("[data-a=slink][data-g=g1]"); t3.wait_for_function("document.getElementById('slinkUrl') && document.getElementById('slinkUrl').value.length > 20")
     slink = t3.input_value("#slinkUrl"); t3.click("[data-a=slink-close]")
     t3.click("#clsBar [data-a=clink]"); t3.wait_for_selector("#slinkUrl"); clink = t3.input_value("#slinkUrl"); t3.click("[data-a=clink-close]")
     REC = "window.__BC=[]; (function(){ const O = window.BroadcastChannel; window.BroadcastChannel = function(n){ const c = new O(n); c.addEventListener('message', e => window.__BC.push(JSON.stringify(e.data))); return c; }; })();"
-    secrets = [DOC, "Bomb Squad", "watch: goed", "I went to the park", "plan-doc", "1MaterialFileIdLeakCheck_xyz", "SecretLabel"]   # the plan, and the lesson's materials (Nov 2026)
+    secrets = [DOC, "Bomb Squad", "watch: goed", "I went to the park", "plan-doc", "1MaterialFileIdLeakCheck_xyz", "SecretLabel", NDOC, "notes_doc"]   # the plan, the lesson's materials (Nov 2026), the notes doc (25 Nov)
     for name, url in (("student link", slink), ("class link", clink)):
         s = ctx3.new_page(); s.on("pageerror", lambda e: errs3.append("S: " + str(e))); s.add_init_script(REC)
         sreq = []; s.on("request", lambda r: sreq.append(r.url))
@@ -196,11 +200,12 @@ with sync_playwright() as p:
         check(not [u for u in sreq if "plan-doc" in u or "/functions/" in u], "%s: the student page never calls the plan function" % name)
         s.evaluate("__T.UI.view = 'plan'; __T.UI.packId = 'kit-lp12'"); s.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
         s.evaluate("(() => { try { document.querySelector('[data-a]') && 0; } catch(e){} })()")
-        check(s.locator(".pl-doc, [data-a=pl-open], .pl-j, #plLink, [data-a=pl-files], #plFiles, .rs-files").count() == 0, "%s: no Plan tab, plan or Files links, or material chips on the student page" % name)
+        check(s.locator(".pl-doc, [data-a=pl-open], .pl-j, #plLink, [data-a=pl-files], #plFiles, .rs-files, [data-a=pl-openall], #ndSec, #ndIn").count() == 0, "%s: no Plan tab, plan or Files links, Open all, material chips or notes doc on the student page" % name)
         s.close()
     # in the live game, nothing the teacher sends carries the plan
     check(t3.evaluate("JSON.stringify(__T.UI.run || {})").find(DOC) == -1, "the teacher's game state has no plan id")
     check(t3.evaluate("JSON.stringify(__T.UI.run || {})").find("1MaterialFileIdLeakCheck_xyz") == -1, "…and no material ids")
+    check(t3.evaluate("JSON.stringify(__T.UI.run || {})").find(NDOC) == -1, "…and no notes doc")
     # the student page, forced onto the plan view with the teacher's plan copy on the device, still shows no plan
     s = ctx3.new_page(); s.add_init_script("localStorage.setItem('lessonGames.student.v1', JSON.stringify({ view:'plan', packId:'kit-lp12' }));")
     s.route("**/*", lambda r: r.fulfill(body=MOCK, content_type="application/javascript") if r.request.url.endswith("supabase.js") else (r.fulfill(body=APP2, content_type="text/html") if "/lesson-games/" in r.request.url else r.abort()))

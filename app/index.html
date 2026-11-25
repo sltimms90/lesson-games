@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-Khw8/MN/9WOI2o4wszm9wkE9M0RKxtsLk/ZP+7gnsrc='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-wxFZhh3Bfy/Fr1bg8XPmGE0AZIUcGjeUOxQh7contyc='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -828,6 +828,9 @@ button.pl-ref:disabled{cursor:default;opacity:.8}
 .pl-files li{margin:0}
 .pl-files a{display:flex;gap:10px;align-items:center;font-size:17px;color:var(--ink);text-decoration:none;border-top:1px solid var(--line);padding:10px 6px;min-height:44px}
 .pl-files a small{color:var(--muted);font-size:15px;margin-left:auto;white-space:nowrap}
+.pl-files button.pl-all{display:flex;gap:10px;align-items:center;width:100%;font:inherit;font-size:17px;font-weight:700;color:var(--ink);background:none;border:0;border-top:1px solid var(--line);padding:10px 6px;min-height:44px;cursor:pointer;text-align:left}
+.pl-files button.pl-all small{color:var(--muted);font-size:15px;font-weight:400;margin-left:auto;white-space:nowrap}
+.pl-files .pl-blocked{color:var(--ink);font-size:15px;background:var(--soft);border:1px solid var(--amber);border-radius:8px;padding:8px 10px;margin:2px 0 6px}
 .pl-files .sep{border-top:2px solid var(--line);margin-top:4px;padding-top:6px;color:var(--muted);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 /* the materials for one run sheet block, under its label */
 .rs-files{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px 2px 14px}
@@ -911,6 +914,8 @@ li > .pl-fold{margin:0;display:inline-block;vertical-align:top}
    packs may also carry runsheet: the rs_build.py run sheet spec (Gate 5); marks go in
    sheets/<packId>  { id, packId, student, lp, date, updatedAt, marks, finished, finishedAt, rows, gaps, summary }
    students/<slug> may carry runsheet: "online" | "always" (when lessons open on the run sheet)
+   students/<slug> may carry notes_doc: a Google Doc id (the student's shared in-class notes doc, the same every lesson;
+   teacher only: the 📂 Files menu's Notes doc and Open all. Never in a student link, class link or broadcast)
    packs may also carry plan: { docId } (the LP file on Drive, for the teacher-only Plan view; see PLAN)
    phaseb/<packId>  { pack_id, status: done|skip, at, by: chat|manual, note }: Phase B (the after-class report) is done or
    not needed for that lesson. A table of its own (not in packs.data), written by the planning chats and the Phase B screen.
@@ -4644,8 +4649,36 @@ function viewStudent(){
     return '<li><b>' + esc(head) + '</b>' + list.map(function(r){ return '<div class="when">' + esc(fmtWhen(r.at)) + '</div><pre>' + esc(r.summary) + '</pre>'; }).join("") + '</li>';
   }).join("");
   $("app").innerHTML = navBar("student", null, { right: statusPill() }) + '<div class="wrap"><div class="head"><h2>' + esc(s || "No student") + '</h2><p class="muted">' + mine.length + (mine.length === 1 ? " lesson" : " lessons") + ', newest first.</p></div>' +
-    (mine.length ? '<ul class="list">' + mine.map(packItemHtml).join("") + '</ul>' : '<p class="notice">No lessons yet.</p>') + progressHtml(s) +
+    (mine.length ? '<ul class="list">' + mine.map(packItemHtml).join("") + '</ul>' : '<p class="notice">No lessons yet.</p>') + progressHtml(s) + notesDocSection(s) +
     (hist ? '<details class="section"><summary><h3 style="display:inline">Every game played</h3></summary><ul class="hist">' + hist + '</ul></details>' : "") + '</div>';
+  wireNotesDoc(s);
+}
+/* The student's notes doc, set once here (paste the Doc's link). What's typed survives a re-render (a sync arriving). */
+var ND_DRAFT = null;   /* { s: student, v: text, err } while Sam is editing; never saved anywhere */
+function notesDocSection(s){
+  if(!s || STUDENT_PAGE || SMODE) return "";
+  var cur = notesDocOf(s), dr = ND_DRAFT && ND_DRAFT.s === s ? ND_DRAFT : null;
+  return '<details class="section fold" id="ndSec"' + (dr || FOLD.ndSec ? " open" : "") + '><summary><h3>Notes doc</h3><span class="muted">' + (cur ? "set" : "none") + '</span></summary>' +
+    '<p class="muted" style="margin-top:0">' + esc(s) + '’s shared Google Doc for notes in class, the same every lesson. It shows in 📂 Files and opens last with Open all. Only you see it.</p>' +
+    (cur ? '<p style="margin:0 0 8px"><a href="' + esc(notesDocUrl(cur)) + '" target="_blank" rel="noopener noreferrer" id="ndOpen">🗒️ Open the notes doc</a></p>' : "") +
+    '<div class="field"><label for="ndIn">Doc link</label><input type="text" id="ndIn" autocomplete="off" spellcheck="false" placeholder="https://docs.google.com/document/d/…/edit" value="' + esc(dr ? dr.v : cur ? notesDocUrl(cur) : "") + '"' + (dr && dr.err ? ' aria-invalid="true" aria-describedby="ndErr"' : "") + '>' +
+    (dr && dr.err ? '<div class="hint" id="ndErr" role="alert" style="color:var(--no)">' + esc(dr.err) + '</div>' : '<div class="hint">Paste the link from the Doc’s address bar (or just its id).</div>') + '</div>' +
+    '<div class="row"><button class="btn sm" data-a="nd-save">Save</button>' + (cur ? '<button class="btn ghost sm" data-a="nd-clear">Remove</button>' : "") + '</div></details>';
+}
+function wireNotesDoc(s){
+  var i = $("ndIn"); if(!i) return;
+  i.addEventListener("input", function(){ ND_DRAFT = { s:s, v:i.value, err:"" }; });
+  i.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); notesDocSave(s, i.value); } });
+  if(ND_DRAFT && ND_DRAFT.s === s && document.activeElement !== i && ND_DRAFT.focus){ ND_DRAFT.focus = false; try{ i.focus(); }catch(e){} }
+}
+function notesDocSave(s, text){
+  var id = notesDocParse(text);
+  if(id === null){ ND_DRAFT = { s:s, v:String(text || ""), err:"That isn’t a Google Doc link. Open the Doc and copy the address (…/document/d/…/edit).", focus:true }; render(); return; }
+  var k = slug(s), o = Object.assign({ id:k, name:s }, STUDENTS[k] || {}, { updatedAt:nowIso() });
+  if(id) o.notes_doc = id; else delete o.notes_doc;
+  STUDENTS[k] = o; ND_DRAFT = null;
+  STORE.saveStudent(o).then(function(){ toast(id ? "Notes doc saved." : "Notes doc removed."); }, saveErr);
+  FOLD.ndSec = true; render();
 }
 function viewHomeOld(){
   var packs = PACKS.slice().sort(function(a,b){ return String(b.date || "").localeCompare(String(a.date || "")) || String(b.updatedAt).localeCompare(String(a.updatedAt)); });
@@ -6041,6 +6074,21 @@ function plMaterials(p){
 }
 function plMatLabel(m){ return m.t + (m.p ? " · " + m.p : ""); }
 function plFileUrl(id){ return "https://drive.google.com/file/d/" + encodeURIComponent(id) + "/view"; }
+/* The student's notes doc (students/<slug>.notes_doc): one shared Google Doc for in-class notes, the same every lesson.
+   Stored as the Doc id only; read back through the same check, since the record is still untrusted. Teacher only. */
+var ND_RE = /^[A-Za-z0-9_-]{10,200}$/;
+function notesDocOf(name){
+  if(STUDENT_PAGE || SMODE || !name) return "";
+  var o = STUDENTS[slug(name)], id = o && typeof o.notes_doc === "string" ? o.notes_doc.trim() : "";
+  return ND_RE.test(id) ? id : "";
+}
+function notesDocUrl(id){ return "https://docs.google.com/document/d/" + encodeURIComponent(id) + "/edit"; }
+/* What Sam pastes: a Doc link (…/document/d/<id>/edit…, also /document/u/0/d/<id>) or the bare id. "" = clear; null = not a Doc. */
+function notesDocParse(text){
+  var t = String(text == null ? "" : text).trim(); if(!t) return "";
+  var m = /\/document\/(?:u\/\d+\/)?d\/([^\/?#\s]+)/.exec(t), id = m ? m[1] : t;
+  return ND_RE.test(id) ? id : null;
+}
 /* The run sheet block's number: "1 SPINE Club Recruiter" → "1", "Seg 2 · …" → "2". */
 function rsBlockNum(label){ var m = /^(?:seg(?:ment)?\s*)?(\d{1,3})\b/i.exec(String(label || "").trim()); return m ? String(parseInt(m[1], 10)) : ""; }
 function rsFilesHtml(p, label){
@@ -6054,14 +6102,21 @@ function plFilesItems(p){
   var id = plDocId(p), f = plFolder(p), out = [];
   if(id) out.push({ ic:"📖", t:"Open plan", url:plFileUrl(id), hint:"the plan in Drive" });
   if(f) out.push({ ic:"📁", t:"Folder", url:"https://drive.google.com/drive/folders/" + encodeURIComponent(f), hint:"worksheets, print pack, HW" });
-  plMaterials(p).forEach(function(m, i){ out.push({ ic:"📄", t:m.t, p:m.p, url:plFileUrl(m.id), sep: i === 0 }); });
+  plMaterials(p).forEach(function(m, i){ out.push({ ic:"📄", t:m.t, p:m.p, url:plFileUrl(m.id), sep: i === 0, mat:true }); });
+  var nd = notesDocOf(p.student);
+  if(nd) out.push({ ic:"🗒️", t:"Notes doc", url:notesDocUrl(nd), hint:p.student + "’s, every lesson", nd:true });
   return out;
 }
-function plFilesBtn(p){ return plFilesItems(p).length ? '<button class="btn ghost sm ic" data-a="pl-files" aria-label="Files: the plan, its folder and this lesson’s materials" title="Files">📂</button>' : ""; }
+/* Open all: every material in the planner's order, then the notes doc (not Open plan or Folder). */
+function plOpenAllUrls(p){ return plFilesItems(p).filter(function(x){ return x.mat || x.nd; }).map(function(x){ return x.url; }); }
+var PL_BLOCKED = false;   /* the last Open all lost tabs to Chrome's pop-up blocker (shown in the menu until one opens them all) */
+function plFilesBtn(p){ return plFilesItems(p).length ? '<button class="btn ghost sm ic" data-a="pl-files" aria-label="Files: the plan, its folder, this lesson’s materials and the notes doc" title="Files">📂</button>' : ""; }
+function plBlockedHtml(){ return PL_BLOCKED ? '<li class="pl-blocked" role="status">Chrome blocked some tabs: click the pop-up icon in the address bar → Always allow, then Open all again.</li>' : ""; }
 function plFilesHtml(p){
-  var it = plFilesItems(p);
+  var it = plFilesItems(p), n = plOpenAllUrls(p).length;
   return '<div class="overlay" role="dialog" aria-modal="true" aria-label="Files" id="plFiles"><div class="pop setpop"><h3 style="margin-bottom:4px">Files</h3><ul class="pl-files">' +
-    it.map(function(x){ return (x.sep ? '<li class="sep">This lesson’s materials</li>' : "") + '<li><a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer" data-a="pl-files-x"><span aria-hidden="true">' + x.ic + '</span><span>' + esc(x.t) + '</span>' + (x.p ? '<small>' + esc(x.p) + '</small>' : x.hint ? '<small>' + esc(x.hint) + '</small>' : "") + '</a></li>'; }).join("") +
+    (n ? '<li><button class="pl-all" data-a="pl-openall"><span aria-hidden="true">🗂️</span><span>Open all</span><small>' + n + (n === 1 ? " tab" : " tabs") + '</small></button></li>' + plBlockedHtml() : "") +
+    it.map(function(x){ return (x.sep ? '<li class="sep">This lesson’s materials</li>' : x.nd ? '<li class="sep">Every lesson</li>' : "") + '<li><a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer" data-a="pl-files-x"><span aria-hidden="true">' + x.ic + '</span><span>' + esc(x.t) + '</span>' + (x.p ? '<small>' + esc(x.p) + '</small>' : x.hint ? '<small>' + esc(x.hint) + '</small>' : "") + '</a></li>'; }).join("") +
     '</ul>' + (plDocId(p) && !plFolder(p) ? '<p class="muted" style="font-size:15px;margin:0 0 8px">Folder shows once the plan has been fetched on this device (open 📖, or ↻).</p>' : "") +
     '<div class="row"><button class="btn ghost" data-a="pl-files-x">Close</button></div></div></div>';
 }
@@ -6331,6 +6386,18 @@ function plHandle(a, el){
   if(STUDENT_PAGE || SMODE) return;
   var p = getPack(UI.packId);
   if(a === "pl-files-x"){ setTimeout(function(){ var fo = $("plFiles"); if(fo) fo.remove(); }, 0); return; }   /* after the tap, so a link still opens */
+  if(a === "pl-openall"){
+    /* new tabs in this window (no window features, which would make pop-up windows); Chrome lets only the first through
+       until the site is allowed, and a blocked open returns null. Not "noopener" in the call: with it, open() always
+       returns null, so the blocker couldn't be told apart; the opener is cut straight after instead. */
+    var urls = p ? plOpenAllUrls(p) : [], lost = 0;
+    urls.forEach(function(u){ var w = null; try{ w = window.open(u, "_blank"); }catch(e){} if(w){ try{ w.opener = null; }catch(e){} } else lost++; });
+    PL_BLOCKED = lost > 0;
+    var fo3 = $("plFiles");
+    if(!PL_BLOCKED){ if(fo3) fo3.remove(); return; }
+    if(fo3){ var ul = fo3.querySelector(".pl-files"), old = fo3.querySelector(".pl-blocked"); if(old) old.remove(); var li0 = ul && ul.firstElementChild; if(li0) li0.insertAdjacentHTML("afterend", plBlockedHtml()); }
+    return;
+  }
   if(a === "pl-files"){ var fo2 = $("plFiles"); if(fo2) fo2.remove(); if(p && plFilesItems(p).length) $("app").insertAdjacentHTML("beforeend", plFilesHtml(p)); return; }
   if(a === "pl-open"){ UI.plEdit = false; UI.plOutline = false; UI.plHwMenu = false; go("plan"); return; }
   if(a === "pl-go"){ if(!p) return; UI.plEdit = false; UI.plOutline = false; UI.planAt = { bl: el.getAttribute("data-bl") || "", c: el.getAttribute("data-c") || "" }; go("plan"); return; }
@@ -6629,7 +6696,8 @@ function handle(a, el){
   if(a === "resume"){ if(run) startClock(run); go("play"); return; }
   if(a === "play-resume"){ if(!resumeRun(el.getAttribute("data-k"))) toast("That game isn’t waiting any more."); return; }
   if(a === "open"){ UI.confirmDel = null; var opk = getPack(el.getAttribute("data-id")); UI.rsGaps = false; UI.rsFinish = false; go(opk && rsOn(opk) ? "sheet" : "pack", { packId: el.getAttribute("data-id") }); return; }
-  if(a === "student"){ go("student", { student: el.getAttribute("data-s") }); return; }
+  if(a === "student"){ ND_DRAFT = null; go("student", { student: el.getAttribute("data-s") }); return; }
+  if((a === "nd-save" || a === "nd-clear") && !STUDENT_PAGE && !SMODE && UI.view === "student"){ var ndi = $("ndIn"); notesDocSave(UI.student || "", a === "nd-clear" ? "" : (ndi ? ndi.value : "")); return; }
   if(a === "newpack"){ UI.draftPack = { student:"", lp:"", date:today() }; go("packEdit"); return; }
   if(a === "editpack"){ var p0 = getPack(UI.packId); UI.draftPack = { id:p0.id, student:p0.student || "", lp:p0.lp || "", date:p0.date || today() }; go("packEdit"); return; }
   if(a === "cancelpack"){ go(UI.draftPack && UI.draftPack.id ? "pack" : "home"); return; }
