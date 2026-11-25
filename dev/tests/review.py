@@ -16,6 +16,9 @@ with sync_playwright() as p:
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
     # H1: two of the teacher's own devices on one lesson, no student
     A = teacher(ctx, db, errs); open_lesson(A); B = teacher(ctx, db, errs); open_lesson(B)
+    # (25 Nov) one live tab per browser: B opened last, so it's live; A becomes live again when it's in front
+    check("live in another tab" in A.inner_text("body") or A.evaluate("__T.LIVE.room") is None, "A steps aside when B opens (same browser)")
+    A.evaluate("document.dispatchEvent(new Event('visibilitychange'))"); A.wait_for_timeout(300)
     A.click("[data-a=play][data-g=g1]"); A.wait_for_timeout(900)
     check(A.evaluate("__T.LIVE.peers") == 0 and B.evaluate("__T.LIVE.peers") == 0, "the other teacher device isn't counted as a student")
     check(B.evaluate("__T.UI.view") == "pack", "device B isn't pulled into A's game")

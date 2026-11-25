@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-7kDE8NUFMMwx8pbqGXWzTn3nKB95FSrY1Np94BAlMl0='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-Khw8/MN/9WOI2o4wszm9wkE9M0RKxtsLk/ZP+7gnsrc='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -5017,8 +5017,24 @@ function liveMirror(run){ return !SMODE && liveSolo(run) && liveSoloLocked(run) 
 /* A solo game is only shared once the other screen is in it (a message about it has arrived, or a class link is
    connected and will open it). A student link for a different game left open doesn't lock the teacher's iPad. */
 function liveSoloLocked(run){ return liveLocked(run); }
-var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", cls:false, applyingFin:false, sent:"" };
+var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", cls:false, applyingFin:false, sent:"", away:false };
 (function(){ var a = new Uint8Array(9); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function(_, i){ a[i] = Math.random() * 256; }); LIVE.me = Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); })();
+/* One live tab: with the teacher's app open in two tabs, both joined the game, each ignored the other (another of
+   the teacher's own devices), and the tab that wasn't being used kept an old board and undid the student's moves with
+   it (Nov 2026). Now the tab in front is the live one: it tells the app's other tabs in this browser, and they leave
+   the room until they're looked at again (or Use this tab is tapped). */
+var LIVE_TABS = null;
+function liveTakeOver(){ LIVE.away = false; if(LIVE_TABS) try{ LIVE_TABS.postMessage({ t:"live", id:LIVE.me }); }catch(e){} }
+function liveAwayRun(run){ if(SMODE || !LIVE.away || !run || LIVE_TYPES.indexOf(run.type) === -1) return false; var p = getPack(run.packId); return !!(p && p.liveRoom); }
+(function(){
+  if(STUDENT_PAGE || !window.BroadcastChannel) return;
+  try{ LIVE_TABS = new BroadcastChannel("lessonGames.liveTab"); }catch(e){ return; }
+  LIVE_TABS.onmessage = function(e){ var d = e.data || {}; if(SMODE || d.t !== "live" || d.id === LIVE.me || LIVE.away) return; LIVE.away = true; liveLeave(); if(UI.view === "play") render(); else refresh(); };
+  function front(){ if(document.hidden || SMODE) return; var was = LIVE.away; liveTakeOver(); if(was) render(); }
+  document.addEventListener("visibilitychange", front);
+  window.addEventListener("focus", front);   /* two windows side by side: the one being used */
+  if(!document.hidden) liveTakeOver();
+})();
 function liveNewRoom(){ var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); }
 function liveEnsureRoom(p){
   if(p.liveRoom) return Promise.resolve(p.liveRoom);
@@ -5028,6 +5044,7 @@ function liveEnsureRoom(p){
 }
 function liveRoomFor(){
   if(SMODE) return SMODE.d.live && SMODE.d.live.r || null;
+  if(LIVE.away) return null;
   if(!SB_MODE || !SB || !STORE || STORE.kind !== "supabase" || AUTH.need) return null;
   var pid = UI.view === "play" && UI.run ? UI.run.packId : UI.packId, p = pid && getPack(pid);
   return p && p.liveRoom || null;
@@ -5273,9 +5290,10 @@ function liveStart(run){
   }
 }
 function livePaint(){
-  var el = document.getElementById("livePill"), run = UI.run, show = UI.view === "play" && liveOn(run);
+  var el = document.getElementById("livePill"), run = UI.run, away = UI.view === "play" && liveAwayRun(run), show = UI.view === "play" && liveOn(run) || away;
   if(!show){ if(el) el.remove(); return; }
   if(!el){ el = document.createElement("div"); el.id = "livePill"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+  if(away){ el.className = "livepill"; el.innerHTML = '<span>○ This game is live in another tab</span><button class="btn sm" data-a="live-here">Use this tab</button>'; return; }
   /* "connected" and the 🔒 only when the other screen is really in this game (liveLocked). A student tab left open on
      another game is "online", and nothing is locked, so no 🔒. */
   var near = LIVE.peers > 0, on = liveLocked(run) || (SMODE && near), ov = !SMODE && run.liveOverride;
@@ -5294,6 +5312,7 @@ function liveTeacherSlot(s, k){
 function liveMine(s, k){ return SMODE ? !liveTeacherSlot(s, k) : liveTeacherSlot(s, k); }
 function liveLocked(run){ return liveOn(run) && LIVE.peers > 0 && (!!run.peerIn || (!SMODE && LIVE.cls)); }
 function liveMayAct(run, a){
+  if(liveAwayRun(run)) return a === "live-here" || LIVE_FREE.indexOf(a) !== -1;
   if(!liveLocked(run)) return true;
   if(a === "challenge" || a === "ch-mark") return !SMODE;
   if(!SMODE && run.liveOverride) return true;
@@ -5317,7 +5336,9 @@ function liveMayAct(run, a){
 }
 function liveTurnName(run){ var s = run.st, p = s.players && s.players[s.turn]; return p ? p.name : ""; }
 function liveLockPaint(){
-  var run = UI.run; if(UI.view !== "play" || !liveLocked(run)) return;
+  var run = UI.run; if(UI.view !== "play") return;
+  if(liveAwayRun(run)){ document.querySelectorAll("#app [data-a]").forEach(function(b){ if(!liveMayAct(run, b.getAttribute("data-a"))){ b.disabled = true; b.classList.add("notmine"); b.title = "This game is live in another tab"; } }); return; }
+  if(!liveLocked(run)) return;
   var mirror = liveMirror(run), solo = liveSolo(run) && liveSoloLocked(run);
   if(solo){
     var stg = document.querySelector("#app main.stage"); if(stg && mirror) stg.classList.add("mirror");
@@ -5348,6 +5369,10 @@ function liveRejects(run, m){
   if(SMODE || !liveLocked(run) || !m.st || (run.type !== "snakes" && run.type !== "hilo")) return false;
   var s = run.st, waiting = run.type === "snakes" ? (s.phase === "roll" && s.fix == null) : s.phase === "call";
   if(!waiting || !liveTeacherSlot(s, s.turn)) return false;
+  /* Only a move made on top of the board this screen has. If the student's screen is further on (this screen missed
+     moves: a dropped connection, a tab that wasn't live), this screen is the stale one and takes theirs. */
+  if(run.type === "snakes"){ var sl = s.log || [], ml = m.st.log || []; if(ml.length > sl.length + 1 || JSON.stringify(ml.slice(0, sl.length)) !== JSON.stringify(sl)) return false; }
+  else if(typeof s.idx === "number" && typeof m.st.idx === "number" && m.st.idx > s.idx + 1) return false;
   var moved = (m.st.log || []).length > (s.log || []).length || m.st.phase !== s.phase;
   return moved;
 }
@@ -6591,6 +6616,7 @@ function handle(a, el){
   var run = UI.run;
   if(a !== "undo-toast" && UNDO_TOAST.snap) dropUndoToast();
   if(a.indexOf("sb-") === 0 && SB_MODE && sbHandle(a)) return;
+  if(a === "live-here"){ liveTakeOver(); render(); return; }
   if(a === "live-override"){ if(UI.run){ UI.run.liveOverride = !UI.run.liveOverride; saveUI(); render(); } return; }
   if(a === "backup"){ backupDownload(); return; }
   if(a === "restore"){ var fi = $("restoreFile"); if(fi) fi.click(); return; }
@@ -6755,7 +6781,7 @@ function handle(a, el){
   if(a === "pause"){ if(run && !run.paused && !run.st.spinning){ run.act = clockMs(run); run.paused = true; run.st._animating = false; saveRun(); render(); } return; }
   if(a === "resume-run"){ if(run && run.paused){ clockMs(run); run.resumedAt = Date.now(); run.paused = false; saveRun(); render(); } return; }
   if(run && run.paused) return;
-  if(run && TYPES[run.type] && !liveMayAct(run, a)){ if(!(el && el.nodeType)) return; toast(liveSolo(run) ? (SMODE ? "Your teacher marks this one." : "You’re watching " + (LIVE.peerName || "your student") + " play. Tap 🔒 to take over.") : run.type === "bingo" ? "Your teacher marks the sentence." : "It’s " + liveTurnName(run) + "’s turn."); return; }
+  if(run && TYPES[run.type] && !liveMayAct(run, a)){ if(!(el && el.nodeType)) return; toast(liveAwayRun(run) ? "This game is live in another tab. Tap Use this tab to play here." : liveSolo(run) ? (SMODE ? "Your teacher marks this one." : "You’re watching " + (LIVE.peerName || "your student") + " play. Tap 🔒 to take over.") : run.type === "bingo" ? "Your teacher marks the sentence." : "It’s " + liveTurnName(run) + "’s turn."); return; }
   if(run && TYPES[run.type]){
     var snap = JSON.stringify(run.st), nl = (run.st.log || []).length, nb = (run.st.bonusLog || []).length;
     var r = TYPES[run.type].act(run, a, el);
