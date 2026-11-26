@@ -60,6 +60,22 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # (off after reload and Continue, never sent or saved, student screen unchanged), Finish later →
                                         # next lesson → Continue exactly; Discard; replace prompt; partial + final results; fit iPad/phone/desktop
 
+    python3 td.py                       # 26 Nov: Tower Defence. Setup (map, difficulty), build / upgrade / sell costs, the menu clear of the
+                                        # path on every slot, a wave only on ▶ Start wave, ❚❚ / tab hidden / ‹ pause it, auto-pause after a
+                                        # wave and the setting off, the wave limit, determinism, ‹ → another game → ▶ Resume exactly, Finish
+                                        # later mid-wave → Continue, game over, + Coins, ⚡, undo, live (status screen on Sam's phone, teacher
+                                        # pause locks the student, unlock, the student's own pause, coins once, undo), fit iPad/desktop/phone.
+                                        # hostile.py has its teacher → student poison cases; fit.py includes it
+
+Tower Defence (`td`, a single-player break game): `run.st` holds only what's true between waves (map, difficulty, towers,
+wave, lives, coins, settings), which is what's saved, kept with Finish later and sent live. The enemies on the path are
+`run.sim`, on the screen playing the game only (kept with ‹ / ▶ Resume, never sent). A wave without its sim starts again
+from its start (`st.ws`: the lives and coins it began with, plus any building since), so Finish later never keeps half a
+wave. `tdStep` is fixed 1/30 s steps with no randomness. Live, the student's screen plays and sends its state (on changes,
+at most every 2 s during a wave); the teacher's screen shows a status screen and keeps its own fields (`TD_TFIELDS`: the
+pause lock, Stop after each wave, the wave limit, coin grants, the challenge, undo requests), which are all the student's
+screen takes from it. Grants have ids, so coins are added once; `tdClean` checks every state before it's drawn or played.
+
 Teacher-owned games (Typhoon, Battleships): the hidden part (Typhoon's boxes, the teacher's fleet) lives in `run.hid` on the
 teacher's device only, never in `run.st`, so it's never broadcast, linked or drawn on the student's page. The teacher's screen
 takes only what the student's side may do (`TYPES[t].liveIn`: a coordinate, a Ready fleet, Typhoon's master taps while

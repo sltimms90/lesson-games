@@ -41,6 +41,28 @@ with sync_playwright() as p:
             pwn = t.evaluate("window.__pwn"); tags = t.locator("#app img[src='x']").count()
             check(pwn is None and tags == 0 and t.evaluate("__T.UI.view") == "play", "%s (%s poison, %s): teacher safe" % (g["type"], mode, r))
         t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(400)
+    # Tower Defence, the other way: the teacher's fields arriving at the student's screen. Coins only as whole numbers
+    # within the cap, each grant once; nothing else of the student's game is taken; a wrong kind drops the message.
+    t.click("[data-a=play][data-g=g_td]"); s.wait_for_function("() => __T.UI.run && __T.UI.run.gameId === 'g_td'", timeout=6000); t.wait_for_timeout(400)
+    if s.locator("[data-a=td-go]").count(): s.click("[data-a=td-go]"); t.wait_for_timeout(500)
+    TSEND = """([over, evil]) => { const run = __T.UI.run, L = __T.LIVE, st = JSON.parse(JSON.stringify(run.st)); Object.assign(st, over);
+      if (st.ch === 'EVIL') st.ch = { q: evil, w: evil };
+      L.chan.send({ type:'broadcast', event:'m', payload:{ t:'st', g:run.gameId, p:run.packId, gen:run.liveGen, t0:run.liveT0, rev:(run.st._rev || 0) + 100, st:st, title:'x', from:'zzzz', r:'t' } }); return 'sent'; }"""
+    ss = s.evaluate("JSON.parse(JSON.stringify(__T.UI.run.st))"); c0 = ss["coins"]
+    bad = [{"id":"a1", "n":"50"}, {"id":"a2", "n":1e9}, {"id":"a3", "n":-5}, {"id":EVIL, "n":5}, {"id":"a4", "n":2.5}, {"id":"a5", "n":None}, {"id":"a6", "n":0}, {"n":30}, "50", 7, {"id":"ok1", "n":25}]
+    t.evaluate(TSEND, [{"grants":bad, "coins":999999, "lives":1, "wave":19, "towers":[{"k":"sniper", "lv":3, "spent":0}] * 3, "pz":EVIL, "ch":"EVIL"}, EVIL]); s.wait_for_timeout(600)
+    s2 = s.evaluate("JSON.parse(JSON.stringify(__T.UI.run.st))")
+    check(s2["coins"] == c0 + 25 and s2["lives"] == ss["lives"] and s2["wave"] == ss["wave"] and s2["towers"] == ss["towers"] and s2["pz"] == ss["pz"], "td: from the teacher, only the one good grant (+25) counts; the student's coins, lives, wave, towers aren't taken (%d → %d)" % (c0, s2["coins"]))
+    check(s.evaluate("window.__pwn") is None and s.locator("#app img[src='x']").count() == 0 and s.locator(".chov").count() == 1, "td: a poisoned challenge prompt shows as text, runs nothing")
+    t.evaluate(TSEND, [{"grants":[{"id":"ok1", "n":25}, {"id":"ok2", "n":200}, {"id":"ok3", "n":201}], "ch":None}, EVIL]); s.wait_for_timeout(500)
+    check(s.evaluate("__T.UI.run.st.coins") == c0 + 25 + 200, "td: a grant comes once; 200 is the cap (201 is dropped)")
+    for over in ({"tlock":"yes"}, {"limit":EVILN}, {"auto":1}, {"uReq":"9"}, {"bonus":[1]}):
+        t.evaluate(TSEND, [dict(over, grants=[{"id":"x" + str(abs(hash(json.dumps(over))) % 9999), "n":100}]), EVIL]); s.wait_for_timeout(350)
+    s3 = s.evaluate("JSON.parse(JSON.stringify(__T.UI.run.st))")
+    check(s3["coins"] == c0 + 225 and s3["tlock"] is False and s3["limit"] == 0, "td: a teacher's field of the wrong kind drops the whole message (no lock, no limit, no coins)")
+    t.evaluate(TSEND, [{"uReq":1e9}, EVIL]); s.wait_for_timeout(400)
+    check(s.evaluate("__T.UI.view") == "play" and s.evaluate("window.__pwn") is None, "td: a huge undo request doesn't hang the student's screen")
+    t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(400)
     # Re-check 1: state for a game that is NOT on screen (teacher on the lesson page). One number at a time, or an
     # extra list item, becomes an attribute-breaking string. Nothing may land in the page and the game must not open.
     ATTR = '1" xssattr="1" x="'

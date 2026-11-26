@@ -29,6 +29,7 @@ blocks = {
  "spelling": LONG + "\nresponsibility\ncolour / color",
  "typhoon": "Maximilian-Alexander\nCharlotte-Elisabeth\nTeacher",
  "battleships": "Maximilian-Alexander\nTeacher",
+ "td": "",
 }
 VIEWS = [("ipad", 1180, 820), ("desktop", 1440, 860), ("phone", 390, 844), ("phonel", 844, 390)]
 only = sys.argv[1:]  # e.g. python3 fit.py quiz taboo
@@ -45,7 +46,7 @@ def steps(pg, t):
     tap = {"hangman":["[data-a=hm-show]"], "anagrams":["[data-a=an-show]"], "cards":["[data-a=fc-flip]"], "quiz":["[data-a=qz-ans]"],
            "taboo":["[data-a=tb-show]"], "wheel":["[data-a=wh-spin]"], "dice":["[data-a=sd-roll]"], "spot":["[data-a=se-tap]"], "odd":["[data-a=od-tap]"],
            "build":["[data-a=bd-put]"], "match":["[data-a=mu-tile]"], "auction":["[data-a=au-mark]"], "hilo":["[data-a=hl-call]"], "bingo":["[data-a=bg-next]"], "snakes":["[data-a=sn-roll]"],
-           "typhoon":["[data-a=tp-unlock]", "[data-a=tp-pick]"], "battleships":["[data-a=bs-random]", "[data-a=bs-ready]"]}.get(t, [])
+           "typhoon":["[data-a=tp-unlock]", "[data-a=tp-pick]"], "battleships":["[data-a=bs-random]", "[data-a=bs-ready]"], "td":["[data-a=td-go]", "[data-a=td-start]"]}.get(t, [])
     for s in tap:
         if pg.locator(s).count():
             try: pg.locator(s).first.click(timeout=1500)
