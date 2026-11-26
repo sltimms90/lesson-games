@@ -72,6 +72,8 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # (amounts on the cards), Skip, Take a chance → shuffle → tap → applied once; same seed + tap = same
                                         # result; sizes by wave and difficulty; best tower lost from wave 10; pairing rules; offer and face-down
                                         # cards kept through pause, ‹ / ▶ Resume, Finish later → Continue; status lines; results; fit
+                                        # (27 Nov, card fix) each card the same size (±1 px) at the offer, face down, in the shuffle and at
+                                        # the result, iPad ×2 and desktop; the swaps stay on the map and cover no heading or button
 
 Tower Defence (`td`, a single-player break game): `run.st` holds only what's true between waves (map, difficulty, towers,
 wave, lives, coins, settings), which is what's saved, kept with Finish later and sent live. The enemies on the path are
@@ -84,6 +86,8 @@ screen takes from it. Grants have ids, so coins are added once; `tdClean` checks
 Bonus cards: every 3 waves cleared `tdStep` puts an offer in `st.card` (`tdOffer`: one good and one bad card, each with
 its amount, and which side the good one lands on after the shuffle), from `st.seed` and the waves cleared, so nothing is
 redrawn after a pause or Continue. `st.card.step`: offer → pick (face down; the shuffle is only an animation) → done.
+Each card on screen is one element (`.td-c`) with a front and a back (CSS 3D flip), sized from the map (`--cw` / `--ch`,
+set in `tdLayout`), so a face-down card is exactly the face-up card turned over.
 Every card number is in `TD_CARDTAB` (card × difficulty; sizes step up at `TD_CARDSTEP` waves 5, 10, 15). Next-wave cards set
 `st.mod` / `st.modv`, which `tdWave` reads. Cards on/off: `st.cards` true / false, or null = Automatic (off on Easy).
 Balance was tuned with simulated players (a good builder that always takes the chance or always skips).
