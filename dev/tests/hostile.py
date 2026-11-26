@@ -62,6 +62,14 @@ with sync_playwright() as p:
     check(s3["coins"] == c0 + 225 and s3["tlock"] is False and s3["limit"] == 0, "td: a teacher's field of the wrong kind drops the whole message (no lock, no limit, no coins)")
     t.evaluate(TSEND, [{"uReq":1e9}, EVIL]); s.wait_for_timeout(400)
     check(s.evaluate("__T.UI.view") == "play" and s.evaluate("window.__pwn") is None, "td: a huge undo request doesn't hang the student's screen")
+    # …and the student's side of the cards arriving at the teacher's status screen: shown from fixed text, numbers in range
+    s.evaluate("() => { const r = __T.UI.run; r.st.tlock = false; r.st.card = null; r.st.cards = true; }")
+    SSEND = """([card, log, evil]) => { const run = __T.UI.run, L = __T.LIVE, st = JSON.parse(JSON.stringify(run.st)); st.card = card; st.cardLog = log;
+      L.chan.send({ type:'broadcast', event:'m', payload:{ t:'st', g:run.gameId, p:run.packId, gen:run.liveGen, t0:run.liveT0, rev:(run.st._rev || 0) + 500, st:st, title:'x', from:'zzzz', r:'s' } }); return 'sent'; }"""
+    bc = {"g":{"k":"coins", "good":True, "n":1e12, "kk":EVIL, "lv":99, "s":-5}, "b":{"k":"lose", "good":False, "n":EVIL, "kk":"sniper", "lv":3, "s":2}, "step":"done", "gl":EVIL, "took":"L"}
+    for card, log in ((bc, []), ({"g":{"k":"constructor", "good":True}, "b":{"k":"__proto__"}, "step":"done", "took":"R"}, [{"k":"toString"}, {"skip":EVIL}, {"k":"coins", "n":1e15}]), ({"g":{"k":"tax", "good":True}, "b":{"k":"coins", "good":False}, "step":"pick"}, [EVIL, 5])):
+        s.evaluate(SSEND, [card, log, EVIL]); t.wait_for_timeout(500)
+        check(t.evaluate("window.__pwn") is None and t.locator("#app img[src='x']").count() == 0 and t.evaluate("__T.UI.view") == "play", "td: poisoned cards from the student's screen: teacher safe (%s)" % t.inner_text(".td-stline")[:80])
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(400)
     # Re-check 1: state for a game that is NOT on screen (teacher on the lesson page). One number at a time, or an
     # extra list item, becomes an attribute-breaking string. Nothing may land in the page and the game must not open.

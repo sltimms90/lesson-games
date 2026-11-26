@@ -6,7 +6,7 @@ the wave limit; ❚❚ freezes the game; the tab hidden pauses it; the same stat
 pause); results text; screen fit on iPad, desktop and phone."""
 import json, os
 import lg
-lg.APP = lg.APP.replace("window.__T={", "window.__T={tdGeo:tdGeo,tdStep:tdStep,tdNewSim:tdNewSim,tdWave:tdWave,TYPES:TYPES,get TD_SEL(){return TD_SEL},get render(){return render},saveRun:saveRun,get STUDENTS(){return STUDENTS},get UNDO(){return UNDO},", 1)
+lg.APP = lg.APP.replace("window.__T={", "window.__T={tdOffer:tdOffer,tdMakeCard:tdMakeCard,tdCardDo:tdCardDo,tdCardsOn:tdCardsOn,TD_CARDTAB:TD_CARDTAB,tdClean:tdClean,tdGeo:tdGeo,tdStep:tdStep,tdNewSim:tdNewSim,tdWave:tdWave,TYPES:TYPES,get TD_SEL(){return TD_SEL},get render(){return render},saveRun:saveRun,get STUDENTS(){return STUDENTS},get UNDO(){return UNDO},", 1)
 from lg import *
 games = [{"id":"td1", "type":"td", "title":"Tower Defence", "block":"", "options":{}},
          {"id":"td2", "type":"td", "title":"Tower Defence", "block":"", "options":{"map":1, "diff":"normal", "pick":False}},
@@ -28,12 +28,15 @@ def ff(pg, n):
     return ev(pg, "n => { const r = __T.UI.run; for (let i = 0; i < n && r.st.phase === 'wave'; i++) __T.tdStep(r.st, r.sim); return r.st.phase; }", n)
 def end_wave(pg, keep_card=False):
     ev(pg, "() => { const r = __T.UI.run; for (let i = 0; i < 40000 && r.st.phase === 'wave' && !r.st.pz && !r.st.ch && !r.st.tlock; i++) __T.tdStep(r.st, r.sim); __T.saveRun(); __T.render(); }"); pg.wait_for_timeout(150)
-    if not keep_card and pg.locator("[data-a=td-card]").count():
-        pg.click("[data-a=td-card]"); pg.click("[data-a=td-cardok]"); pg.wait_for_timeout(100)
+    if not keep_card and pg.locator("[data-a=td-skip]").count():
+        pg.click("[data-a=td-skip]"); pg.wait_for_timeout(100)
 def settings(pg):
     if not pg.locator(".setpop").count(): pg.click("header [data-a=settings]"); pg.wait_for_timeout(120)
 def close_settings(pg):
     if pg.locator(".setpop").count(): pg.click(".setpop [data-a=settings]"); pg.wait_for_timeout(120)
+def tdShort_ok(res):
+    import re
+    return bool(re.search(r"cards: (🪙|🕳️|❤️|⬆️|🎁|🐌|💨|🛡️|👥|💥)[^·]*(✓|✗)", res))
 def menu_free(pg):
     return pg.evaluate("""() => { const m = document.getElementById('tdMenu'); return m ? +m.getAttribute('data-cover') : -1; }""")
 with sync_playwright() as p:
@@ -146,9 +149,20 @@ with sync_playwright() as p:
     close_settings(t)
     t.click("[data-a=td-start]"); t.wait_for_timeout(200); end_wave(t, keep_card=True)
     s = st(t)
-    check(s["card"] and not s["card"]["open"] and "Bonus card!" in t.inner_text(".td-pause") and t.locator("[data-a=td-start]").is_disabled(), "wave 3 cleared: a bonus card first, face down; nothing starts until it's dealt with")
-    k = s["card"]["k"]; t.click("[data-a=td-card]"); t.wait_for_timeout(100)
-    check(st(t)["card"]["open"] and t.locator(".td-card b").count() == 1, "tap: it turns over (%s: %s)" % (k, t.inner_text(".td-card").replace("\n", " ")))
+    cd = s["card"]; faces = t.evaluate("[...document.querySelectorAll('.td-offer .td-card')].map(c => c.className + '|' + c.innerText.replace(/\\n/g, ' '))")
+    check(cd and cd["step"] == "offer" and cd["g"]["good"] and not cd["b"]["good"] and len(faces) == 2 and "good" in faces[0] and "bad" in faces[1], "wave 3 cleared (Normal: cards on): two cards face up, one good, one bad %s" % faces)
+    check(any(ch.isdigit() for ch in faces[0] + faces[1]) or cd["g"]["k"] in ("upall",) or cd["b"]["k"] in ("dbl",), "…with the real amounts on them %s" % faces)
+    check(t.locator("[data-a=td-take]").count() == 1 and t.locator("[data-a=td-skip]").count() == 1 and t.locator("[data-a=td-start]").is_disabled() and t.locator("header [data-a=pause]").count() == 0, "Take a chance / Skip; the offer counts as paused (no ❚❚, nothing starts)")
+    c0 = st(t); t.click("[data-a=td-take]"); t.wait_for_timeout(100)
+    check(st(t)["card"]["step"] == "pick" and "Shuffling" in t.inner_text(".td-pause") and t.locator("[data-a=td-pick][disabled]").count() == 2, "Take a chance: face down, shuffling, taps wait")
+    moved = t.evaluate("() => new Promise(ok => { let seen = false; const iv = setInterval(() => { if ([...document.querySelectorAll('#tdShuf .td-card')].some(c => c.style.transform)) seen = true; }, 40); setTimeout(() => { clearInterval(iv); ok(seen); }, 900); })")
+    t.wait_for_timeout(900)
+    check(moved and "Pick a card!" in t.inner_text(".td-pause") and t.locator("[data-a=td-pick]:not([disabled])").count() == 2, "…they swap places, then wait for a tap")
+    t.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(150)
+    s = st(t); got = s["card"]["g"] if s["card"]["gl"] else s["card"]["b"]
+    check(s["card"]["step"] == "done" and s["card"]["took"] == "L" and len(s["cardLog"]) == 1 and s["cardLog"][0]["k"] == got["k"] and t.locator(".td-card.got").count() == 1 and t.locator(".td-card.miss").count() == 1, "tap the left one: its effect (%s), and the other card shows too" % got["k"])
+    snap = json.dumps(st(t)); ev(t, "() => { const r = __T.UI.run; return __T.TYPES.td.act(r, 'td-pick', { getAttribute: () => 'R' }); }")
+    check(json.dumps(st(t)) == snap, "a second tap does nothing: applied once")
     t.click("[data-a=td-cardok]"); t.wait_for_timeout(100)
     s = st(t); pt = t.inner_text(".td-pause")
     check(s["pz"] == "limit" and s["cleared"] == 3 and "Time for some work!" in pt and t.locator(".td-pause [data-a=td-resume]").count() == 0, "wave 3 cleared at the limit: “Time for some work!”, no ▶ Resume")
@@ -170,41 +184,77 @@ with sync_playwright() as p:
     t.click("header [data-a=challenge]"); co = st(t)["coins"]; ev(t, "() => { __T.UI.run.st.pz = ''; }")
     t.click("[data-a=ch-mark][data-m=no]"); t.wait_for_timeout(100)
     s = st(t); check(len(s["chLog"]) == 2 and not s["chLog"][1]["ok"] and s["coins"] - co < 50, "Not yet: logged, no bonus")
-    # ---- 11b. bonus cards: each one's effect; next-wave cards change the wave; unlockable towers; the gold mine
+    # ---- 11b. bonus cards: defaults by difficulty; amounts by wave and difficulty; pairing; seed; each effect; the free tower
     end_wave(t)
     if st(t)["pz"]: t.click("[data-a=td-resume]")
-    ev(t, "() => { const r = __T.UI.run; r.st.towers = r.st.towers.map(() => null); r.st.towers[0] = { k:'basic', lv:1, spent:20 }; r.st.towers[1] = { k:'sniper', lv:3, spent:210 }; r.st.coins = 100; r.st.lives = 15; r.st.free = 0; r.st.mod = ''; __T.render(); }")
+    on = ev(t, """() => { const T = __T.TYPES.td, S = o => T.start({ options:o }); return [S({ diff:'easy' }), S({ diff:'normal' }), S({ diff:'hard' }), S({ diff:'easy', cardMode:'on' }), S({ diff:'normal', cardMode:'off' })].map(__T.tdCardsOn); }""")
+    check(on == [False, True, True, True, False], "Automatic: off on Easy, on for Normal and Hard; Sam's On / Off wins %s" % on)
+    pk = ev(t, """() => { const T = __T.TYPES.td, r = { st:T.start({ options:{ diff:'easy' } }), type:'td' }, A = (a, v) => T.act(r, a, { getAttribute: k => k === 'data-v' ? v : null });
+      const out = [__T.tdCardsOn(r.st)]; A('td-diff', 'hard'); out.push(__T.tdCardsOn(r.st)); A('td-diff', 'easy'); out.push(__T.tdCardsOn(r.st));
+      const r2 = { st:T.start({ options:{ diff:'easy', cardMode:'on' } }), type:'td' }; T.act(r2, 'td-diff', { getAttribute: () => 'normal' }); out.push(__T.tdCardsOn(r2.st));
+      const r3 = { st:T.start({ options:{ cardMode:'off' } }), type:'td' }; T.act(r3, 'td-diff', { getAttribute: () => 'hard' }); out.push(__T.tdCardsOn(r3.st)); return out; }""")
+    check(pk == [False, True, False, True, False], "the student picking the difficulty: the default follows it, unless Sam set it %s" % pk)
+    # amounts: grow with the wave (good and bad), tilt by difficulty
+    M = """([k, d, w, coins, lives]) => { const s = __T.tdClean({ diff:d, cleared:w, wave:w + 1, coins, lives, phase:'build', map:1 }); s.cleared = w; return __T.tdMakeCard(s, k, () => .3); }"""
+    def amt(k, d, w, coins=200, lives=10):
+        c = ev(t, M, [k, d, w, coins, lives]); return c["lv"] if k == "gift" else c["n"]
+    grow = {k: (amt(k, "normal", 3), amt(k, "normal", 18)) for k in ("coins", "tax", "lives", "gift")}
+    grow["coins0"] = (amt("coins", "normal", 3, 0), amt("coins", "normal", 18, 0)); grow["tax"] = (amt("tax", "normal", 3, 20), amt("tax", "normal", 18, 20))
+    check(all(b > a for a, b in grow.values()), "cards grow with the wave, good and bad alike (wave 3 → 18) %s" % grow)
+    check(amt("coins", "normal", 3, 0) > 0 and amt("coins", "normal", 6, 1000) == 120, "coins: a share of the coins now (12%% of 1000 on Normal), never nothing (0 coins still gets %d)" % amt("coins", "normal", 3, 0))
+    tilt = {k: [amt(k, d, 12) for d in ("easy", "normal", "hard")] for k in ("coins", "lives", "gift", "tax", "tough", "fast", "dbl", "slow")}
+    check(tilt["coins"][0] > tilt["coins"][1] > tilt["coins"][2] and tilt["lives"][0] > tilt["lives"][1] > tilt["lives"][2] and tilt["gift"][0] >= tilt["gift"][1] >= tilt["gift"][2]
+          and tilt["tax"][0] < tilt["tax"][1] < tilt["tax"][2] and tilt["tough"][0] < tilt["tough"][1] < tilt["tough"][2] and tilt["fast"][0] < tilt["fast"][1] < tilt["fast"][2] and tilt["dbl"][0] < tilt["dbl"][1] < tilt["dbl"][2] and tilt["slow"][0] < tilt["slow"][1] < tilt["slow"][2],
+          "same wave, Easy → Hard: good cards shrink, bad cards grow %s" % tilt)
+    # lose a tower: a random one early, a best one from wave 10
+    LOSE = """([w, seed]) => { const s = __T.tdClean({ diff:'normal', map:1, coins:50, lives:10 }); s.cleared = w; s.towers[2] = { k:'basic', lv:1, spent:20 }; s.towers[5] = { k:'sniper', lv:3, spent:210 }; s.towers[7] = { k:'basic', lv:2, spent:50 }; let r = seed; return __T.tdMakeCard(s, 'lose', () => (r = (r * 9301 + 49297) % 233280) / 233280).s; }"""
+    early = set(ev(t, LOSE, [6, x]) for x in range(1, 30)); late = set(ev(t, LOSE, [10, x]) for x in range(1, 30))
+    check(late == {5} and len(early) > 1 and early <= {2, 5, 7}, "💥 lose a tower: a random one before wave 10 %s, the best (the level-3 Sniper) from wave 10 %s" % (sorted(early), sorted(late)))
+    # pairing
+    PAIR = """([lives, coins, tw]) => { const out = new Set(); for (let sd = 1; sd < 400; sd++){ const s = __T.tdClean({ diff:'normal', map:1, coins, lives, seed:sd }); s.cleared = 6; if (tw) s.towers[0] = { k:'basic', lv:1, spent:20 }; const o = __T.tdOffer(s); out.add(o.g.k); out.add(o.b.k); } return [...out]; }"""
+    p1 = ev(t, PAIR, [20, 0, False]); p2 = ev(t, PAIR, [10, 100, True])
+    check("lives" not in p1 and "lose" not in p1 and "tax" not in p1 and "upall" not in p1 and {"lives", "lose", "tax", "upall"} <= set(p2), "pairing: no lives at 20, no lose-a-tower without towers, no lose-coins at 0, no power-up with nothing to power %s / %s" % (sorted(p1), sorted(p2)))
+    # same seed + same tap = same result; the other side = the other card
+    SAME = """side => { const s = JSON.parse(JSON.stringify(__T.UI.run.st)); s.cleared = 9; s.card = __T.tdOffer(s); s.card.step = 'pick'; __T.tdCardDo(s, side); return JSON.stringify(s); }"""
+    a1, a2, b1 = ev(t, SAME, "L"), ev(t, SAME, "L"), ev(t, SAME, "R")
+    check(a1 == a2 and a1 != b1 and json.loads(a1)["cardLog"][-1]["good"] != json.loads(b1)["cardLog"][-1]["good"], "same seed + same tap = the same result; the other side gives the other card")
+    # Skip applies nothing
+    ev(t, "() => { const r = __T.UI.run; r.st.cleared = 9; r.st.card = __T.tdOffer(r.st); __T.render(); }"); before = st(t)
+    t.click("[data-a=td-skip]"); t.wait_for_timeout(100); after = st(t)
+    check(after["card"] is None and after["cardLog"][-1] == {"skip":True} and all(after[k] == before[k] for k in ("coins", "lives", "towers", "mod", "gift")), "Skip: both cards go, nothing happens")
+    # each effect
+    ev(t, "() => { const r = __T.UI.run; r.st.towers = r.st.towers.map(() => null); r.st.towers[0] = { k:'basic', lv:1, spent:20 }; r.st.towers[1] = { k:'sniper', lv:3, spent:210 }; r.st.coins = 100; r.st.lives = 15; r.st.gift = null; r.st.mod = ''; r.st.cleared = 12; __T.render(); }")
     def card(k):
-        ev(t, "k => { __T.UI.run.st.card = { k, open:false }; __T.render(); }", k); t.click("[data-a=td-card]"); t.wait_for_timeout(80)
-        txt = t.inner_text(".td-card"); t.click("[data-a=td-cardok]"); t.wait_for_timeout(80); return txt
-    card("upall"); s = st(t); check(s["towers"][0]["lv"] == 2 and s["towers"][1]["lv"] == 3, "⬆ Power up: every tower up a level (level 3 stays 3)")
-    card("coins"); check(st(t)["coins"] == 160, "🪙 Treasure: +60 coins")
-    card("tax"); check(st(t)["coins"] == 120, "🕳 Lose 40 coins")
-    card("lives"); check(st(t)["lives"] == 18, "❤ +3 lives")
-    card("lives"); card("lives"); check(st(t)["lives"] == 20, "…never above 20")
-    txt = card("free"); check(st(t)["free"] == 1 and "Next tower free" in t.inner_text(".td-side"), "🎁 A free tower: shown in the side panel")
-    tap_slot(t, 2); check("Free" in t.inner_text("#tdMenu"), "the build menu says Free")
-    t.click("#tdMenu [data-a=td-build][data-k=sniper]"); t.wait_for_timeout(80)
-    s = st(t); check(s["towers"][2] == {"k":"sniper", "lv":1, "spent":0} and s["coins"] == 120 and s["free"] == 0, "the next tower costs nothing (and sells for nothing)")
+        ev(t, """k => { const s = __T.UI.run.st, c = __T.tdMakeCard(s, k, () => 0), o = __T.tdOffer(s); if (c.good) o.g = c; else o.b = c; o.gl = c.good; o.step = 'pick'; s.card = o; __T.render(); }""", k)
+        t.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(80); txt = t.inner_text(".td-card.got"); t.click("[data-a=td-cardok]"); t.wait_for_timeout(80); return txt
+    txt = card("upall"); s = st(t); check(s["towers"][0]["lv"] == 2 and s["towers"][1]["lv"] == 3, "⬆ Power up (Normal: up to level 2): %s" % txt.replace("\n", " "))
+    txt = card("coins"); check(st(t)["coins"] > 100 and str(st(t)["coins"] - 100) in txt, "🪙 coins: %s" % txt.replace("\n", " "))
+    c1 = st(t)["coins"]; txt = card("tax"); check(st(t)["coins"] < c1 and str(c1 - st(t)["coins"]) in txt, "🕳 lose coins: %s" % txt.replace("\n", " "))
+    txt = card("lives"); check(st(t)["lives"] == 18 and "+3 lives" in txt, "❤ lives (+3 at wave 12 on Normal)")
+    txt = card("gift"); s = st(t)
+    check(s["gift"] and "A free" in t.inner_text(".td-side"), "🎁 a free tower: %s; the side panel says so" % txt.replace("\n", " "))
+    free = s["towers"].index(None); tap_slot(t, free); check(t.locator("#tdMenu [data-a=td-gift]").count() == 1, "the build menu offers it first")
+    g = s["gift"]; t.click("#tdMenu [data-a=td-gift]"); t.wait_for_timeout(80)
+    s = st(t); check(s["towers"][free] == {"k":g["k"], "lv":g["lv"], "spent":0} and s["gift"] is None and s["coins"] == st(t)["coins"], "placed for nothing (and sells for nothing)")
     settings(t); t.click(".setpop [data-a=undo]"); t.wait_for_timeout(100)
-    check(st(t)["towers"][2] is None and st(t)["free"] == 1, "undo gives the free tower back"); build(t, 2, "basic")
+    check(st(t)["towers"][free] is None and st(t)["gift"] == g, "undo gives the free tower back")
     n0 = sum(1 for x in st(t)["towers"] if x); txt = card("lose"); s = st(t)
-    check(sum(1 for x in s["towers"] if x) == n0 - 1 and "knocked down" in txt, "💥 Oh no: one tower is knocked down (%s)" % txt.replace("\n", " "))
+    check(sum(1 for x in s["towers"] if x) == n0 - 1 and s["towers"][1] is None and "Sniper" in txt, "💥 lose a tower: the best one at wave 12 (%s)" % txt.replace("\n", " "))
     w = st(t)["wave"]
     base = ev(t, "w => __T.tdWave(w, __T.UI.run.st.diff, '')", w)
     for k, test, msg in (("dbl", lambda L: len(L) == 2 * len([e for e in base if e["k"] != "b"]) + len([e for e in base if e["k"] == "b"]), "👥 Double trouble: twice the enemies"),
-                         ("tough", lambda L: L[0]["hp"] > base[0]["hp"] * 1.4, "🛡 Armour up: tougher"),
+                         ("tough", lambda L: L[0]["hp"] > base[0]["hp"] * 1.3, "🛡 Armour up: tougher"),
                          ("fast", lambda L: L[0]["spm"] == 1.3, "💨 Speedy: faster"), ("slow", lambda L: L[0]["spm"] == .75, "🐌 Sleepy: slower")):
-        card(k); s = st(t); L = ev(t, "() => { const s = __T.UI.run.st; return __T.tdWave(s.wave, s.diff, s.mod); }")
+        card(k); s = st(t); L = ev(t, "() => { const s = __T.UI.run.st; return __T.tdWave(s.wave, s.diff, s.mod, s.modv); }")
         check(s["mod"] == k and test(L), msg + " next wave (and it says so: %s)" % t.inner_text("#tdNext"))
     t.click("[data-a=td-start]"); t.wait_for_timeout(200); end_wave(t)
     check(st(t)["mod"] == "", "…for one wave only")
     if st(t)["pz"]: t.click("[data-a=td-resume]")
     d1 = ev(t, "() => { const s = __T.UI.run.st, x = JSON.parse(JSON.stringify(s)); x.card = null; x.cleared = 5; x.phase = 'wave'; x.wave = 6; x.towers = x.towers.map(() => null); const m = __T.tdNewSim(x); for (let i = 0; i < 99999 && x.phase === 'wave'; i++){ x.lives = 20; __T.tdStep(x, m); } return x.card; }")
     d2 = ev(t, "() => { const s = __T.UI.run.st, x = JSON.parse(JSON.stringify(s)); x.card = null; x.cleared = 5; x.phase = 'wave'; x.wave = 6; x.towers = x.towers.map(() => null); const m = __T.tdNewSim(x); for (let i = 0; i < 99999 && x.phase === 'wave'; i++){ x.lives = 20; __T.tdStep(x, m); } return x.card; }")
-    check(d1 and d1 == d2 and not d1["open"], "a card comes after wave 6 too, and the same game draws the same card (%s)" % d1)
+    check(d1 and d1 == d2 and d1["step"] == "offer", "an offer comes after wave 6 too, and the same game makes the same offer")
     # unlockable towers
-    ev(t, "() => { const r = __T.UI.run; r.st.cleared = 4; r.st.coins = 1000; r.st.free = 0; __T.render(); }")
+    ev(t, "() => { const r = __T.UI.run; r.st.cleared = 4; r.st.coins = 1000; r.st.gift = null; __T.render(); }")
     free = st(t)["towers"].index(None); tap_slot(t, free)
     locks = t.evaluate("[...document.querySelectorAll('#tdMenu .td-b.lock')].map(b => b.getAttribute('data-k') + ' ' + b.textContent)")
     check(len(locks) == 3 and "lightning 🔒wave 6" in locks and t.locator("#tdMenu [data-a=td-build]").count() == 4, "after 4 waves: three towers locked, showing when they open %s" % locks)
@@ -224,9 +274,9 @@ with sync_playwright() as p:
     c0 = st(t)["coins"]; w = st(t)["wave"]
     t.click("[data-a=td-start]"); t.wait_for_timeout(1200)
     t.screenshot(path=os.path.join(HERE, "shots", "td-new-towers.png"))
-    end_wave(t, keep_card=True); s = st(t)
+    ev(t, "() => { const r = __T.UI.run; for (let i = 0; i < 40000 && r.st.phase === 'wave'; i++){ r.st.lives = 20; __T.tdStep(r.st, r.sim); } __T.saveRun(); __T.render(); }"); t.wait_for_timeout(150); s = st(t)
     check(s["mined"] == 25 and "Gold mines: +25" in t.inner_text(".td-pause"), "💰 Gold mine level 2: +25 coins after the wave, said on the break screen")
-    if s["card"]: t.click("[data-a=td-card]"); t.click("[data-a=td-cardok]")
+    if s["card"]: t.click("[data-a=td-skip]")
     if st(t)["pz"]: t.click("[data-a=td-resume]")
     # the teacher can turn the cards off
     settings(t); t.click(".setpop [data-a=td-cards]"); t.wait_for_timeout(100); close_settings(t)
@@ -262,7 +312,7 @@ with sync_playwright() as p:
     kept = ev(t, "() => __T.STUDENTS['lily'].paused.td")
     check(kept and kept["st"]["phase"] == "build" and kept["st"]["wave"] == s["wave"] and kept["st"]["lives"] == ws["lives"] and kept["st"]["coins"] == ws["coins"] and kept["st"]["towers"] == s["towers"], "Finish later mid-wave: kept at the start of wave %d (lives, coins then), towers as now" % s["wave"])
     res = t.input_value("#res")
-    check(res.startswith("Tower Defence (Normal, map 2) (continued, not finished): waves 1–%d this lesson" % s["wave"]) and "lives left" in res and "challenges:" in res and "✓" in res and "Stopped" not in res, "partial result: %s" % res)
+    check(res.startswith("Tower Defence (Normal, map 2) (continued, not finished): waves 1–%d this lesson" % s["wave"]) and "lives left" in res and "challenges:" in res and "✓" in res and "Stopped" not in res and "cards: " in res and "skipped" in res, "partial result: %s" % res)
     rows = ev(t, "() => __T.RESULTS.filter(r => r.type === 'td')")
     check(len(rows) == 1 and rows[0]["partial"] is True, "saved as a result marked partial")
     # ---- 14. next lesson: Continue restores it exactly; then the final result
@@ -293,6 +343,39 @@ with sync_playwright() as p:
     res = t.input_value("#res")
     check(res.startswith("Tower Defence (Normal, map 2): Game over at wave 5 · waves 1–5 this lesson, 0 lives left, 0 towers"), "final result: %s" % res)
     check(ev(t, "() => __T.RESULTS.filter(r => r.type === 'td').every(r => (r.points || 0) === 0)"), "no lesson points (a break game)")
+    # ---- 16. a card offer survives pausing, ‹ / ▶ Resume and Finish later → Continue, at every step, with no redraw
+    t.click("[data-a=backlesson]"); t.wait_for_timeout(200)
+    t.click("[data-a=play][data-g=td2]"); t.wait_for_selector("#tdCv")
+    ev(t, "() => { const r = __T.UI.run; r.st.towers[0] = { k:'basic', lv:2, spent:50 }; r.st.cleared = 6; r.st.wave = 7; r.st.coins = 300; r.st.card = __T.tdOffer(r.st); __T.saveRun(); __T.render(); }"); t.wait_for_timeout(150)
+    card0 = st(t)["card"]
+    def same(msg, step):
+        c = st(t)["card"]; check(c and c["g"] == card0["g"] and c["b"] == card0["b"] and c["gl"] == card0["gl"] and c["step"] == step and t.locator(".td-offer").count() == 1, msg)
+    ev(t, "() => { Object.defineProperty(document, 'hidden', { get: () => true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); }"); t.wait_for_timeout(150)
+    same("offer: tab hidden and back, the same two cards and amounts", "offer")
+    t.click("header [data-a=lesson]"); t.wait_for_timeout(200); t.click("[data-a=play-resume][data-k='lily-lp7|td2']"); t.wait_for_selector("#tdCv")
+    same("offer: ‹ then ▶ Resume, the same", "offer")
+    t.click("header [data-a=finish-ask]"); t.click("[data-a=fl-later]"); t.wait_for_timeout(500)
+    t.click("[data-a=backlesson]"); t.wait_for_timeout(200); t.click("[data-a=home]"); go_lesson(t, "Lily · LP8"); t.wait_for_timeout(300)
+    t.click(".flbar [data-a=fl-cont][data-t=td]"); t.wait_for_selector("#tdCv")
+    same("offer: Finish later → Continue, the same offer (no redraw)", "offer")
+    t.click("[data-a=td-take]"); t.wait_for_timeout(100); t.click("header [data-a=lesson]"); t.wait_for_timeout(200)
+    t.click("[data-a=play-resume]"); t.wait_for_selector("#tdCv")
+    same("face down after the shuffle: ‹ then ▶ Resume, still face down, the same cards (no shuffle again)", "pick")
+    check(t.locator("[data-a=td-pick]:not([disabled])").count() == 2, "…and ready to tap")
+    t.click("header [data-a=finish-ask]"); t.click("[data-a=fl-later]"); t.wait_for_timeout(500)
+    t.click("[data-a=backlesson]"); t.wait_for_timeout(200)
+    t.click(".flbar [data-a=fl-cont][data-t=td]"); t.wait_for_selector("#tdCv")
+    same("face down: Finish later → Continue, the same", "pick")
+    c0 = st(t)["coins"]; t.click("[data-a=td-pick][data-v=R]"); t.wait_for_timeout(150)
+    got = card0["b"] if card0["gl"] else card0["g"]; s = st(t)
+    check(s["card"]["step"] == "done" and s["cardLog"][-1]["k"] == got["k"], "tap: the right-hand card (%s), as the seed placed it" % got["k"])
+    t.click("header [data-a=finish-ask]"); t.click("[data-a=fl-later]"); t.wait_for_timeout(500)
+    kept = ev(t, "() => __T.STUDENTS['lily'].paused.td.st")
+    check(kept["card"] is None, "Finish later after the tap: kept with the card done (its effect stays, nothing to apply again)")
+    res = t.input_value("#res"); check("cards: " in res and tdShort_ok(res), "results list the card: %s" % res)
+    t.click("[data-a=backlesson]"); t.wait_for_timeout(200)
+    t.click(".flbar [data-a=fl-cont][data-t=td]"); t.wait_for_selector("#tdCv"); c = st(t)
+    check(c["card"] is None and c["coins"] == kept["coins"] and c["towers"] == kept["towers"] and c["lives"] == kept["lives"] and c["mod"] == kept["mod"] and c["cardLog"] == [], "Continue after that: no card, the effect still there, not applied twice")
     check(not errs, "no page errors %s" % errs[:3])
     ctx.close()
     # =============== LIVE: the student plays on their own screen; the teacher's screen shows the status ===============
@@ -361,11 +444,22 @@ with sync_playwright() as p:
     check(t.locator("header .ro").count() == 0, "teacher's header buttons (‹ ❚❚ ⚙ ✕) all work while watching")
     t.click("header [data-a=settings]"); t.click(".setpop [data-a=undo]"); s.wait_for_timeout(800)
     check(st(s)["towers"][2] is None and st(s)["coins"] == c2 + 35, "teacher's ⚙ Undo: the student's last build is taken back")
+    # bonus cards: on the student's screen only; the teacher's status follows
+    ev(s, "() => { const r = __T.UI.run; r.st.cleared = 6; r.st.card = __T.tdOffer(r.st); __T.saveRun(); __T.render(); }"); t.wait_for_timeout(800)
+    check("Bonus card: choosing…" in t.inner_text(".td-stline") and t.locator(".td-offer, .td-card").count() == 0, "student offered cards: the teacher sees “Bonus card: choosing…”, no cards")
+    s.click("[data-a=td-take]"); s.wait_for_timeout(1700); s.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(800)
+    sc = st(s)["card"]; got = sc["g"] if sc["gl"] else sc["b"]
+    check(t.inner_text(".td-stline").startswith("Bonus card: took a chance: ") and ("✓" if got["good"] else "✗") in t.inner_text(".td-stline"), "…then the result: %s" % t.inner_text(".td-stline"))
+    s.click("[data-a=td-cardok]"); t.wait_for_timeout(700)
+    check("Last bonus card: took a chance" in t.inner_text(".td-status"), "after OK: “Last bonus card: …” stays on the status screen")
+    ev(s, "() => { const r = __T.UI.run; r.st.cleared = 9; r.st.card = __T.tdOffer(r.st); __T.saveRun(); __T.render(); }"); s.wait_for_timeout(300)
+    s.click("[data-a=td-skip]"); t.wait_for_timeout(700)
+    check("Last bonus card: skipped" in t.inner_text(".td-status"), "Skip: “skipped”")
     errs_live = [e for e in errs]
     check(not errs_live, "no page errors %s" % errs_live[:3])
     ctx.close()
     # =============== SCREEN FIT ===============
-    for name, w, h in [("ipad", 1180, 820), ("desktop", 1440, 860), ("phonel", 844, 390)]:
+    for name, w, h in [("ipad", 1180, 820), ("ipad10", 1024, 768), ("desktop", 1440, 860), ("phonel", 844, 390)]:
         ctx = b.new_context(viewport={"width":w, "height":h}, has_touch=name.startswith("phone")); errs = []
         t = teacher(ctx, seed_db([pack1]), errs); go_lesson(t, "Lily · LP7"); t.wait_for_timeout(300)
         t.click("[data-a=play][data-g=td1]"); t.wait_for_selector(".td-setup"); fits = []
@@ -376,11 +470,17 @@ with sync_playwright() as p:
         t.click("#tdMenu [data-a=td-build][data-k=basic]"); t.click("[data-a=td-start]"); t.wait_for_timeout(1500)
         fits.append(("wave", overflow(t))); t.screenshot(path=os.path.join(HERE, "shots", "td-%s-wave.png" % name))
         t.click("header [data-a=pause]"); fits.append(("pause", overflow(t)))
+        t.click("[data-a=td-resume]"); ev(t, "() => { const r = __T.UI.run; for (let i = 0; i < 40000 && r.st.phase === 'wave'; i++){ r.st.lives = 20; __T.tdStep(r.st, r.sim); } r.st.pz = ''; r.st.cleared = 12; r.st.towers[3] = { k:'sniper', lv:2, spent:115 }; r.st.lives = 12; r.st.card = __T.tdOffer(r.st); __T.render(); }"); t.wait_for_timeout(200)
+        inside = t.evaluate("(() => { const m = document.getElementById('tdMap').getBoundingClientRect(); return [...document.querySelectorAll('.td-offer > *')].every(e => { const r = e.getBoundingClientRect(); return r.top >= m.top - 1 && r.bottom <= m.bottom + 1 && r.left >= m.left - 1 && r.right <= m.right + 1; }); })()")
+        fits.append(("card offer", overflow(t) + ([] if inside else ["card screen spills out of the map"]))); t.screenshot(path=os.path.join(HERE, "shots", "td-%s-cards.png" % name))
+        t.click("[data-a=td-take]"); t.wait_for_timeout(1700); t.click("[data-a=td-pick][data-v=R]"); t.wait_for_timeout(150)
+        inside = t.evaluate("(() => { const m = document.getElementById('tdMap').getBoundingClientRect(); return [...document.querySelectorAll('.td-offer > *')].every(e => { const r = e.getBoundingClientRect(); return r.top >= m.top - 1 && r.bottom <= m.bottom + 1; }); })()")
+        fits.append(("card result", overflow(t) + ([] if inside else ["card screen spills out of the map"])))
         zoom = t.evaluate("document.querySelector('main.stage').style.zoom || '1'")
         bad = [f for f in fits if f[1]]
         if name.startswith("phone"): print(("PASS " if not bad else "NOTE ") + "%s: Tower Defence fits (zoom %s) %s" % (name, zoom, bad))
         else:
-            check(not bad and zoom in ("", "1"), "%s: setup, map + build menu, wave and pause fit without scrolling or zoom %s" % (name, bad))
+            check(not bad and zoom in ("", "1"), "%s: setup, map + build menu, wave, pause and the card screens fit without scrolling or zoom %s" % (name, bad))
             check(side[0] <= side[1] and side[2] <= side[3], "%s: the whole map and the side panel side by side (%s)" % (name, side))
         check(not errs, "%s no page errors %s" % (name, errs[:2]))
         ctx.close()

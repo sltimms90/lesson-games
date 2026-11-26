@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-4WVrxru8fQkw77TQY/oDbF0O09b9hnpUIvNzxtz85Ug='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-GD+SD7aMdQuJl5mHBiu+fW5dQNRfnOH6ecuaH8uK7QE='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -1008,12 +1008,21 @@ button.bs-c:hover{box-shadow:inset 0 0 0 2px var(--c-battleships)}
 .td-menu.g2{display:grid;grid-template-columns:repeat(2,auto)}
 .td-menu.g4{display:grid;grid-template-columns:repeat(4,auto)}
 .td-b.lock small{font-size:11px}
+.td-cards{display:flex;gap:16px;justify-content:center;align-items:stretch;max-width:100%}
+.td-offer .td-card{width:min(200px,38%);margin:0}
+.td-offer h2{font-size:clamp(22px,3.4vw,40px)}
+.td-cards.shuf .td-card{transition:transform .14s ease-in-out}
+.td-card.got{outline:4px solid #FFD43B;outline-offset:3px}
+@media (max-height:520px){.td-offer{gap:4px;padding:6px}.td-offer>p{font-size:14px}.td-offer h2{font-size:20px}.td-offer .td-card{padding:6px 8px;gap:2px;border-width:3px}.td-offer .td-card .ci{font-size:22px}.td-offer .td-card b{font-size:15px}.td-offer .td-card.back{min-height:84px;font-size:30px}.td-offer .big-btn{min-width:0;min-height:44px;font-size:17px;padding:8px 14px}}
+.td-card.miss{opacity:.6;transform:scale(.92)}
+.td-card.good{border-color:#3DD16B}
 .td-card{width:min(260px,70%);border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;color:#1C2445;border:4px solid #F5C518;box-shadow:0 6px 20px rgba(0,0,0,.4)}
-.td-card.back{background:repeating-linear-gradient(45deg,#3C8D2F 0 12px,#4FA53F 12px 24px);color:#fff;border-color:#fff;cursor:pointer;min-height:150px;justify-content:center;font:800 22px/1.2 "Baloo 2",sans-serif}
+.td-card.back{background:repeating-linear-gradient(45deg,#3C8D2F 0 12px,#4FA53F 12px 24px);color:#fff;border-color:#fff;cursor:pointer;min-height:clamp(110px,22vh,170px);justify-content:center;font:800 44px/1 "Baloo 2",sans-serif}
+.td-card.back:disabled{cursor:default}
 .td-card.bad{border-color:#E04848}
-.td-card .ci{font-size:44px;line-height:1}
-.td-card b{font:800 24px/1.1 "Baloo 2",sans-serif}
-.td-card p{color:#1C2445 !important;font-size:16px !important}
+.td-card .ci{font-size:clamp(28px,4vw,44px);line-height:1}
+.td-card b{font:800 clamp(17px,2.2vw,24px)/1.1 "Baloo 2",sans-serif}
+.td-card p{color:#1C2445 !important;font-size:clamp(13px,1.5vw,16px) !important;margin:0 !important}
 .td-badge{margin:0;text-align:center;font-weight:700;font-size:15px;color:var(--ok)}
 .td-menu.tw.row{flex-direction:row;align-items:center;min-width:0}
 .td-mh{font:700 15px/1.2 "Baloo 2",sans-serif;text-align:center;padding:2px 4px;white-space:nowrap}
@@ -5207,48 +5216,105 @@ var TD_TW = {
 };
 var TD_KINDS = ["basic", "splash", "freeze", "sniper", "lightning", "mine", "laser"];
 var TD_COL = { basic:"#2F6FD6", splash:"#E07A1F", freeze:"#1FA8D6", sniper:"#7B4BC4", lightning:"#D9A900", mine:"#B8860B", laser:"#E0306A" };
-/* Bonus cards, every 3 waves cleared: good or bad (bad ones more often on harder modes). Next-wave cards set st.mod. */
+/* ---------- Bonus cards ----------
+   Every 3 waves cleared the student is offered two cards face up, one good and one bad, with their amounts. Skip: nothing
+   happens. Take a chance: they turn face down and shuffle, the student taps one and gets it (and sees the other).
+   Both cards, their amounts and which side each ends up on are worked out once, from the game's seed, when the offer is
+   made (st.card), so pausing, ‹ / ▶ Resume and Finish later → Continue bring back the same cards.
+   TD_CARDTAB holds every number, by card and difficulty: the wave sets how big the cards are (good and bad alike), the
+   difficulty how fair the gamble is (Easy tilted towards the student, Normal even, Hard against). Tune here. */
+var TD_CARDSTEP = [5, 10, 15];        /* waves cleared at which cards step up a size */
+var TD_CARDMUL = [1, 1.4, 1.8, 2.2];  /* size at each step (for the cards that don't grow by themselves) */
+var TD_CARDTAB = {
+  /* good */
+  coins: { easy:{ pct:.25, waveMin:.6 }, normal:{ pct:.12, waveMin:.4 }, hard:{ pct:.1, waveMin:.25 } },     /* a share of the coins now; at least waveMin × what the last wave paid */
+  gift:  { easy:{ lv:[1,2,2,3] }, normal:{ lv:[1,1,1,2] }, hard:{ lv:[1,1,1,1], kind:"basic" } },          /* a free tower; level by step; the newest attacking tower unlocked (or kind) */
+  lives: { easy:{ n:[3,3,4,5] }, normal:{ n:[2,2,3,3] }, hard:{ n:[1,1,2,2] } },                            /* by step (never above 20) */
+  upall: { easy:{ max:3 }, normal:{ max:2 }, hard:{ max:2 } },                                                /* every tower below max goes up a level */
+  slow:  { easy:{ f:.6 }, normal:{ f:.75 }, hard:{ f:.9 } },                                                  /* next wave's speed × f */
+  /* bad */
+  tax:   { easy:{ pct:.1, min:4 }, normal:{ pct:.2, min:8 }, hard:{ pct:.4, min:15 } },                      /* a share of the coins now; at least min × size */
+  lose:  { easy:{ bestFrom:99 }, normal:{ bestFrom:10 }, hard:{ bestFrom:5 } },                                /* a random tower; from bestFrom waves cleared, the best one */
+  dbl:   { easy:{ hp:.7 }, normal:{ hp:.85 }, hard:{ hp:1.4 } },                                               /* twice the enemies next wave, each with hp × their health */
+  fast:  { easy:{ f:1.2 }, normal:{ f:1.3 }, hard:{ f:1.6 } },                                                /* next wave's speed × f */
+  tough: { easy:{ f:1.25 }, normal:{ f:1.35 }, hard:{ f:2 } }                                                /* next wave's health × f */
+};
 var TD_CARDS = {
-  free:{ good:true, icon:"🎁", t:"A free tower!", d:"Your next tower costs nothing." },
-  upall:{ good:true, icon:"⬆️", t:"Power up!", d:"Every tower goes up a level." },
-  coins:{ good:true, icon:"🪙", t:"Treasure!", d:"+60 coins." },
-  lives:{ good:true, icon:"❤️", t:"Repairs!", d:"+3 lives (up to 20)." },
-  slow:{ good:true, icon:"🐌", t:"Sleepy enemies", d:"The next wave is slower." },
-  lose:{ good:false, icon:"💥", t:"Oh no!", d:"One of your towers is knocked down." },
-  dbl:{ good:false, icon:"👥", t:"Double trouble", d:"Twice as many enemies next wave." },
-  fast:{ good:false, icon:"💨", t:"Speedy enemies", d:"The next wave is faster." },
-  tough:{ good:false, icon:"🛡️", t:"Armour up", d:"The next wave is tougher." },
-  tax:{ good:false, icon:"🕳️", t:"Hole in your pocket", d:"Lose 40 coins." }
+  coins:{ good:true, icon:"🪙", t:"Treasure!" }, gift:{ good:true, icon:"🎁", t:"A free tower!" }, lives:{ good:true, icon:"❤️", t:"Repairs!" },
+  upall:{ good:true, icon:"⬆️", t:"Power up!" }, slow:{ good:true, icon:"🐌", t:"Sleepy enemies" },
+  tax:{ good:false, icon:"🕳️", t:"Hole in your pocket" }, lose:{ good:false, icon:"💥", t:"Oh no!" }, dbl:{ good:false, icon:"👥", t:"Double trouble" },
+  fast:{ good:false, icon:"💨", t:"Speedy enemies" }, tough:{ good:false, icon:"🛡️", t:"Armour up" }
 };
 var TD_MODS = ["", "slow", "dbl", "fast", "tough"];
 function tdUnlocked(s, k){ return (s.cleared || 0) >= (TD_TW[k].unlock || 0); }
 function tdRand(seed){ var a = seed >>> 0; return function(){ a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-function tdDraw1(s){
-  var r = tdRand((s.seed | 0) ^ Math.imul(s.cleared + 1, 2654435761)), bad = r() < ({ easy:.35, normal:.45, hard:.55 }[s.diff] || .45);
-  var ks = Object.keys(TD_CARDS).filter(function(k){ return TD_CARDS[k].good !== bad; });
-  return ks[Math.floor(r() * ks.length)];
+/* Cards on: Sam's own setting, else by difficulty (off on Easy). */
+function tdCardsOn(s){ return s.cards === true || (s.cards !== false && s.diff !== "easy"); }
+function tdCardStep(w){ var n = 0; TD_CARDSTEP.forEach(function(x){ if(w >= x) n++; }); return n; }
+function tdWaveIncome(w, diff){ return tdWave(w, diff, "", 1).reduce(function(a, e){ return a + e.rew; }, 0) + tdBonus(w, diff); }
+function tdGiftKind(s){ return tdUnlocked(s, "laser") ? "laser" : tdUnlocked(s, "lightning") ? "lightning" : "basic"; }
+/* One card of kind k for this moment, with its amount (r: the offer's random numbers, for "lose a tower"). */
+function tdMakeCard(s, k, r){
+  var d = tdHas(TD_DIFF, s.diff) ? s.diff : "normal", w = s.cleared, step = tdCardStep(w), mul = TD_CARDMUL[step], T = TD_CARDTAB[k][d], c = { k:k, good:TD_CARDS[k].good, n:0, kk:"", lv:0, s:-1 };
+  var built = []; (s.towers || []).forEach(function(t, i){ if(t) built.push(i); });
+  if(k === "coins") c.n = Math.max(1, Math.round(s.coins * T.pct), Math.round(tdWaveIncome(Math.max(1, w), d) * T.waveMin));
+  else if(k === "tax") c.n = Math.min(s.coins, Math.max(Math.round(s.coins * T.pct), Math.round(T.min * mul)));
+  else if(k === "lives") c.n = Math.min(20 - s.lives, T.n[step]);
+  else if(k === "gift"){ c.kk = T.kind || tdGiftKind(s); c.lv = T.lv[step]; }
+  else if(k === "upall") c.n = T.max;
+  else if(k === "slow" || k === "fast" || k === "tough") c.n = Math.round(T.f * 100);
+  else if(k === "dbl") c.n = Math.round(T.hp * 100);
+  else if(k === "lose" && built.length){
+    var i = built[Math.floor((r || Math.random)() * built.length)];
+    if(w >= T.bestFrom) i = built.slice().sort(function(x, y){ var a = s.towers[x], b = s.towers[y]; return b.lv - a.lv || b.spent - a.spent || x - y; })[0];
+    c.s = i; c.kk = s.towers[i].k; c.lv = s.towers[i].lv;
+  }
+  return c;
 }
-/* Turning a card over: its effect, once. */
-function tdCardApply(s){
-  var c = s.card; if(!c || c.open || !tdHas(TD_CARDS, c.k)) return;
-  c.open = true; s.acts = [];
-  var k = c.k, built = [];
-  (s.towers || []).forEach(function(t, i){ if(t) built.push(i); });
-  if(k === "lose" && !built.length) k = c.k = "tax";
-  if(k === "free") s.free = Math.min(5, (s.free || 0) + 1);
-  else if(k === "upall") s.towers.forEach(function(t){ if(t && t.lv < 3) t.lv++; });
-  else if(k === "coins") s.coins += 60;
-  else if(k === "lives") s.lives = Math.min(20, s.lives + 3);
-  else if(k === "tax") s.coins = Math.max(0, s.coins - 40);
-  else if(k === "lose"){ var i = built[Math.floor(tdRand((s.seed | 0) + s.cleared * 7919)() * built.length)]; c.lost = s.towers[i].k; s.towers[i] = null; if(TD_SEL === i) TD_SEL = -1; }
-  else s.mod = k;
+/* The offer: one good and one bad card that make sense now (no lives at 20, no "lose a tower" with none, no "lose
+   coins" at 0 coins…), with their amounts, and which side the good one ends up on after the shuffle. */
+function tdOffer(s){
+  var r = tdRand((s.seed | 0) ^ Math.imul(s.cleared + 1, 2654435761)), d = tdHas(TD_DIFF, s.diff) ? s.diff : "normal";
+  var goods = ["coins", "gift", "lives", "upall", "slow"].filter(function(k){ return !(k === "lives" && s.lives >= 20) && !(k === "upall" && !(s.towers || []).some(function(t){ return t && t.lv < TD_CARDTAB.upall[d].max; })) && !(k === "gift" && s.gift); });
+  var bads = ["tax", "lose", "dbl", "fast", "tough"].filter(function(k){ return !(k === "tax" && s.coins <= 0) && !(k === "lose" && !(s.towers || []).some(Boolean)); });
+  var gk = goods[Math.floor(r() * goods.length)], bk = bads[Math.floor(r() * bads.length)];
+  return { g:tdMakeCard(s, gk, r), b:tdMakeCard(s, bk, r), step:"offer", gl: r() < .5, took:"" };
+}
+function tdCardTxt(c){
+  var K = c.kk && tdHas(TD_TW, c.kk) ? TD_TW[c.kk] : null;
+  return { coins:"+" + c.n + " coins", tax:"−" + c.n + " coins", lives:"+" + c.n + (c.n === 1 ? " life" : " lives"), upall: c.n && c.n < 3 ? "Every tower goes up a level (to " + c.n + " at most)" : "Every tower goes up a level",
+    gift: K ? "A free " + K.name + " tower, level " + c.lv : "A free tower", slow:"Next wave " + (100 - c.n) + "% slower", fast:"Next wave " + (c.n - 100) + "% faster",
+    tough:"Next wave " + (c.n - 100) + "% tougher", dbl:"Twice as many enemies next wave" + (c.n !== 100 ? " (" + (c.n < 100 ? "weaker" : "tougher") + " ones)" : ""),
+    lose: K ? "Lose your " + K.name + " tower (level " + c.lv + ")" : "Lose a tower" }[c.k] || "";
+}
+function tdCardShort(x){
+  if(x.skip) return "";
+  var K = x.kk && tdHas(TD_TW, x.kk) ? TD_TW[x.kk] : null;
+  return ({ coins:"🪙 +" + x.n, tax:"🕳️ −" + x.n, lives:"❤️ +" + x.n, upall:"⬆️ all towers up", gift:"🎁 free " + (K ? K.name : "tower") + " lv" + x.lv, slow:"🐌 slower wave",
+    fast:"💨 faster wave", tough:"🛡️ tougher wave", dbl:"👥 double wave", lose:"💥 lost a tower" }[x.k] || "") + (x.good ? " ✓" : " ✗");
+}
+/* The student taps a side: that card's effect, once. */
+function tdCardDo(s, side){
+  var c = s.card; if(!c || c.step !== "pick" || (side !== "L" && side !== "R")) return false;
+  var x = (side === "L") === c.gl ? c.g : c.b;
+  c.took = side; c.step = "done"; s.acts = [];
+  if(x.k === "coins") s.coins += x.n;
+  else if(x.k === "tax") s.coins = Math.max(0, s.coins - x.n);
+  else if(x.k === "lives") s.lives = Math.min(20, s.lives + x.n);
+  else if(x.k === "upall") s.towers.forEach(function(t){ if(t && t.lv < (x.n || 3)) t.lv++; });
+  else if(x.k === "gift") s.gift = { k:x.kk, lv:x.lv };
+  else if(x.k === "lose"){ if(x.s >= 0 && s.towers[x.s]){ s.towers[x.s] = null; if(TD_SEL === x.s) TD_SEL = -1; } }
+  else { s.mod = x.k; s.modv = x.n / 100; }
+  s.cardLog = (s.cardLog || []).concat([{ k:x.k, good:x.good, n:x.n, kk:x.kk, lv:x.lv }]).slice(-30);
   s.ws = { lives:s.lives, coins:s.coins, kills:s.kills || 0 };
+  return true;
 }
 /* The teacher's fields: the teacher's screen sets them, the student's screen only takes them (and never the reverse). */
 var TD_TFIELDS = ["tlock", "auto", "limit", "bonus", "grants", "ch", "chLog", "uReq", "cards"];
 var TD_TEACH = ["td-coins", "td-auto", "td-limit", "td-tpause", "td-tres", "td-cards"];
 var TD_PZ = ["", "me", "wave", "limit", "away", "teacher"];
-var TD_SEL = -1, TD_FX = [], TD_LOOP = 0, TD_GEO = [], TD_WC = {};
+var TD_SEL = -1, TD_FX = [], TD_LOOP = 0, TD_GEO = [], TD_WC = {}, TD_SHUF = 0;
+function tdShufMs(){ return prefersReduced() ? 500 : 1500; }   /* the face-down shuffle, on this screen only */
 function tdHas(o, k){ return typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k); }
 function tdInt(v, lo, hi, d){ v = typeof v === "number" && isFinite(v) ? Math.floor(v) : d; return Math.max(lo, Math.min(hi, v)); }
 function tdGeo(m){
@@ -5285,9 +5351,10 @@ function tdPos(g, d){
 }
 function tdHpMul(w){ return 1 + .3 * (w - 1) + .045 * (w - 1) * (w - 1); }
 /* The wave's enemies in order, each with the step it comes out at. Same wave + difficulty = same list. */
-function tdWave(w, diff, mod){
+function tdWave(w, diff, mod, mv){
   w = tdInt(w, 1, TD_WAVES, 1); if(!tdHas(TD_DIFF, diff)) diff = "normal"; if(TD_MODS.indexOf(mod) === -1) mod = "";
-  var key = w + "|" + diff + "|" + mod; if(TD_WC[key]) return TD_WC[key];
+  mv = typeof mv === "number" && isFinite(mv) ? Math.max(.3, Math.min(3, mv)) : 1; if(!mod) mv = 1;
+  var key = w + "|" + diff + "|" + mod + "|" + mv; if(TD_WC[key]) return TD_WC[key];
   var D = TD_DIFF[diff], boss = w % 5 === 0, n = 6 + 2 * w, out = [], at = 0, gap = Math.max(.55, 1 - .02 * w);
   if(boss) n = Math.ceil(n / 2);
   for(var i = 0; i < n; i++){
@@ -5296,9 +5363,9 @@ function tdWave(w, diff, mod){
     at += TD_HZ * gap * (k === "f" ? .55 : k === "t" ? 1.3 : .9);
   }
   if(boss){ for(var j = 0; j < (w >= 20 ? 2 : 1); j++){ at += TD_HZ * 1.5; out.push({ k:"b", at:Math.round(at) }); } }
-  if(mod === "dbl") out = out.concat(out.filter(function(e){ return e.k !== "b"; }).map(function(e){ return { k:e.k, at:e.at + Math.round(TD_HZ * .4) }; })).sort(function(a, b){ return a.at - b.at; });
-  var mul = tdHpMul(w) * D.hp * (mod === "tough" ? 1.5 : 1), spm = mod === "fast" ? 1.3 : mod === "slow" ? .75 : 1;
-  out.forEach(function(e){ var E = TD_EN[e.k]; e.hp = Math.max(1, Math.round(E.hp * mul)); e.rew = Math.max(1, Math.round(E.rew * D.coin)); e.spm = spm; });
+  if(mod === "dbl") out = out.concat(out.filter(function(e){ return e.k !== "b"; }).map(function(e){ return { k:e.k, at:e.at + Math.round(TD_HZ * .4), x2:true }; })).sort(function(a, b){ return a.at - b.at; });
+  var mul = tdHpMul(w) * D.hp * (mod === "tough" ? mv : 1), spm = mod === "fast" || mod === "slow" ? mv : 1;
+  out.forEach(function(e){ var E = TD_EN[e.k]; e.hp = Math.max(1, Math.round(E.hp * mul * (mod === "dbl" ? mv : 1))); e.rew = Math.max(1, Math.round(E.rew * D.coin)); e.spm = spm; });
   return (TD_WC[key] = out);
 }
 function tdBonus(w, diff){ return Math.round((10 + 3 * w) * (tdHas(TD_DIFF, diff) ? TD_DIFF[diff] : TD_DIFF.normal).coin); }
@@ -5308,7 +5375,7 @@ function tdHeld(s){ return !!(s.pz || s.tlock || s.ch || s.card) || s.phase === 
 /* One fixed step (1/30 s). The same state and sim always give the same next state; fx only collects what to draw. */
 function tdStep(st, sim, fx){
   if(st.phase !== "wave") return;
-  var g = tdGeo(st.map), list = tdWave(st.wave, st.diff, st.mod), DT = 1 / TD_HZ;
+  var g = tdGeo(st.map), list = tdWave(st.wave, st.diff, st.mod, st.modv), DT = 1 / TD_HZ;
   while(sim.sp < list.length && list[sim.sp].at <= sim.t && sim.en.length < TD_CAP){ var e = list[sim.sp++]; sim.en.push({ k:e.k, hp:e.hp, mx:e.hp, rew:e.rew, spm:e.spm, d:0, sl:0, sf:1, id:++sim.id }); }
   for(var i = sim.en.length - 1; i >= 0; i--){
     var en = sim.en[i], E = tdHas(TD_EN, en.k) ? TD_EN[en.k] : TD_EN.n;
@@ -5342,10 +5409,10 @@ function tdStep(st, sim, fx){
   if(st.lives <= 0){ st.phase = "over"; st.won = false; st.pz = ""; return; }
   if(sim.sp >= list.length && !sim.en.length){
     var mined = 0; tw.forEach(function(t){ if(t && t.k === "mine") mined += TD_TW.mine.pay[tdInt(t.lv, 1, 3, 1) - 1]; });
-    st.coins += tdBonus(st.wave, st.diff) + mined; st.mined = mined; st.cleared = st.wave; st.mod = "";
+    st.coins += tdBonus(st.wave, st.diff) + mined; st.mined = mined; st.cleared = st.wave; st.mod = ""; st.modv = 1;
     if(st.wave >= TD_WAVES){ st.phase = "over"; st.won = true; st.pz = ""; return; }
     st.wave++; st.phase = "build";
-    if(st.cards !== false && st.cleared % 3 === 0) st.card = { k:tdDraw1(st), open:false };
+    if(tdCardsOn(st) && st.cleared % 3 === 0) st.card = tdOffer(st);
     if(tdAtLimit(st)) st.pz = "limit"; else if(st.auto) st.pz = "wave";
   }
 }
@@ -5363,12 +5430,17 @@ function tdClean(st){
   o.towers = []; for(var i = 0; i < n; i++){ var t = tw[i]; o.towers.push(t && typeof t === "object" && tdHas(TD_TW, t.k) ? { k:t.k, lv:tdInt(t.lv, 1, 3, 1), spent:tdInt(t.spent, 0, 1e6, 0) } : null); }
   var ws = s.ws && typeof s.ws === "object" ? s.ws : {};
   o.ws = { lives:tdInt(ws.lives, 0, 20, o.lives), coins:tdInt(ws.coins, 0, 1e7, o.coins), kills:tdInt(ws.kills, 0, 1e7, o.kills) };
-  o.acts = (Array.isArray(s.acts) ? s.acts : []).slice(-20).filter(function(a){ return a && typeof a === "object"; }).map(function(a){ var w = a.was; return { s:tdInt(a.s, 0, n - 1, 0), d:tdInt(a.d, -1e6, 1e6, 0), f:a.f === 1 ? 1 : 0, was: w && typeof w === "object" && tdHas(TD_TW, w.k) ? { k:w.k, lv:tdInt(w.lv, 1, 3, 1), spent:tdInt(w.spent, 0, 1e6, 0) } : null }; });
+  o.acts = (Array.isArray(s.acts) ? s.acts : []).slice(-20).filter(function(a){ return a && typeof a === "object"; }).map(function(a){ var w = a.was; return { s:tdInt(a.s, 0, n - 1, 0), d:tdInt(a.d, -1e6, 1e6, 0), f: a.f && typeof a.f === "object" && tdHas(TD_TW, a.f.k) ? { k:a.f.k, lv:tdInt(a.f.lv, 1, 3, 1) } : null, was: w && typeof w === "object" && tdHas(TD_TW, w.k) ? { k:w.k, lv:tdInt(w.lv, 1, 3, 1), spent:tdInt(w.spent, 0, 1e6, 0) } : null }; });
   o.gotG = (Array.isArray(s.gotG) ? s.gotG : []).filter(idOk).slice(-300); o.uDone = tdInt(s.uDone, 0, 1e6, 0);
-  o.seed = tdInt(s.seed, 0, 2147483647, 1); o.mod = TD_MODS.indexOf(s.mod) !== -1 ? s.mod : ""; o.free = tdInt(s.free, 0, 5, 0); o.mined = tdInt(s.mined, 0, 1e4, 0);
-  var cd = s.card; o.card = cd && typeof cd === "object" && tdHas(TD_CARDS, cd.k) ? { k:cd.k, open:cd.open === true, lost: tdHas(TD_TW, cd.lost) ? cd.lost : "" } : null;
+  o.seed = tdInt(s.seed, 0, 2147483647, 1); o.mod = TD_MODS.indexOf(s.mod) !== -1 ? s.mod : ""; o.modv = o.mod && typeof s.modv === "number" && isFinite(s.modv) ? Math.max(.3, Math.min(3, s.modv)) : 1; o.mined = tdInt(s.mined, 0, 1e4, 0);
+  var gf = s.gift; o.gift = gf && typeof gf === "object" && tdHas(TD_TW, gf.k) ? { k:gf.k, lv:tdInt(gf.lv, 1, 3, 1) } : null;
+  function card1(c, good){ if(!c || typeof c !== "object" || !tdHas(TD_CARDS, c.k) || TD_CARDS[c.k].good !== good) return null; return { k:c.k, good:good, n:tdInt(c.n, 0, 1e6, 0), kk: tdHas(TD_TW, c.kk) ? c.kk : "", lv:tdInt(c.lv, 0, 3, 0), s:tdInt(c.s, -1, n - 1, -1) }; }   /* upall's n is its level cap */
+  var cd = s.card, cg = cd && typeof cd === "object" ? card1(cd.g, true) : null, cb = cd && typeof cd === "object" ? card1(cd.b, false) : null;
+  o.card = cg && cb ? { g:cg, b:cb, step: ["offer", "pick", "done"].indexOf(cd.step) !== -1 ? cd.step : "offer", gl:cd.gl === true, took: cd.took === "L" || cd.took === "R" ? cd.took : "" } : null;
+  if(o.card && o.card.step === "done" && !o.card.took) o.card.step = "pick";
+  o.cardLog = (Array.isArray(s.cardLog) ? s.cardLog : []).filter(function(x){ return x && typeof x === "object" && (x.skip === true || tdHas(TD_CARDS, x.k)); }).slice(-30).map(function(x){ return x.skip === true ? { skip:true } : { k:x.k, good:TD_CARDS[x.k].good, n:tdInt(x.n, 0, 1e6, 0), kk: tdHas(TD_TW, x.kk) ? x.kk : "", lv:tdInt(x.lv, 0, 3, 0) }; });
   /* the teacher's fields */
-  o.tlock = s.tlock === true; o.auto = s.auto !== false; o.cards = s.cards !== false; o.limit = tdInt(s.limit, 0, TD_WAVES, 0); o.bonus = tdInt(s.bonus, 0, TD_GRANT_MAX, 50); o.uReq = tdInt(s.uReq, 0, 1e6, 0);
+  o.tlock = s.tlock === true; o.auto = s.auto !== false; o.cards = s.cards === true || s.cards === false ? s.cards : null; o.limit = tdInt(s.limit, 0, TD_WAVES, 0); o.bonus = tdInt(s.bonus, 0, TD_GRANT_MAX, 50); o.uReq = tdInt(s.uReq, 0, 1e6, 0);
   o.grants = (Array.isArray(s.grants) ? s.grants : []).filter(function(g){ return g && typeof g === "object" && idOk(g.id) && typeof g.n === "number" && isFinite(g.n) && Math.floor(g.n) === g.n && g.n >= 1 && g.n <= TD_GRANT_MAX; }).map(function(g){ return { id:g.id, n:g.n }; }).slice(-100);
   var c = s.ch; o.ch = c && typeof c === "object" && typeof c.q === "string" ? { q:c.q.slice(0, 300), w: typeof c.w === "string" ? c.w.slice(0, 60) : "" } : null;
   o.chLog = (Array.isArray(s.chLog) ? s.chLog : []).filter(function(x){ return x && typeof x === "object" && typeof x.q === "string"; }).slice(-60).map(function(x){ return { q:x.q.slice(0, 300), w: typeof x.w === "string" ? x.w.slice(0, 60) : "", ok:x.ok === true, who:"" }; });
@@ -5396,10 +5468,10 @@ function tdApplyT(s){
 function tdUndo(s){
   var x = (s.acts || []).pop(); if(!x) return false;
   if(s.coins - x.d < 0){ s.acts.push(x); toast("Not enough coins to take that back."); return false; }
-  s.towers[x.s] = x.was; s.coins -= x.d; if(s.phase === "wave" && s.ws) s.ws.coins -= x.d; if(x.f) s.free = (s.free || 0) + 1;
+  s.towers[x.s] = x.was; s.coins -= x.d; if(s.phase === "wave" && s.ws) s.ws.coins -= x.d; if(x.f) s.gift = x.f;   /* undoing a free tower gives the voucher back */
   return true;
 }
-function tdSpend(s, slot, was, d){ s.coins += d; if(s.phase === "wave" && s.ws) s.ws.coins += d; s.acts = (s.acts || []).concat([{ s:slot, was:was ? clone(was) : null, d:d, f:0 }]).slice(-20); }
+function tdSpend(s, slot, was, d){ s.coins += d; if(s.phase === "wave" && s.ws) s.ws.coins += d; s.acts = (s.acts || []).concat([{ s:slot, was:was ? clone(was) : null, d:d, f:null }]).slice(-20); }
 /* The game clock leaves out paused time: run.hold mirrors the game's own pause. */
 function tdSyncHold(run){
   var h = tdHeld(run.st); if(h === !!run.hold) return;
@@ -5428,7 +5500,7 @@ function tdTowerCount(s){ var c = {}, n = 0; (s.towers || []).forEach(function(t
 function tdRefund(t){ return Math.floor((t.spent || 0) * .7); }
 function tdNextLine(s){
   if(s.phase === "over") return s.won ? "All " + TD_WAVES + " waves beaten!" : "Reached wave " + s.wave;
-  var L = tdWave(s.wave, s.diff, s.mod), boss = L.some(function(e){ return e.k === "b"; }), M = { slow:" (sleepy 🐌)", dbl:" (double 👥)", fast:" (fast 💨)", tough:" (tough 🛡️)" }[s.mod] || "";
+  var L = tdWave(s.wave, s.diff, s.mod, s.modv), boss = L.some(function(e){ return e.k === "b"; }), M = { slow:" (sleepy 🐌)", dbl:" (double 👥)", fast:" (fast 💨)", tough:" (tough 🛡️)" }[s.mod] || "";
   return (s.phase === "wave" ? "Wave " + s.wave + ": " : "Next: wave " + s.wave + ", ") + L.length + " enemies" + (boss ? " and a boss!" : "") + M;
 }
 function tdStatusLine(run, s){
@@ -5437,7 +5509,7 @@ function tdStatusLine(run, s){
   if(s.phase === "over") return s.won ? nm + " won! All " + TD_WAVES + " waves." : "Game over at wave " + s.wave + ".";
   if(s.tlock) return s.pz === "teacher" || !s.pz ? "Paused by you. " + nm + " can’t carry on until you unlock it." : "Paused by you.";
   if(s.pz === "teacher") return "Unlocked. Waiting for " + nm + " to tap Resume.";
-  if(s.card) return "Bonus card" + (s.card.open ? ": " + esc(TD_CARDS[s.card.k].icon + " " + TD_CARDS[s.card.k].t + " " + TD_CARDS[s.card.k].d) : " to turn over.");
+  if(s.card){ if(s.card.step !== "done") return "Bonus card: choosing…"; var x = s.card.took === "L" ? (s.card.gl ? s.card.g : s.card.b) : (s.card.gl ? s.card.b : s.card.g); return "Bonus card: took a chance: " + esc(TD_CARDS[x.k].icon + " " + tdCardTxt(x)) + (x.good ? " ✓" : " ✗"); }
   if(s.pz === "limit") return "Stopped at the wave limit: time for some work!";
   if(s.pz === "wave") return "Wave " + s.cleared + " cleared. Stopped for a break.";
   if(s.pz === "me") return "Paused by " + nm + ".";
@@ -5450,7 +5522,7 @@ function tdTeacherCtl(run){
   var s = run.st, lim = s.limit;
   return '<div class="td-ctl"><span class="legend">Coins for good work</span><div class="row">' + [25, 50, 100].map(function(n){ return '<button class="btn ghost sm" data-a="td-coins" data-n="' + n + '">+' + n + ' 🪙</button>'; }).join("") + '</div>' +
     '<button class="setopt" data-a="td-auto" aria-pressed="' + !!s.auto + '"><b>' + (s.auto ? "✓ " : "") + 'Stop after each wave</b><small>A break after every wave: back to work, then ▶ Resume.</small></button>' +
-    '<button class="setopt" data-a="td-cards" aria-pressed="' + (s.cards !== false) + '"><b>' + (s.cards !== false ? "✓ " : "") + 'Bonus cards</b><small>A good or bad card every 3 waves.</small></button>' +
+    '<button class="setopt" data-a="td-cards" aria-pressed="' + tdCardsOn(s) + '"><b>' + (tdCardsOn(s) ? "✓ " : "") + 'Bonus cards</b><small>Every 3 waves: take a chance on a good or a bad card, or skip.' + (s.cards == null ? " (Automatic for " + TD_DIFF[s.diff].name + ")" : "") + '</small></button>' +
     '<span class="legend">Stop at wave … this time</span><div class="row td-lim"><button class="btn ghost sm" data-a="td-limit" data-v="-1" aria-label="One wave sooner"' + (lim > 0 && lim > 1 ? "" : (lim ? " disabled" : "")) + '>−</button><b class="td-limv" id="tdLimit">' + (lim ? "Wave " + lim : "No limit") + '</b><button class="btn ghost sm" data-a="td-limit" data-v="1" aria-label="One wave later"' + (lim >= TD_WAVES ? " disabled" : "") + '>+</button>' + (lim ? '<button class="btn ghost sm" data-a="td-limit" data-v="0">No limit</button>' : "") + '</div>' +
     '<div class="hint">Clearing that wave pauses the game with “Time for some work!”. Raise or clear it to carry on.</div></div>';
 }
@@ -5461,6 +5533,7 @@ function tdStatusView(run){
   return '<section class="center td-status"><h2 style="margin:0">' + nm + ' is playing Tower Defence</h2>' +
     '<p class="td-stline' + (tdHeld(s) && s.phase !== "over" ? " held" : "") + '" role="status">' + tdStatusLine(run, s) + '</p>' +
     '<div class="td-tiles">' + tiles.map(function(t){ return '<div class="td-tile"><small>' + t[0] + '</small><b>' + esc(t[1]) + '</b></div>'; }).join("") + '</div>' +
+    (function(){ var L = s.cardLog, x = L.length && !s.card ? L[L.length - 1] : null; return x ? '<p class="muted" style="margin:0">Last bonus card: ' + esc(x.skip ? "skipped" : "took a chance: " + TD_CARDS[x.k].icon + " " + tdCardTxt(x) + (x.good ? " ✓" : " ✗")) + '</p>' : ""; })() +
     '<p class="muted" style="margin:0">' + esc(TD_DIFF[s.diff].name + " · map " + (s.map + 1) + (s.spd === 2 ? " · 2× speed" : "") + (tc.by.length ? " · " + tc.by.join(", ") : "")) + '</p>' +
     (s.phase === "over" ? '<button class="btn big-btn" data-a="finish">Finish</button>' : '<div class="row" style="justify-content:center">' + lock + '</div>' + tdTeacherCtl(run)) + '</section>';
 }
@@ -5474,8 +5547,8 @@ function tdSetupView(run){
 function tdMenuHtml(s){
   var i = TD_SEL, t = s.towers[i];
   if(i < 0 || i >= s.towers.length || tdHeld(s)) return "";
-  if(!t) return '<div class="td-menu" id="tdMenu" role="dialog" aria-label="Build a tower">' + TD_KINDS.map(function(k){
-    var K = TD_TW[k], fr = s.free > 0, c = fr ? 0 : K.cost[0];
+  if(!t) return '<div class="td-menu" id="tdMenu" role="dialog" aria-label="Build a tower">' + (s.gift ? '<button class="td-b gift" data-a="td-gift" data-s="' + i + '" aria-label="Your free ' + TD_TW[s.gift.k].name + ' tower, level ' + s.gift.lv + '" title="Your free tower"><span class="ti">🎁</span><small>' + TD_TW[s.gift.k].icon + ' lv' + s.gift.lv + '</small></button>' : "") + TD_KINDS.map(function(k){
+    var K = TD_TW[k], fr = false, c = K.cost[0];
     if(!tdUnlocked(s, k)) return '<button class="td-b lock" data-k="' + k + '" disabled aria-label="' + K.name + ' tower: unlocks after wave ' + K.unlock + '" title="' + K.name + ': unlocks after wave ' + K.unlock + '"><span class="ti">🔒</span><small>wave ' + (K.unlock + 1) + '</small></button>';
     return '<button class="td-b" data-a="td-build" data-s="' + i + '" data-k="' + k + '" aria-label="' + K.name + ' tower, ' + (fr ? "free" : c + " coins") + ': ' + K.tip + '" title="' + K.name + ': ' + K.tip + '"' + (s.coins < c ? " disabled" : "") + '><span class="ti">' + K.icon + '</span><small>' + (fr ? "Free" : c) + '</small></button>'; }).join("") + '</div>';
   var K = TD_TW[t.k], up = t.lv < 3 ? K.cost[t.lv] : 0;
@@ -5491,9 +5564,16 @@ function tdNews(s){
 function tdPauseHtml(run, s){
   if(!tdHeld(s) || s.ch) return "";
   if(s.card && !s.tlock){
-    var C = TD_CARDS[s.card.k];
-    if(!s.card.open) return '<div class="td-pause" role="dialog" aria-label="Bonus card"><h2>🃏 Bonus card!</h2><p>Wave ' + s.cleared + ' cleared. Good luck…</p>' + tdNews(s) + '<button class="td-card back" data-a="td-card">Tap to turn it over</button></div>';
-    return '<div class="td-pause" role="dialog" aria-label="' + esc(C.t) + '"><div class="td-card' + (C.good ? "" : " bad") + '"><span class="ci">' + C.icon + '</span><b>' + esc(C.t) + '</b><p>' + esc(C.d + (s.card.lost ? " (" + TD_TW[s.card.lost].name + ")" : "")) + '</p></div><button class="btn big-btn" data-a="td-cardok">OK</button></div>';
+    var cd = s.card, face = function(c, cls){ var C = TD_CARDS[c.k]; return '<div class="td-card' + (c.good ? " good" : " bad") + (cls || "") + '"><span class="ci">' + C.icon + '</span><b>' + esc(C.t) + '</b><p>' + esc(tdCardTxt(c)) + '</p></div>'; };
+    if(cd.step === "offer") return '<div class="td-pause td-offer" role="dialog" aria-label="Bonus cards"><h2>🃏 Bonus cards!</h2><p>Wave ' + s.cleared + ' cleared. Take a chance on one of these, or skip.</p>' + tdNews(s) +
+      '<div class="td-cards">' + face(cd.g) + face(cd.b) + '</div><div class="row" style="justify-content:center"><button class="btn big-btn" data-a="td-take">Take a chance</button><button class="btn ghost big-btn" data-a="td-skip">Skip</button></div></div>';
+    if(cd.step === "pick"){
+      var busy = Date.now() - TD_SHUF < tdShufMs();
+      return '<div class="td-pause td-offer" role="dialog" aria-label="Pick a card"><h2>' + (busy ? "Shuffling…" : "Pick a card!") + '</h2><p>One is good, one is bad.</p><div class="td-cards' + (busy ? " shuf" : "") + '" id="tdShuf">' +
+        ["L", "R"].map(function(sd){ return '<button class="td-card back" data-a="td-pick" data-v="' + sd + '" aria-label="The ' + (sd === "L" ? "left" : "right") + ' card"' + (busy ? " disabled" : "") + '>?</button>'; }).join("") + '</div></div>';
+    }
+    var lc = cd.gl ? cd.g : cd.b, rc = cd.gl ? cd.b : cd.g, got = cd.took === "L" ? lc : rc;
+    return '<div class="td-pause td-offer" role="dialog" aria-label="Your card"><h2>' + (got.good ? "Lucky!" : "Oh no!") + '</h2><div class="td-cards">' + face(lc, cd.took === "L" ? " got" : " miss") + face(rc, cd.took === "R" ? " got" : " miss") + '</div><p>' + esc(cd.took === "L" ? "← You got this one. The other card was on the right." : "You got this one. The other card was on the left. →") + '</p><button class="btn big-btn" data-a="td-cardok">OK</button></div>';
   }
   var stats = '<p class="td-pstats">Wave ' + (s.phase === "over" ? s.wave : s.phase === "wave" ? s.wave : Math.max(1, s.wave)) + ' · ❤ ' + s.lives + ' · 🪙 ' + s.coins + '</p>', h, sub = "", btn = '<button class="btn big-btn" data-a="td-resume">▶ Resume</button>';
   if(s.phase === "over"){ h = s.won ? "You won! 🏰" : "Game over"; sub = s.won ? "You stopped all " + TD_WAVES + " waves." : "Reached wave " + s.wave + "."; btn = '<button class="btn big-btn" data-a="finish">Finish</button>'; stats = '<p class="td-pstats">' + s.kills + ' enemies stopped</p>'; }
@@ -5512,7 +5592,7 @@ function tdPlayView(run){
   var tip = s.phase === "over" ? "" : atLim ? "Wave limit reached: time for some work!" : TD_SEL >= 0 && !s.towers[TD_SEL] ? TD_KINDS.map(function(k){ return TD_TW[k].icon + " " + TD_TW[k].tip; }).join(" · ") : s.towers.some(Boolean) ? "Tap a tower to upgrade or sell it." : "Tap a ◯ beside the path to build a tower.";
   return '<section class="td" id="tdRoot"><div class="td-map" id="tdMap"><canvas id="tdCv" role="img" aria-label="The map: the path, your towers and the enemies"></canvas>' + tdMenuHtml(s) + tdPauseHtml(run, s) + '</div>' +
     '<div class="td-side"><div class="td-stats"><span title="Coins">🪙 <b id="tdCoins">' + s.coins + '</b></span><span title="Lives">❤ <b id="tdLives">' + s.lives + '</b></span><span title="Wave">🌊 <b id="tdWave">' + (s.phase === "build" ? s.cleared : s.wave) + '</b>/' + TD_WAVES + '</span></div>' +
-    '<p class="td-next" id="tdNext">' + esc(tdNextLine(s)) + '</p>' + (s.free > 0 ? '<p class="td-badge">🎁 Next tower free' + (s.free > 1 ? " (×" + s.free + ")" : "") + '</p>' : "") + go +
+    '<p class="td-next" id="tdNext">' + esc(tdNextLine(s)) + '</p>' + (s.gift ? '<p class="td-badge">🎁 A free ' + esc(TD_TW[s.gift.k].name) + ' (level ' + s.gift.lv + '): tap a ◯ to place it</p>' : "") + go +
     '<div class="seg td-spd" role="group" aria-label="Speed"><button data-a="td-speed" data-v="1" aria-pressed="' + (s.spd !== 2) + '">1×</button><button data-a="td-speed" data-v="2" aria-pressed="' + (s.spd === 2) + '">2×</button></div>' +
     '<p class="td-tip">' + esc(tip) + '</p></div></section>';
 }
@@ -5645,7 +5725,7 @@ function tdLoop(run){
     tdDraw(cv, s, run.sim, run.cs || 40, TD_SEL);
     var now2 = s.coins + "|" + s.lives;
     if(now2 !== seen){ seen = now2; var e1 = $("tdCoins"), e2 = $("tdLives"); if(e1) e1.textContent = s.coins; if(e2) e2.textContent = s.lives;
-      document.querySelectorAll("#tdMenu [data-a=td-build]").forEach(function(b){ var K = TD_TW[b.getAttribute("data-k")]; if(K) b.disabled = s.free > 0 ? false : s.coins < K.cost[0]; }); }
+      document.querySelectorAll("#tdMenu [data-a=td-build]").forEach(function(b){ var K = TD_TW[b.getAttribute("data-k")]; if(K) b.disabled = s.coins < K.cost[0]; }); }
     if(s.phase !== "wave" || tdHeld(s)){ TD_FX = []; run.sim = s.phase === "wave" ? run.sim : null; saveRun(); render(); return; }
     if(Date.now() - saved >= 2000){ saved = Date.now(); saveRun(); }
     requestAnimationFrame(frame);
@@ -5656,24 +5736,24 @@ TYPES.td = {
   label: "Tower Defence", letter: "🏰", pausable: true, noBlock: true,
   blurb: "A break game: build towers beside the path to stop 20 waves reaching the castle. Stops after each wave (or at a wave you choose) for some work; carries on next lesson with Finish later. No words needed.",
   blockLabel: "Words", blockHint: "", placeholder: "",
-  defaults: function(){ return { map:0, diff:"easy", pick:true, auto:true, limit:0, bonus:50, cards:true }; },
+  defaults: function(){ return { map:0, diff:"easy", pick:true, auto:true, limit:0, bonus:50, cardMode:"auto" }; },
   optionsHtml: function(o){
     return '<div class="field"><span class="legend">Map</span><div class="choice">' + TD_MAPS.map(function(m, i){ return radio("tdMap", i, (i + 1) + " · " + esc(m.name), tdInt(+o.map, 0, 2, 0) === i); }).join("") + '</div></div>' +
       '<div class="field"><span class="legend">Difficulty</span><div class="choice">' + ["easy", "normal", "hard"].map(function(d){ return radio("tdDiff", d, TD_DIFF[d].name, (tdHas(TD_DIFF, o.diff) ? o.diff : "easy") === d); }).join("") + '</div><div class="hint">Enemies’ strength and the coins they’re worth.</div></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="tdPick"' + (o.pick !== false ? " checked" : "") + '><span><b>The student chooses</b><br><span class="muted">The game opens on the map and difficulty choice (these are picked to start with).</span></span></label></div>' +
       '<div class="field"><label class="check"><input type="checkbox" id="tdAuto"' + (o.auto !== false ? " checked" : "") + '><span><b>Stop after each wave</b><br><span class="muted">A pause after every wave: back to work, then ▶ Resume.</span></span></label></div>' +
-      '<div class="field"><label class="check"><input type="checkbox" id="tdCards"' + (o.cards !== false ? " checked" : "") + '><span><b>Bonus cards</b><br><span class="muted">Every 3 waves a card to turn over: good (a free tower, every tower up a level…) or bad (double enemies, lose a tower…).</span></span></label></div>' +
+      '<div class="field"><span class="legend">Bonus cards</span><div class="choice">' + [["auto", "Automatic"], ["on", "On"], ["off", "Off"]].map(function(x){ return radio("tdCardMode", x[0], x[1], (o.cardMode === "on" || o.cardMode === "off" ? o.cardMode : "auto") === x[0]); }).join("") + '</div><div class="hint">Every 3 waves, a good card and a bad card: the student can take a chance on one (they’re shuffled face down) or skip. Automatic: off on Easy, on for Normal and Hard, following the difficulty the student picks.</div></div>' +
       '<div class="two"><div class="field"><label for="tdLimit">Stop at wave</label><input type="number" id="tdLimit" min="1" max="' + TD_WAVES + '" placeholder="No limit" value="' + (+o.limit > 0 ? esc(o.limit) : "") + '"><div class="hint">Blank: no limit. Can be changed in ⚙ while playing.</div></div>' +
       '<div class="field"><label for="tdBonus">Coins for a good ⚡ challenge</label><input type="number" id="tdBonus" min="0" max="' + TD_GRANT_MAX + '" value="' + esc(o.bonus != null ? o.bonus : 50) + '"></div></div>';
   },
-  readOptions: function(){ return { map: tdInt(+checkedVal("tdMap", "0"), 0, 2, 0), diff: checkedVal("tdDiff", "easy"), pick: $("tdPick").checked, auto: $("tdAuto").checked, cards: $("tdCards").checked, limit: tdInt(parseInt($("tdLimit").value, 10), 0, TD_WAVES, 0), bonus: tdInt(parseInt($("tdBonus").value, 10), 0, TD_GRANT_MAX, 50) }; },
+  readOptions: function(){ return { map: tdInt(+checkedVal("tdMap", "0"), 0, 2, 0), diff: checkedVal("tdDiff", "easy"), pick: $("tdPick").checked, auto: $("tdAuto").checked, cardMode: checkedVal("tdCardMode", "auto"), limit: tdInt(parseInt($("tdLimit").value, 10), 0, TD_WAVES, 0), bonus: tdInt(parseInt($("tdBonus").value, 10), 0, TD_GRANT_MAX, 50) }; },
   validate: function(){ return null; },
   start: function(game){
     var o = game.options || {}, diff = tdHas(TD_DIFF, o.diff) ? o.diff : "easy", map = tdInt(+o.map, 0, 2, 0), D = TD_DIFF[diff];
     return { v:1, pick: o.pick !== false, map:map, diff:diff, phase: o.pick === false ? "build" : "setup", wave:1, cleared:0, w0:1, won:false, lives:20, coins:D.start, kills:0,
       towers: tdGeo(map).slots.map(function(){ return null; }), spd:1, pz:"", started:today(), ws:{ lives:20, coins:D.start, kills:0 }, acts:[], gotG:[], uDone:0,
-      seed: Math.floor(Math.random() * 2147483646) + 1, mod:"", free:0, card:null, mined:0,
-      tlock:false, auto: o.auto !== false, limit: tdInt(+o.limit, 0, TD_WAVES, 0), bonus: tdInt(o.bonus == null ? 50 : +o.bonus, 0, TD_GRANT_MAX, 50), grants:[], ch:null, chLog:[], uReq:0, cards: o.cards !== false };
+      seed: Math.floor(Math.random() * 2147483646) + 1, mod:"", modv:1, gift:null, card:null, cardLog:[], mined:0,
+      tlock:false, auto: o.auto !== false, limit: tdInt(+o.limit, 0, TD_WAVES, 0), bonus: tdInt(o.bonus == null ? 50 : +o.bonus, 0, TD_GRANT_MAX, 50), grants:[], ch:null, chLog:[], uReq:0, cards: o.cardMode === "on" ? true : o.cardMode === "off" ? false : null };
   },
   view: function(run){
     if(liveMirror(run)) return tdStatusView(run);
@@ -5693,6 +5773,16 @@ TYPES.td = {
       var i = tdCellAt(run, e); TD_SEL = i === TD_SEL ? -1 : i; render();
     });
     if(s.phase === "wave" && !tdHeld(s)) tdLoop(run);
+    if(s.card && s.card.step === "pick" && Date.now() - TD_SHUF < tdShufMs()){   /* the cards swap places a few times, then wait for a tap */
+      var box = $("tdShuf"), cs2 = box ? box.querySelectorAll(".td-card") : [], flip = false, me = TD_SHUF;
+      var tick = setInterval(function(){
+        if(TD_SHUF !== me || !document.body.contains(box)){ clearInterval(tick); return; }
+        if(Date.now() - TD_SHUF >= tdShufMs()){ clearInterval(tick); if(UI.run === run && UI.view === "play") render(); return; }
+        if(prefersReduced() || cs2.length < 2) return;
+        flip = !flip; var dx = cs2[1].getBoundingClientRect().left - cs2[0].getBoundingClientRect().left;
+        cs2[0].style.transform = flip ? "translateX(" + dx + "px)" : ""; cs2[1].style.transform = flip ? "translateX(" + (-dx) + "px)" : "";
+      }, 170);
+    }
   },
   pause: function(run){
     var s = run.st;
@@ -5709,7 +5799,7 @@ TYPES.td = {
       if(SMODE) return false;
       if(a === "td-coins"){ var n = +el.getAttribute("data-n"); if([25, 50, 100].indexOf(n) === -1) return false; tdGrant(run, n); toast("+" + n + " coins for " + tdName(run) + "."); return true; }
       if(a === "td-auto"){ s.auto = !s.auto; return true; }
-      if(a === "td-cards"){ s.cards = s.cards === false; return true; }
+      if(a === "td-cards"){ s.cards = !tdCardsOn(s); return true; }
       if(a === "td-limit"){ var lv = +v; s.limit = lv === 0 ? 0 : tdInt(lv === 1 ? (s.limit ? s.limit + 1 : Math.max(s.cleared + 1, 1)) : s.limit - 1, 1, TD_WAVES, 1); if(!(liveLocked(run))) tdApplyT(s); return true; }
       if(a === "td-tpause"){ if(s.tlock || s.phase === "over") return false; s.tlock = true; if(!liveLocked(run)) tdApplyT(s); return true; }
       if(a === "td-tres"){ if(!s.tlock) return false; s.tlock = false; return true; }
@@ -5722,8 +5812,10 @@ TYPES.td = {
       return false;
     }
     if(a === "td-speed"){ var sp = v === "2" ? 2 : 1; if(s.spd === sp) return false; s.spd = sp; return true; }
-    if(a === "td-card"){ if(!s.card || s.card.open || s.tlock || s.ch) return false; tdCardApply(s); return true; }
-    if(a === "td-cardok"){ if(!s.card || !s.card.open || s.tlock || s.ch) return false; s.card = null; return true; }
+    if(a === "td-skip"){ if(!s.card || s.card.step !== "offer" || s.tlock || s.ch) return false; s.card = null; s.cardLog = (s.cardLog || []).concat([{ skip:true }]).slice(-30); return true; }
+    if(a === "td-take"){ if(!s.card || s.card.step !== "offer" || s.tlock || s.ch) return false; s.card.step = "pick"; TD_SHUF = Date.now(); return true; }
+    if(a === "td-pick"){ if(!s.card || s.tlock || s.ch || Date.now() - TD_SHUF < tdShufMs()) return false; return tdCardDo(s, v); }
+    if(a === "td-cardok"){ if(!s.card || s.card.step !== "done" || s.tlock || s.ch) return false; s.card = null; return true; }
     if(a === "td-resume"){
       if(!s.pz || s.tlock || s.phase === "over" || (s.pz === "limit" && tdAtLimit(s))) return false;
       s.pz = ""; return true;
@@ -5737,8 +5829,12 @@ TYPES.td = {
     var t = s.towers[slot];
     if(a === "td-build"){
       var k = el.getAttribute("data-k"); if(t || !tdHas(TD_TW, k) || !tdUnlocked(s, k)) return false;
-      var fr = (s.free || 0) > 0, c0 = fr ? 0 : TD_TW[k].cost[0]; if(s.coins < c0) return false;
-      tdSpend(s, slot, null, -c0); s.towers[slot] = { k:k, lv:1, spent:c0 }; if(fr){ s.free--; s.acts[s.acts.length - 1].f = 1; } TD_SEL = -1; return true;
+      var c0 = TD_TW[k].cost[0]; if(s.coins < c0) return false;
+      tdSpend(s, slot, null, -c0); s.towers[slot] = { k:k, lv:1, spent:c0 }; TD_SEL = -1; return true;
+    }
+    if(a === "td-gift"){
+      if(t || !s.gift) return false;
+      tdSpend(s, slot, null, 0); s.acts[s.acts.length - 1].f = clone(s.gift); s.towers[slot] = { k:s.gift.k, lv:s.gift.lv, spent:0 }; s.gift = null; TD_SEL = -1; return true;
     }
     if(a === "td-up"){
       if(!t || t.lv >= 3) return false; var c1 = TD_TW[t.k].cost[t.lv]; if(s.coins < c1) return false;
@@ -5758,17 +5854,19 @@ TYPES.td = {
   keepState: function(run){
     var st = tdClean(liveStrip(run.st));
     if(st.phase === "wave"){ st.phase = "build"; st.lives = st.ws.lives; st.coins = st.ws.coins; st.kills = st.ws.kills; if(st.pz === "away") st.pz = ""; }
-    st.tlock = false; st.ch = null; st.acts = []; if(st.pz === "teacher") st.pz = ""; if(st.card && st.card.open) st.card = null;
+    st.tlock = false; st.ch = null; st.acts = []; if(st.pz === "teacher") st.pz = ""; if(st.card && st.card.step === "done") st.card = null;
     return st;
   },
   /* Next lesson: this lesson's part starts here; the limit was for last time; last time's challenges are in last time's result. */
-  onContinue: function(st){ st.w0 = st.phase === "setup" ? 1 : st.wave; st.limit = 0; st.tlock = false; st.ch = null; st.chLog = []; if(st.pz === "limit") st.pz = "wave"; },
+  onContinue: function(st){ st.w0 = st.phase === "setup" ? 1 : st.wave; st.limit = 0; st.tlock = false; st.ch = null; st.chLog = []; st.cardLog = []; if(st.pz === "limit") st.pz = "wave"; },
   summary: function(run){
     var s = tdClean(run.st), D = TD_DIFF[s.diff], tc = tdTowerCount(s);
     var hd = "Tower Defence (" + D.name + ", map " + (s.map + 1) + ")" + (run.title && !/^Tower Defence/.test(run.title) ? " · " + run.title : "") + flTag(run);
     var last = s.phase === "wave" || s.phase === "over" ? s.wave : s.wave - 1, first = s.w0;
     var waves = s.phase === "setup" || last < first ? "no waves played this lesson" : first === last ? "wave " + first + " this lesson" : "waves " + first + "–" + last + " this lesson";
     var parts = [waves, s.lives + (s.lives === 1 ? " life" : " lives") + " left", tc.n + (tc.n === 1 ? " tower" : " towers") + (tc.by.length ? " (" + tc.by.join(", ") + ")" : "")];
+    var took = s.cardLog.filter(function(x){ return !x.skip; }).map(tdCardShort), sk = s.cardLog.filter(function(x){ return x.skip; }).length;
+    if(took.length || sk) parts.push("cards: " + took.concat(sk ? ["skipped " + sk] : []).join(", "));
     var fin = run.partial ? "" : s.phase === "over" ? (s.won ? "Won: all " + TD_WAVES + " waves" : "Game over at wave " + s.wave) : (last >= 1 ? "Stopped at wave " + last : "Stopped before wave 1");
     return hd + ": " + (fin ? fin + " · " : "") + parts.join(", ");
   },
@@ -5844,7 +5942,7 @@ function flContinue(p, type){
   var pp = clone(p), gid = "cont-" + x.id, g = (pp.games || []).filter(function(y){ return y.id === gid; })[0];
   if(!g){ g = { id:gid, type:type, title:(x.game && x.game.title) || x.title || t.label, block:(x.game && x.game.block) || "", options:clone((x.game && x.game.options) || {}), app:true, ed:nowIso() }; pp.games = (pp.games || []).concat([g]); touchPack(pp); PACKS = PACKS.map(function(y){ return y.id === pp.id ? pp : y; }); }
   if(UI.run && rkey(UI.run) !== pp.id + "|" + gid) parkRun(); if(UI.parked) delete UI.parked[pp.id + "|" + gid];
-  UNDO = []; UI.settingsOpen = false; UI.finishAsk = false; UI.flAsk = false; BS_PEEK = false; TY_VIEW = ""; TY_EDIT = false; TY_PLED = false; TD_SEL = -1;
+  UNDO = []; UI.settingsOpen = false; UI.finishAsk = false; UI.flAsk = false; BS_PEEK = false; TY_VIEW = ""; TY_EDIT = false; TY_PLED = false; TD_SEL = -1; TD_SHUF = 0;
   var st = clone(x.st), base = { picks:(st.log || []).length, log:(st.log || []).length };
   st.base = base; if("reveal" in st) st.reveal = null; if(t.onContinue) t.onContinue(st);
   UI.clsPlay = false; liveTakeOver();
@@ -7963,7 +8061,7 @@ function resumeRun(k){
     var r = (UI.parked || {})[k]; if(!r) return false;
     parkRun(); delete UI.parked[k]; UI.run = r;
   }
-  BS_PEEK = false; TY_EDIT = false; TY_PLED = false; TY_EDITP = -1; TD_SEL = -1;
+  BS_PEEK = false; TY_EDIT = false; TY_PLED = false; TY_EDITP = -1; TD_SEL = -1; TD_SHUF = 0;
   UI.settingsOpen = false; UI.finishAsk = false; UI.packId = UI.run.packId; startClock(UI.run); UI.clsPlay = false; if(!SMODE) liveTakeOver(); go("play"); if(liveOn(UI.run)) liveOut(true); return true;
 }
 function inProgress(){ var out = []; if(UI.run) out.push(UI.run); Object.keys(UI.parked || {}).forEach(function(k){ out.push(UI.parked[k]); }); return out.filter(function(r){ return getPack(r.packId); }); }
@@ -7984,7 +8082,7 @@ function startRun(p, g){
   if(!SMODE && LIVE.cls && LIVE.peers > 0 && UI.clsPlay) UI.liveFresh = true;
   UI.clsPlay = false;
   if(!SMODE) liveTakeOver();
-  BS_PEEK = false; TY_VIEW = ""; TY_EDIT = false; TY_PLED = false; TY_EDITP = -1; BS_SEL = -1; BS_TAB = "shots"; TD_SEL = -1;
+  BS_PEEK = false; TY_VIEW = ""; TY_EDIT = false; TY_PLED = false; TY_EDITP = -1; BS_SEL = -1; BS_TAB = "shots"; TD_SEL = -1; TD_SHUF = 0;
   var hid = t.hidden ? t.hidden(g, p) : null;   /* Typhoon's boxes, Battleships' fleets: this device only, never in st */
   UI.run = { gflags: (function(){ var f = {}; ["_challenge", "_only", "_replay"].forEach(function(k){ if(g[k]) f[k] = g[k]; }); return f; })(), packId:p.id, gameId:g.id, type:g.type, title:(g.title || t.label) + (g._challenge ? " (hard mode)" : "") + (g._only ? " (misses)" : ""), retry: !!g._only, prev: prev && !g._only ? prev.score.text : "", student:p.student || "", lp:p.lp || null, startedAt:nowIso(), act:0, resumedAt:Date.now(), lapAt:0, paused:false, st:t.start(g, p, hid) };
   if(hid) UI.run.hid = hid;
