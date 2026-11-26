@@ -223,7 +223,7 @@ with sync_playwright() as p:
     t.click("[data-a=td-skip]"); t.wait_for_timeout(100); after = st(t)
     check(after["card"] is None and after["cardLog"][-1] == {"skip":True} and all(after[k] == before[k] for k in ("coins", "lives", "towers", "mod", "gift")), "Skip: both cards go, nothing happens")
     # each effect
-    ev(t, "() => { const r = __T.UI.run; r.st.towers = r.st.towers.map(() => null); r.st.towers[0] = { k:'basic', lv:1, spent:20 }; r.st.towers[1] = { k:'sniper', lv:3, spent:210 }; r.st.coins = 100; r.st.lives = 15; r.st.gift = null; r.st.mod = ''; r.st.cleared = 12; __T.render(); }")
+    ev(t, "() => { const r = __T.UI.run; r.st.towers = r.st.towers.map(() => null); r.st.towers[0] = { k:'basic', lv:1, spent:20 }; r.st.towers[1] = { k:'sniper', lv:3, spent:210 }; r.st.coins = 100; r.st.lives = 15; r.st.gift = null; r.st.mod = ''; r.st.cleared = 12; r.st.phase = 'build'; r.sim = null; __T.render(); }")   # phase: a random card earlier (e.g. dbl) can end the game first
     def card(k):
         ev(t, """k => { const s = __T.UI.run.st, c = __T.tdMakeCard(s, k, () => 0), o = __T.tdOffer(s); if (c.good) o.g = c; else o.b = c; o.gl = c.good; o.step = 'pick'; s.card = o; __T.render(); }""", k)
         t.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(80); txt = t.inner_text(".td-c.got .front"); t.click("[data-a=td-cardok]"); t.wait_for_timeout(80); return txt
