@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-lGL5wfsz5JnkYQIjHfzvCLcPaeGY+oFbzjgAS7ajhuE='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-NrzuXUTJk2JF5QGdYbxLRLCxV5VWkx0hHJIRrzEh9tA='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -883,6 +883,11 @@ li > .pl-fold{margin:0;display:inline-block;vertical-align:top}
 .clsbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 14px;margin:10px 0 14px;font-weight:600}
 .clsbar.on{border-color:#1E8A5A;color:#1E8A5A}
 .clsbar .muted{font-weight:400}
+.sbx-stripe{background:var(--amber);color:#1B1B1B;font-size:13px;font-weight:700;text-align:center;padding:1px 8px;line-height:18px}
+.sbx-entry{justify-content:flex-end;margin-top:6px}
+.sbx-stu .list li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;padding-bottom:6px}.sbx-stu .list li .item{flex:1 1 260px;min-width:0}
+.sbx-ask{background:var(--surface);border:2px solid var(--no);border-radius:12px;padding:8px 12px;align-items:center}
+.clsbar .clsold{display:inline-block;margin-top:4px;color:var(--ink);border-left:4px solid var(--amber);padding-left:8px;font-weight:600}
 .livepill{display:flex;align-items:center;gap:8px}.livepill .lo{font:inherit;font-size:18px;line-height:1;border:none;background:none;cursor:pointer;padding:0 2px}.livepill.ov{border-color:#C2397A;color:#C2397A}
 .clsbar.slim{padding:6px 10px;gap:6px 10px;font-size:15px}
 .clsbar > span{flex:1 1 16em;min-width:0}
@@ -1100,6 +1105,7 @@ var SB_URL = "https://prglfopvovvxhzrejhzc.supabase.co", SB_KEY = "sb_publishabl
 var AUTH = { need:false, sending:false, sent:"", err:"", notTeacher:false, email:"" }, SB = null;
 var LKEY = STUDENT_PAGE ? "lessonGames.student.v1" : "lessonGames.ui.v2";
 var APP_V = 20261113, SMODE = null;
+var APP_B = "9f7e34356a";   /* build id, stamped by dev/build.py */
 var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling", "build", "spot", "odd", "phon", "bingo", "hilo"];
 SLINK_TYPES.push("td");
 if(SB_MODE) SLINK_TYPES.push("snakes", "taboo", "typhoon", "battleships");   /* these two need the live link: nothing to play alone */
@@ -1223,6 +1229,7 @@ function dbStore(db){
     saveBoard: function(o){ return q("boards/" + o.id, function(){ return db.doc("boards/" + o.id).set(clone(o)); }); },
     watchSheets: function(cb, err){ return db.collection("sheets").orderBy("updatedAt", "desc").limit(300).onSnapshot(function(s){ cb(rows(s), s.metadata.fromCache); }, err); },
     saveSheet: function(o){ return q("sheets/" + o.id, function(){ return db.doc("sheets/" + o.id).set(clone(o)); }); },
+    deleteSheet: function(id){ return q("sheets/" + id, function(){ return db.doc("sheets/" + id).delete(); }); },
     watchPhaseb: function(cb, err){ return db.collection("phaseb").limit(5000).onSnapshot(function(s){ cb(rows(s).map(function(o){ o.pack_id = o.pack_id || o.id; delete o.id; return o; })); }, err); },
     savePhaseb: function(list){ return Promise.all(list.map(function(r){ return q("phaseb/" + r.pack_id, function(){ return db.doc("phaseb/" + r.pack_id).set(clone(r)); }); })); },
     deletePhaseb: function(ids){ return Promise.all(ids.map(function(id){ return q("phaseb/" + id, function(){ return db.doc("phaseb/" + id).delete(); }); })); }
@@ -1303,7 +1310,7 @@ function supabaseStore(sb){
     watchResults: watch("results"), saveResult: save("results"), deleteResult: del("results"),
     watchStudents: watch("students"), saveStudent: save("students"),
     watchBoards: watch("boards"), saveBoard: save("boards"),
-    watchSheets: watch("sheets"), saveSheet: save("sheets"),
+    watchSheets: watch("sheets"), saveSheet: save("sheets"), deleteSheet: del("sheets"),
     watchPhaseb: function(cb){ pb.subs.push(cb); ensureChannel(); if(pb.cache) setTimeout(pbEmit, 0); else pbLoad(); return function(){ pb.subs = pb.subs.filter(function(f){ return f !== cb; }); }; },
     savePhaseb: function(list){
       if(pb.cache){ list.forEach(function(r){ pb.cache[r.pack_id] = clone(r); }); pbEmit(); }
@@ -1371,6 +1378,7 @@ function localStore(){
     saveBoard: function(o){ data.boards[o.id] = clone(o); emit(); return Promise.resolve(); },
     watchSheets: function(cb){ L.sheets.push(cb); setTimeout(emit, 0); return function(){}; },
     saveSheet: function(o){ data.sheets[o.id] = clone(o); emit(); return Promise.resolve(); },
+    deleteSheet: function(id){ delete data.sheets[id]; emit(); return Promise.resolve(); },
     watchPhaseb: function(cb){ L.phaseb.push(cb); setTimeout(emit, 0); return function(){}; },
     savePhaseb: function(list){ list.forEach(function(r){ data.phaseb[r.pack_id] = clone(r); }); emit(); return Promise.resolve(); },
     deletePhaseb: function(ids){ ids.forEach(function(id){ delete data.phaseb[id]; }); emit(); return Promise.resolve(); }
@@ -1434,7 +1442,7 @@ function statusPill(){
 function getPack(id){ return PACKS.filter(function(p){ return p.id === id; })[0] || null; }
 function resultsFor(packId, gameId){ return RESULTS.filter(function(r){ return r.packId === packId && (!gameId || r.gameId === gameId); }); }
 function packTitle(p){ return p.title || ((p.student || "Lesson") + (p.lp ? " · LP" + p.lp : "")); }
-function students(){ var s = {}; PACKS.forEach(function(p){ if(p.student) s[p.student] = 1; }); return Object.keys(s).sort(function(a,b){ return a.localeCompare(b); }); }
+function students(){ var s = {}; PACKS.forEach(function(p){ if(p.student && !isTestPack(p)) s[p.student] = 1; }); return Object.keys(s).sort(function(a,b){ return a.localeCompare(b); }); }
 function touchPack(p){ p.updatedAt = nowIso(); return STORE.savePack(p).catch(saveErr); }
 function go(view, extra){ if(UI.view === "sheet" && UI.packId) rsFlush(UI.packId); UI.view = view; if(extra) Object.keys(extra).forEach(function(k){ UI[k] = extra[k]; }); saveUI(); SCROLL_PEND = true; render(); if(SCROLL_PEND){ SCROLL_PEND = false; window.scrollTo(0,0); } }
 
@@ -6039,6 +6047,7 @@ function render(){
   if(v === "sheet") return viewSheet();
   if(v === "plan" && !STUDENT_PAGE) return viewPlan();
   if(v === "phaseb" && !STUDENT_PAGE) return viewPhaseb();
+  if(v === "test" && !STUDENT_PAGE) return viewTest();
   if(v === "bgmine") return viewBgMine();
   if(v === "pack") return viewPack();
   if(v === "student") return viewStudent();
@@ -6088,7 +6097,7 @@ function packsByDate(list){ return list.slice().sort(function(a,b){ return Strin
 var HOMEDAY = "";   /* not saved: the app opens on today */
 function dayShift(d, n){ var p = d.split("-"), dt = new Date(+p[0], +p[1]-1, +p[2] + n); return dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0") + "-" + String(dt.getDate()).padStart(2,"0"); }
 function viewHome(){
-  var packs = packsByDate(PACKS), resume = inProgressHtml(false), groups = {}, names = [];
+  var packs = packsByDate(realPacks()), resume = inProgressHtml(false), groups = {}, names = [];
   var day = HOMEDAY || today(), isToday = day === today();
   packs.forEach(function(p){ var k = p.student || ""; if(!groups[k]){ groups[k] = []; names.push(k); } groups[k].push(p); });
   names.sort(function(a, b){ return !a ? 1 : !b ? -1 : a.localeCompare(b); });
@@ -6101,13 +6110,14 @@ function viewHome(){
     var g = groups[k], last = g[0];
     return '<li><button class="item" data-a="student" data-s="' + esc(k) + '"><span><b>' + esc(k || "No student") + '</b><small>' + g.length + (g.length === 1 ? " lesson" : " lessons") + (last ? " · latest " + esc(last.lp ? "LP" + last.lp + ", " : "") + esc(fmtDate(last.date)) : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
   }).join("") + '</ul></details>' : "";
-  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>' + esc(APP_NAME) + '</h1><div class="row home-r">' + pbEntryHtml() + statusPill() + '</div></div>' + resume + dayBar + dayList + stuList + dataSection() + '</div>';
+  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>' + esc(APP_NAME) + '</h1><div class="row home-r">' + pbEntryHtml() + statusPill() + '</div></div>' + resume + dayBar + dayList + stuList + dataSection() + '<div class="row sbx-entry"><button class="btn ghost sm" data-a="tst-open-page" title="Test students and the sandbox">🧪 Test</button></div></div>';
   foldRestore();
   var rf = $("restoreFile"); if(rf) rf.addEventListener("change", function(){ restoreFile(rf.files && rf.files[0]); rf.value = ""; });
 }
 
 /* ---------- progress: patterns across a student's games and lessons (all from results.items) ---------- */
 function progressData(name){
+  if(isTestName(name)) return { lessons:[], stuck:[], better:[], once:[] };
   var packs = packsByDate(PACKS.filter(function(p){ return (p.student || "") === name; })), byPack = {};
   packs.forEach(function(p){ byPack[p.id] = p; });
   var rs = RESULTS.filter(function(r){ return byPack[r.packId]; });
@@ -6212,7 +6222,7 @@ function viewHomeOld(){
 
 function lessonResultsText(p){
   var rs = resultsFor(p.id).slice().sort(function(a,b){ return String(a.at).localeCompare(String(b.at)); });
-  return [packTitle(p) + " · " + fmtDate(p.date)].concat(rs.map(function(r){ return r.summary; })).join("\n");
+  return [(isTestPack(p) ? "🧪 TEST LESSON (sandbox, not a real student) · " : "") + packTitle(p) + " · " + fmtDate(p.date)].concat(rs.map(function(r){ return r.summary; })).join("\n");
 }
 /* ---------- word bank & quick games ---------- */
 function parseBank(text){ var out = [], seen = {}; parseLines(text).forEach(function(l){ var p = l.split("|").map(function(x){ return x.trim(); }), w = p[0]; if(!w) return; var k = w.toLowerCase(); if(seen[k]) return; seen[k] = 1; out.push({ w:w, c:p[1] || "", ex:p[2] || "" }); }); return out; }
@@ -6249,10 +6259,11 @@ function itemWords(r){
   return out;
 }
 function missedPacks(p){
-  if(!p || !p.student) return [];
+  if(!p || !p.student || isTestPack(p)) return [];
   return packsByDate(PACKS.filter(function(x){ return x.student === p.student && x.id !== p.id && (String(x.date || "") < String(p.date || "") || (x.date === p.date && (+x.lp || 0) < (+p.lp || 0))); })).slice(0, 3);
 }
 function missedWords(p){
+  if(isTestPack(p)) return [];
   var packs = missedPacks(p), ids = {}, bank = {}, out = [], seen = {};
   [p].concat(packs).forEach(function(x){ ids[x.id] = x !== p; parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!bank[k]) bank[k] = b; }); });
   RESULTS.filter(function(r){ return ids[r.packId]; }).sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); }).forEach(function(r){
@@ -6270,7 +6281,7 @@ function bankWords(p, scope){ if(scope === "missed") return missedWords(p); if(s
    clue from the word bank where there is one, otherwise the clue or question it was missed on, unless that gives it away. */
 function stuckWords0(d){ return d.stuck.filter(function(o){ return o.word || o.q; }); }
 function stuckWords(p){
-  if(!p || !p.student) return [];
+  if(!p || !p.student || isTestPack(p)) return [];
   var bank = {}; [p].concat(missedPacks(p)).forEach(function(x){ parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!bank[k]) bank[k] = b; }); });
   return stuckWords0(progressData(p.student)).slice(0, 15).map(function(o){
     var b = bank[o.w.toLowerCase()], c = b && bankPrompt(b) ? (b.c || "") : o.c;
@@ -6409,7 +6420,7 @@ function viewPlay(){
     (paused || SMODE || CH_TYPES.indexOf(run.type) === -1 ? "" : '<button class="btn ghost sm ic" data-a="challenge" aria-label="Challenge" title="Challenge: a quick language task before play carries on"' + (run.st.ch || run.st.phase === "over" || run.st.winner ? " disabled" : "") + '>⚡</button>') +
     (paused || (t.noPause && t.noPause(run)) ? "" : '<button class="btn ghost sm ic" data-a="pause" aria-label="Pause" title="Pause"' + (run.st.spinning ? " disabled" : "") + '>❚❚</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="settings" aria-label="Settings" title="Settings">⚙</button>') +
-    (SMODE && SMODE.cls ? "" : '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button>') + '</header>' +
+    (SMODE && SMODE.cls ? "" : '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button>') + '</header>' + (!SMODE && isTestPack(getPack(run.packId)) ? sbxStripe() : "") +
     '<main class="stage">' + (run.prev && !paused ? '<p class="lasttime">Last time: ' + esc(run.prev) + '</p>' : "") + (paused ? '<div class="pausebox"><h1>Paused</h1><p class="muted">The game and its timer are stopped, and paused time isn’t counted.</p><button class="btn big-btn" data-a="resume-run">Resume</button></div>' : (function(){ try{ return t.view(run); }catch(e){ run.broken = true; return '<p class="notice">Something went wrong drawing this game. Tap ✕ to save or quit it.</p>'; } })()) + '</main>';
   if(CLOCKT){ clearInterval(CLOCKT); CLOCKT = null; }
   if(!paused) CLOCKT = setInterval(function(){ var e = $("clock"); if(!e || UI.view !== "play" || UI.run !== run || run.paused){ clearInterval(CLOCKT); CLOCKT = null; return; } e.textContent = fmtClock(clockMs(run)); }, 1000);
@@ -6573,7 +6584,7 @@ function liveMirror(run){ return !SMODE && liveSolo(run) && liveSoloLocked(run) 
 /* A solo game is only shared once the other screen is in it (a message about it has arrived, or a class link is
    connected and will open it). A student link for a different game left open doesn't lock the teacher's iPad. */
 function liveSoloLocked(run){ return liveLocked(run); }
-var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", cls:false, applyingFin:false, sent:"", away:false };
+var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:"", peerB:null, cls:false, applyingFin:false, sent:"", away:false };
 (function(){ var a = new Uint8Array(9); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function(_, i){ a[i] = Math.random() * 256; }); LIVE.me = Array.prototype.map.call(a, function(x){ return ("0" + x.toString(16)).slice(-2); }).join(""); })();
 /* One live tab: with the teacher's app open in several tabs (games · run sheet · plan), every tab used to join the
    live game. They ignored each other (another of the teacher's own devices), so a tab that wasn't being played in
@@ -6584,7 +6595,7 @@ var LIVE = { room:null, chan:null, sb:null, me:"", last:{}, peers:0, peerName:""
 var LIVE_TABS = null;
 function liveAnnounce(){
   var ch = LIVE.chan; if(!ch || LIVE.away) return;
-  try{ ch.track({ role: SMODE ? "student" : "teacher", name: SMODE ? liveStudentName() : "Teacher", cls: !!(SMODE && SMODE.cls) }); }catch(e){}
+  try{ ch.track({ role: SMODE ? "student" : "teacher", name: SMODE ? liveStudentName() : "Teacher", cls: !!(SMODE && SMODE.cls), b:APP_B }); }catch(e){}
   liveSend({ t:"hello" });
   var run = UI.run;
   if(run && liveOn(run)){
@@ -6662,6 +6673,10 @@ function liveJoin(room){
       LIVE.peers = others.length;
       LIVE.peerName = others.length ? ((ps[others[0]][0] || {}).name || "") : "";
       LIVE.cls = others.some(function(k){ return !!(ps[k][0] || {}).cls; });
+      /* the other side's build (APP_B): "" for a page from before builds were stamped */
+      var pb = others.filter(function(k){ return SMODE || !!(ps[k][0] || {}).cls; })[0];
+      LIVE.peerB = pb ? String((ps[pb][0] || {}).b || "").slice(0, 16) : null;
+      if(SMODE && SMODE.cls && LIVE.peerB && LIVE.peerB !== APP_B && !(UI.view === "play" && UI.run)) clsReload(LIVE.peerB);
       if(UI.view === "play" && UI.run && !UI.run.st._animating) render(); else { livePaint(); clsPaint(); }
     });
     ch.subscribe(function(s){
@@ -6676,7 +6691,7 @@ function liveStudentName(){
   if(d.g && (d.g.type === "snakes" || d.g.type === "hilo")){ var n = parseLines(d.g.block || "").map(function(x){ return x.trim(); }).filter(function(x){ return x && !snIsTeacher(x); }); if(n[0]) return n[0].slice(0, 40); }
   return "Student";
 }
-function liveSend(m){ if(!LIVE.chan || (LIVE.away && !SMODE)) return; m.from = LIVE.me; m.r = SMODE ? "s" : "t"; try{ LIVE.chan.send({ type:"broadcast", event:"m", payload:m }); }catch(e){} }
+function liveSend(m){ if(!LIVE.chan || (LIVE.away && !SMODE)) return; m.from = LIVE.me; m.r = SMODE ? "s" : "t"; m.b = APP_B; try{ LIVE.chan.send({ type:"broadcast", event:"m", payload:m }); }catch(e){} }
 function liveOn(run){
   if(!run || !LIVE.room || LIVE_TYPES.indexOf(run.type) === -1 || !run.liveGen) return false;
   if(SMODE) return true;
@@ -6785,6 +6800,7 @@ function liveMsgOk(m){
   if(m.rev !== undefined && (typeof m.rev !== "number" || !isFinite(m.rev))) return false;
   if(m.t0 !== undefined && (typeof m.t0 !== "number" || !isFinite(m.t0))) return false;
   if(typeof m.from !== "string" || m.from.length > 40) return false;
+  if(m.b !== undefined && (typeof m.b !== "string" || !/^[0-9a-f]{0,16}$/.test(m.b))) return false;
   if(m.gd !== undefined){
     var g = m.gd && pubGame(m.gd.g); if(!g) return false;
     var x = m.gd.x ? { board: pubBoard(m.gd.x.board), tokens: pubTokens(m.gd.x.tokens) } : null;
@@ -6798,7 +6814,13 @@ function liveMsgOk(m){
 }
 function liveRecv(m){
   if(!m || typeof m !== "object" || m.from === LIVE.me) return;
-  if(!liveMsgOk(m)) return;
+  var mb = typeof m.b === "string" && /^[0-9a-f]{1,16}$/.test(m.b) ? m.b : "";
+  if(!liveMsgOk(m)){
+    /* Class link: a game this page can't take (a kind it doesn't know, or a state it can't read) from a newer build of
+       the teacher's app. The page was opened before the app was updated: reload it once to fetch the new one. */
+    if(SMODE && SMODE.cls && m.t === "st" && m.r === "t" && m.gd && mb && mb !== APP_B) clsReload(mb);
+    return;
+  }
   if(!SMODE && m.r === "t") return;   /* another of the teacher's own devices: not a student */
   if(SMODE && m.r === "s") return;    /* another student page */
   if(!SMODE && LIVE.away){   /* a listening tab: keep track of the newest copy of each game, nothing else */
@@ -6896,6 +6918,7 @@ function liveStart(run){
   else { run.liveGen = shortId(); run.liveT0 = Date.now(); run.st._rev = 0; LIVE.sent = ""; setTimeout(function(){ if(UI.run === run) liveOut(true); }, 0); }
   UI.liveFresh = false;
   if(!SMODE){
+    run.liveAt = Date.now(); setTimeout(function(){ if(UI.run === run) livePaint(); }, 6500);   /* "hasn't opened this game" if the student's screen stays quiet */
     var pk = getPack(run.packId), gm = pk && (pk.games || []).filter(function(x){ return x.id === run.gameId; })[0];
     if(gm) clsGameDef(pk, Object.assign({}, gm, run.gflags || {})).then(function(gd){ run.gd = gd; if(UI.run === run) liveOut(true); }, function(e){ if(UI.run === run && LIVE.cls) toast("Couldn’t send this game to the student: " + ((e && e.message) || "check the connection")); });
   }
@@ -6909,6 +6932,8 @@ function livePaint(){
      another game is "online", and nothing is locked, so no 🔒. */
   var near = LIVE.peers > 0, on = liveLocked(run) || (SMODE && near), ov = !SMODE && run.liveOverride;
   el.className = "livepill" + (on ? " on" : "") + (ov ? " ov" : "");
+  var late = !SMODE && on && LIVE.cls && !run.peerIn && run.liveAt && Date.now() - run.liveAt > 6000;
+  if(late){ el.innerHTML = '<span>○ ' + esc(LIVE.peerName || "The student") + '’s screen hasn’t opened this game yet. If it doesn’t appear, ask them to reload the class link.</span>'; return; }
   el.innerHTML = '<span>' + esc(on ? "● " + (SMODE ? "Teacher" : (LIVE.peerName || "Student")) + " connected" : near && !SMODE ? "○ " + (LIVE.peerName || "Your student") + " is online, not in this game" : "○ Waiting for " + (SMODE ? "your teacher" : "the student") + "…") + '</span>' +
     (SMODE || !on || run.type === "td" ? "" : '<button class="lo" data-a="live-override" aria-pressed="' + !!ov + '" aria-label="' + (ov ? "Back to taking turns" : "Override: take any turn and see everything") + '" title="' + (ov ? "Override on: you can take any turn and see every card. Tap to go back to turns." : "Override: take any turn and see every card") + '">' + (ov ? "🔓" : "🔒") + '</button>');
 }
@@ -7036,6 +7061,16 @@ function clsApply(gd, pid){
   var k = gd.k || SMODE.d.k;
   PACKS = [{ id:pid || "class", student:"", lp:gd.l || null, look: k && k !== "bright" ? k : "", games:[gd.g] }];
 }
+/* Reload the class-link page to fetch the teacher's newer build: at most once per teacher build and once a minute,
+   so a page that is already the newest (or a made-up build id) never reloads in a loop. The hash (#c=…) and the saved
+   state survive the reload. */
+function clsReload(b){
+  if(!SMODE || !SMODE.cls) return;
+  var k = "lessonGames.reload", o = {}; try{ o = JSON.parse(sessionStorage.getItem(k) || "{}") || {}; }catch(e){}
+  if(o.b === b || Date.now() - (+o.at || 0) < 60000) return;
+  try{ sessionStorage.setItem(k, JSON.stringify({ b:b, at:Date.now() })); }catch(e){ return; }
+  saveUI(); location.reload();
+}
 function clsAdopt(m){
   if(UI.run && UI.run.gameId !== m.g){ UI.run = null; UNDO = []; UI.finishAsk = false; UI.settingsOpen = false; }
   clsApply(m.gd, m.p);
@@ -7055,7 +7090,8 @@ function clsBarHtml(p){
   /* An in-person lesson (run sheet format) with nobody on the link: one slim line, so the run sheet starts higher on a phone. */
   var sp = rsSpec(p);
   if(!on && sp && !rsOnline(sp)) return '<div class="clsbar slim" id="clsBar" role="status"><span class="muted">In person · class link only if needed</span><button class="btn ghost sm" data-a="clink">Class link</button></div>';
-  return '<div class="clsbar' + (on ? " on" : "") + '" id="clsBar" role="status">' + (on ? '<span>● ' + esc(nm) + ' is on the class link. <span class="muted">Tap Play on any game to put it on ' + esc(nm) + '’s screen.</span></span>' : !p.liveRoom ? '<span>Online class? <span class="muted">Send the class link once; then every game you start appears on the student’s screen.</span></span>' : '<span>○ Class link: nobody connected. <span class="muted">When the student opens it, they wait for your first game.</span></span>') + btn + '</div>';
+  var old = on && LIVE.peerB !== null && LIVE.peerB !== APP_B;
+  return '<div class="clsbar' + (on ? " on" : "") + '" id="clsBar" role="status">' + (on ? '<span>● ' + esc(nm) + ' is on the class link. <span class="muted">Tap Play on any game to put it on ' + esc(nm) + '’s screen.</span>' + (old ? '<br><span class="clsold">' + esc(nm) + '’s page and yours are different versions of the app. If a game doesn’t appear on their screen, ask them to reload the page.</span>' : "") + '</span>' : !p.liveRoom ? '<span>Online class? <span class="muted">Send the class link once; then every game you start appears on the student’s screen.</span></span>' : '<span>○ Class link: nobody connected. <span class="muted">When the student opens it, they wait for your first game.</span></span>') + btn + '</div>';
 }
 function clsOverlay(p){
   if(!UI.clink) return "";
@@ -7518,6 +7554,7 @@ function navBar(cur, p, opts){
       '<button class="btn ghost sm ic' + on("plan") + '" data-a="pl-open" aria-label="Plan" title="The lesson plan">📖</button>' + plFilesBtn(p);
   }
   html += '</div>' + (opts.title ? '<div class="t">' + opts.title + '</div>' : '<span class="nav-sp"></span>') + (opts.right ? '<div class="nav-r">' + opts.right + '</div>' : "") + '</header>';
+  if(cur === "test" || (p ? isTestPack(p) : isTestName(stu))) html += sbxStripe();
   return html;
 }
 /* The lesson page's 📋 run sheet button (beside 📖), with its state as a dot: hollow = not started, amber = started,
@@ -8162,10 +8199,10 @@ function pbSignal(p){
   return at;
 }
 function pbAll(){
-  var td = today(), byStu = {}, out = { owed:[], look:[], done:[], launch:[], byId:{} };
-  PACKS.forEach(function(p){ var k = p.student || ""; (byStu[k] = byStu[k] || []).push(p); });
+  var td = today(), byStu = {}, out = { owed:[], look:[], done:[], launch:[], byId:{} }, real = realPacks();   /* test students: never owed */
+  real.forEach(function(p){ var k = p.student || ""; (byStu[k] = byStu[k] || []).push(p); });
   Object.keys(byStu).forEach(function(k){ byStu[k] = packsByDate(byStu[k]); });
-  PACKS.forEach(function(p){
+  real.forEach(function(p){
     var date = String(p.date || "").slice(0, 10), sig = pbSignal(p), row = PHASEB[p.id], mine = byStu[p.student || ""], i = mine.indexOf(p);
     var o = { p:p, row:row || null, prev: mine[i + 1] || null, state:"later" };
     if(sig && !(date && date > td)){ o.state = "owed"; o.day = date || pbLocalDay(sig) || td; }
@@ -8266,6 +8303,123 @@ function pbHandle(a, el){
   return false;
 }
 /* ---------- events ---------- */
+/* =====================================================================
+   TEST SANDBOX (27 Nov). Test students carry test:true in their students row (students/<slug>.data.test). They and
+   their lessons stay out of real work: home's day list and Students, the Resume strip / Kept games, the Phase B owed
+   list, missed words, Keeps coming up, progress, and the student list when making a lesson. Backups still carry them.
+   🧪 Test on home opens the sandbox page: the test students, Reset sandbox (one seeded "Every game" lesson each, with a
+   game of every kind: SBX_SEED, which a test checks against TYPES) and Open student screen (the lesson's class link).
+   Reset only ever touches lessons, results, sheets and kept games of students with the test flag.
+   ===================================================================== */
+function sbxStripe(){ return STUDENT_PAGE || SMODE ? "" : '<div class="sbx-stripe" role="note">🧪 Test · sandbox, not a real lesson</div>'; }
+function isTestName(n){ var o = n ? STUDENTS[slug(n)] : null; return !!(o && o.test === true); }
+function isTestPack(p){ return !!(p && p.student && isTestName(p.student)); }
+function realPacks(){ return PACKS.filter(function(p){ return !isTestPack(p); }); }
+var SBX_STUDENTS = [{ id:"demo", name:"Demo", players:[] }, { id:"demo-pair", name:"Demo Pair", players:["Pip", "Pat"] }];
+var SBX_BANK = "kitchen | you cook dinner in this room | Mom is cooking in the kitchen.\nbedroom | you sleep in this room | My bedroom is upstairs.\nbathroom | you take a shower in this room | The bathroom is next to my bedroom.\ngarden | plants and flowers grow here | Grandpa grows tomatoes in the garden.\ngarage | you park the car here | Dad's bike is in the garage.\nbalcony | a small place outside an upstairs window | We eat ice cream on the balcony.\nhallway | you walk through it to get to other rooms | My shoes are in the hallway.\nsofa | a long soft seat for two or three people | The cat is sleeping on the sofa.\nfridge | it keeps your food cold | The milk is in the fridge.\ncurtains | you close them over the window at night | I close the curtains at night.";
+/* One saved game of every kind. ps = the players' names (Demo Pair: Pip, Pat; Demo: the student alone). */
+var SBX_SEED = {
+  hangman:{ title:"Home Hangman", block:"kitchen | you cook dinner in this room\nbalcony | a small place outside an upstairs window\ncurtains | you close them over the window at night\nfridge | it keeps your food cold" },
+  anagrams:{ title:"Home Anagrams", block:"garden | plants and flowers grow here\ngarage | you park the car here\nmirror | you look at your face in it\nsofa | a long soft seat for two or three people" },
+  typeit:{ title:"Type the Answer", block:"you cook dinner in this room = kitchen\nthe past of go = went\nthe opposite of upstairs = downstairs\nWhat’s 5 + 3? = eight / 8" },
+  spelling:{ title:"Home Spelling Test", block:"kitchen\nbedroom\nbathroom\ncolour / color" },
+  match:{ title:"Home Match Up", block:"kitchen = you cook here\nbedroom = you sleep here\nbathroom = you shower here\ngarage = the car lives here", options:{ mode:"match" } },
+  cards:{ title:"Home Flash Cards", block:"you cook dinner in this room = kitchen\nyou sleep in this room = bedroom\nit keeps your food cold = fridge" },
+  quiz:{ title:"Home Quiz Show", block:"The milk is ___ the fridge.\n*in\non\nat\n\nThere ___ two lamps in my room.\n*are\nis\nam\n\nYou take a shower in the ___.\n*bathroom\nkitchen\ngarage", options:{ timer:30, bonus:1 } },
+  build:{ title:"Sentence Builder", block:"The cat is sleeping on the sofa.\nMy books are on the shelf.\nYesterday I cleaned my bedroom. / I cleaned my bedroom yesterday. | past simple" },
+  spot:{ title:"Spot the Error", block:"There is two sofas in the living room. = There are two sofas in the living room.\nThe milk is in the fridge. = ok\nI sleeped in my bedroom. = I slept in my bedroom." },
+  odd:{ title:"Odd One Out", block:"kitchen, bedroom, *banana, bathroom | banana is a fruit, not a room\nsofa, chair, bed, *fridge | the others are things you sit or lie on\nwalked, cleaned, *sleep, cooked | sleep is not past tense" },
+  phon:{ title:"Phonics Sort", block:"a_e (cake): cake, name, gate\ni_e (bike): bike, kite, time\no_e (home): home, rope, nose" },
+  whack:{ title:"Whack-a-Mole", block:"Hit the rooms!\nHIT: kitchen, bedroom, bathroom, hallway\nMISS: sofa, lamp, fridge, pillow", options:{ time:30, speed:3 } },
+  cross:{ title:"Home Crossword", block:"you cook dinner in this room = kitchen\nyou park the car here = garage\nyou walk up and down them between floors = stairs\nit keeps your food cold = fridge\nyour head is on it in bed = pillow\nyou look at your face in it = mirror" },
+  auction:{ title:"Grammar Auction", block:"1. There are five books on the shelf. [CORRECT]\n2. There have a big lamp in my room. [WRONG — There is a big lamp in my room.]\n3. The cat sleeped on the sofa. [WRONG — The cat slept on the sofa.]\n4. We eat ice cream on the balcony. [CORRECT]" },
+  bingo:{ title:"Home Bingo", block:"kitchen = you cook dinner in this room\nbedroom = you sleep in this room\nbathroom = you take a shower in this room\ngarden = plants and flowers grow here\ngarage = you park the car here\nbalcony = a small place outside an upstairs window\nhallway = you walk through it to get to other rooms\nsofa = a long soft seat for two or three people\nfridge = it keeps your food cold\ncurtains = you close them over the window at night", options:function(ps){ return { size:3, call:"definition", cards: ps.length > 1 ? ps.join(", ") : "" }; } },
+  wheel:{ title:"Random Wheel", block:"weekend | What did you do last weekend?\nfood | What food could you eat every day?\ndream job | What job would you love to do?", options:{ remove:true } },
+  slot:{ title:"Slot Machine", block:"Who: my mom | the cat | a robot\nDoing what: is sleeping | is cooking | is dancing\nWhere: in the kitchen | on the sofa | in the garden" },
+  dice:{ title:"Story Dice", block:"kitchen\nsofa\nfridge\ncat\nrobot\nbanana\nsleep\nrun\nhide", options:{ count:3 } },
+  taboo:{ title:"Home Taboo", block:"TABOO CARDS\nTARGET: kitchen\nFORBIDDEN: cook, food, room, eat\n\nTARGET: fridge\nFORBIDDEN: cold, milk, food, kitchen\n\nTARGET: garden\nFORBIDDEN: flowers, plants, grass, outside" },
+  snakes:{ title:"Snakes & Ladders", block:function(ps){ return ps.concat(["Teacher"]).join("\n"); }, options:function(){ return { boardId: Object.keys(BOARDS)[0] || "", auto:true }; } },
+  hilo:{ title:"Higher or Lower", block:function(ps){ return (ps.length > 1 ? ps : ps.concat(["Teacher"])).join("\n"); } },
+  typhoon:{ title:"Typhoon", block:function(ps){ return (ps.length > 1 ? ps : ps.concat(["Teacher"])).join("\n"); }, options:{ size:5, grid:[], mix:"10×10, 6×20, 3×50, 2×T, 2×x2, 2×SWAP", codes:"" } },
+  battleships:{ title:"Battleships", block:function(ps){ return ps.join(" & ") + "\nTeacher"; }, options:{ size:8, fleet:"4, 3, 3, 2" } },
+  td:{ title:"Tower Defence", block:"", options:{ map:0, diff:"easy" } }
+};
+function sbxPlayers(s){ var o = STUDENTS[slug(s.name)] || {}; var ps = Array.isArray(o.players) && o.players.length ? o.players : s.players; return ps.length ? ps.map(String) : [s.name]; }
+function sbxSeedPack(s){
+  var ps = sbxPlayers(s), id = s.id + "-every", ts = nowIso();
+  var games = Object.keys(SBX_SEED).map(function(k, i){
+    var x = SBX_SEED[k];
+    return { id:"t" + (i + 1) + "-" + k, type:k, title:x.title, block: typeof x.block === "function" ? x.block(ps) : x.block, options: typeof x.options === "function" ? x.options(ps) : clone(x.options || {}) };
+  });
+  var spec = { student:s.name, date:today(), start:"17:00", length:60, format:"online",
+    blocks:[{ label:"0 Warm-up", mins:10, lines:[{ type:"cue", label:"0A Hello and the class link" }, { type:"app", label:"0B Home Hangman" }] },
+            { label:"1 Words", mins:20, lines:[{ type:"app", label:"1A Home Match Up" }, { type:"app", label:"1B Home Quiz Show" }, { type:"score", n:10, label:"1C Spelling score" }] },
+            { label:"2 Break", mins:15, lines:[{ type:"app", label:"2A Typhoon" }, { type:"cue", label:"2B Talk about the boxes" }] },
+            { label:"3 Wrap", mins:15, lines:[{ type:"cue", label:"3A Homework" }, { type:"cue", text:"note mistakes", label:"3B Mistakes" }] }] };
+  return { id:id, student:s.name, lp:null, title:s.name + " · Every game", date:today(), source:"app", createdAt:ts, updatedAt:ts, bank:SBX_BANK, games:games, runsheet:spec,
+    materials:[{ t:"Sample worksheet (not a real file)", id:"1SandboxSampleWorksheet_test01", p:"p.1", seg:["1"] }] };
+}
+/* Make sure both test students exist with the flag (the old "Demo" becomes one). Returns the saves. */
+function sbxEnsure(){
+  return Promise.all(SBX_STUDENTS.map(function(s){
+    var cur = STUDENTS[s.id];
+    if(cur && cur.test === true && (!s.players.length || (cur.players || []).length)) return null;
+    var o = Object.assign({ id:s.id, name:s.name }, cur || {}, { test:true, updatedAt:nowIso() });
+    if(s.players.length && !(o.players || []).length) o.players = s.players.slice();
+    STUDENTS[s.id] = o; return STORE.saveStudent(o);
+  }));
+}
+function sbxReset(){
+  return sbxEnsure().then(function(){
+    var packs = PACKS.filter(isTestPack), ids = {}, jobs = [];
+    packs.forEach(function(p){ ids[p.id] = 1; });
+    RESULTS.filter(function(r){ var p = getPack(r.packId); return p ? isTestPack(p) : isTestName(r.student); }).forEach(function(r){ if(STORE.deleteResult) jobs.push(STORE.deleteResult(r.id)); });
+    RESULTS = RESULTS.filter(function(r){ var p = getPack(r.packId); return !(p ? isTestPack(p) : isTestName(r.student)); });
+    packs.forEach(function(p){
+      if(!isTestPack(p)) return;   /* checked again at the point of deleting */
+      jobs.push(STORE.deletePack(p.id));
+      if(SHEETS[p.id] && STORE.deleteSheet) jobs.push(STORE.deleteSheet(p.id));
+      delete SHEETS[p.id]; delete RS_LOCAL[p.id]; delete RS_DIRTY[p.id];
+      if(UI.parked) Object.keys(UI.parked).forEach(function(k){ if(k.indexOf(p.id + "|") === 0) delete UI.parked[k]; });
+      if(UI.run && UI.run.packId === p.id){ UI.run = null; UNDO = []; }
+    });
+    var pbIds = Object.keys(ids).filter(function(id){ return PHASEB[id]; });
+    if(pbIds.length && STORE.deletePhaseb) jobs.push(STORE.deletePhaseb(pbIds));
+    PACKS = PACKS.filter(function(p){ return !ids[p.id]; });
+    SBX_STUDENTS.forEach(function(s){
+      var o = STUDENTS[s.id]; if(!o || o.test !== true) return;
+      if(o.paused){ o = Object.assign({}, o, { paused:{}, updatedAt:nowIso() }); STUDENTS[s.id] = o; jobs.push(STORE.saveStudent(o)); }
+      var np = sbxSeedPack(s); PACKS = PACKS.concat([np]); jobs.push(STORE.savePack(np));
+    });
+    saveUI();
+    return Promise.all(jobs);
+  });
+}
+/* Open the lesson's class link in a new tab: the window opens straight away (so no pop-up blocker), the address follows. */
+function sbxOpenStudent(p){
+  var w = null; try{ w = window.open("about:blank", "_blank"); }catch(e){}
+  clsLink(p).then(function(u){ if(w && !w.closed) w.location.href = u; else toast("Open this in a new tab: " + u); }, function(e){ if(w) w.close(); toast("Couldn’t make the class link: " + ((e && e.message) || "check the connection")); });
+}
+function viewTest(){
+  var list = SBX_STUDENTS.map(function(s){
+    var o = STUDENTS[s.id], mine = packsByDate(PACKS.filter(function(p){ return (p.student || "") === s.name; })), ps = sbxPlayers(s);
+    return '<section class="section sbx-stu"><div class="spread"><h3>' + esc(s.name) + (ps.length > 1 ? ' <span class="muted" style="font-weight:400;font-size:16px">(' + esc(ps.join(" & ")) + ')</span>' : "") + '</h3>' + (o && o.test === true ? "" : '<span class="muted">not set up yet</span>') + '</div>' +
+      (mine.length ? '<ul class="list">' + mine.map(function(p){ return packItemHtml(p).replace('</button></li>', '</button>' + (SB_MODE && SB ? '<button class="btn ghost sm sbx-open" data-a="tst-open" data-id="' + esc(p.id) + '">Open student screen</button>' : "") + '</li>'); }).join("") + '</ul>' : '<p class="muted">No lessons. Reset sandbox makes one.</p>') + '</section>';
+  }).join("");
+  $("app").innerHTML = navBar("test", null, { noStu:true, right: statusPill() }) + '<div class="wrap"><div class="head"><h2>🧪 Test sandbox</h2><p class="muted">Test students’ lessons, results and kept games stay out of the day list, Phase B, missed words and progress. Backups still include them.</p></div>' + list +
+    '<section class="section"><h3>Reset sandbox</h3><p class="muted" style="margin-top:4px">Deletes the test students’ lessons, results, run sheet marks and kept games, then makes one “Every game” lesson each: a saved game of every kind, a word bank, a run sheet and a materials entry. Real students are never touched.</p>' +
+    (UI.sbxAsk ? '<div class="row sbx-ask" role="alert"><b>Wipe the sandbox and start again?</b><button class="btn danger sm" data-a="tst-reset-go">Yes, reset</button><button class="btn ghost sm" data-a="tst-reset-no">Cancel</button></div>' : '<div class="row"><button class="btn sm" data-a="tst-reset">Reset sandbox</button></div>') + '</section>' +
+    '<section class="section"><h3>From a planning chat</h3><p class="muted" style="margin-top:4px">A planning chat can save a lesson to “Demo” in the usual way. It lands here, not on the day list, so you can try the planning → app → Phase B route end to end. (Phase B for a test lesson isn’t counted as owed.)</p></section></div>';
+}
+function tstHandle(a, el){
+  if(a === "tst-open-page"){ UI.sbxAsk = false; sbxEnsure().then(function(){ if(UI.view === "test") render(); }, saveErr); go("test"); return true; }
+  if(a === "tst-reset"){ UI.sbxAsk = true; render(); return true; }
+  if(a === "tst-reset-no"){ UI.sbxAsk = false; render(); return true; }
+  if(a === "tst-reset-go"){ UI.sbxAsk = false; render(); sbxReset().then(function(){ toast("Sandbox reset."); if(UI.view === "test") render(); }, function(e){ toast("Reset stopped: " + ((e && e.message) || "error")); refresh(); }); return true; }
+  if(a === "tst-open"){ var p = getPack(el.getAttribute("data-id")); if(p && isTestPack(p)) sbxOpenStudent(p); return true; }
+  return false;
+}
+
 function handle(a, el){
   var run = UI.run;
   if(a !== "undo-toast" && UNDO_TOAST.snap) dropUndoToast();
@@ -8277,6 +8431,7 @@ function handle(a, el){
   if(a.indexOf("rs-") === 0){ rsHandle(a, el); return; }
   if(a.indexOf("pl-") === 0){ plHandle(a, el); return; }
   if(a.indexOf("pb-") === 0 && !STUDENT_PAGE && pbHandle(a, el)) return;
+  if(a.indexOf("tst-") === 0 && !STUDENT_PAGE && !SMODE && tstHandle(a, el)) return;
   if(a === "home"){ UI.confirmDel = null; go("home"); return; }
   if(a === "nav-games"){ UI.confirmDel = null; UI.rsGaps = false; UI.rsFinish = false; go("pack"); return; }
   if(a === "showall"){ UI.showAll = true; render(); return; }
