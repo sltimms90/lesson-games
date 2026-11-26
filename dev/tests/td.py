@@ -26,8 +26,10 @@ def build(pg, i, k):
 def ff(pg, n):
     """n fixed steps right away (the frame loop then carries on from there)."""
     return ev(pg, "n => { const r = __T.UI.run; for (let i = 0; i < n && r.st.phase === 'wave'; i++) __T.tdStep(r.st, r.sim); return r.st.phase; }", n)
-def end_wave(pg):
+def end_wave(pg, keep_card=False):
     ev(pg, "() => { const r = __T.UI.run; for (let i = 0; i < 40000 && r.st.phase === 'wave' && !r.st.pz && !r.st.ch && !r.st.tlock; i++) __T.tdStep(r.st, r.sim); __T.saveRun(); __T.render(); }"); pg.wait_for_timeout(150)
+    if not keep_card and pg.locator("[data-a=td-card]").count():
+        pg.click("[data-a=td-card]"); pg.click("[data-a=td-cardok]"); pg.wait_for_timeout(100)
 def settings(pg):
     if not pg.locator(".setpop").count(): pg.click("header [data-a=settings]"); pg.wait_for_timeout(120)
 def close_settings(pg):
@@ -142,7 +144,12 @@ with sync_playwright() as p:
     settings(t); t.click(".setpop [data-a=td-limit][data-v='1']"); t.wait_for_timeout(100)
     check(st(t)["limit"] == 3 and "Wave 3" in t.inner_text(".setpop #tdLimit"), "⚙ Stop at wave: + sets it to the next wave (3)")
     close_settings(t)
-    t.click("[data-a=td-start]"); t.wait_for_timeout(200); end_wave(t)
+    t.click("[data-a=td-start]"); t.wait_for_timeout(200); end_wave(t, keep_card=True)
+    s = st(t)
+    check(s["card"] and not s["card"]["open"] and "Bonus card!" in t.inner_text(".td-pause") and t.locator("[data-a=td-start]").is_disabled(), "wave 3 cleared: a bonus card first, face down; nothing starts until it's dealt with")
+    k = s["card"]["k"]; t.click("[data-a=td-card]"); t.wait_for_timeout(100)
+    check(st(t)["card"]["open"] and t.locator(".td-card b").count() == 1, "tap: it turns over (%s: %s)" % (k, t.inner_text(".td-card").replace("\n", " ")))
+    t.click("[data-a=td-cardok]"); t.wait_for_timeout(100)
     s = st(t); pt = t.inner_text(".td-pause")
     check(s["pz"] == "limit" and s["cleared"] == 3 and "Time for some work!" in pt and t.locator(".td-pause [data-a=td-resume]").count() == 0, "wave 3 cleared at the limit: “Time for some work!”, no ▶ Resume")
     ev(t, "() => { const r = __T.UI.run; __T.TYPES.td.act(r, 'td-resume', { getAttribute: () => null }); __T.render(); }")
@@ -163,7 +170,75 @@ with sync_playwright() as p:
     t.click("header [data-a=challenge]"); co = st(t)["coins"]; ev(t, "() => { __T.UI.run.st.pz = ''; }")
     t.click("[data-a=ch-mark][data-m=no]"); t.wait_for_timeout(100)
     s = st(t); check(len(s["chLog"]) == 2 and not s["chLog"][1]["ok"] and s["coins"] - co < 50, "Not yet: logged, no bonus")
+    # ---- 11b. bonus cards: each one's effect; next-wave cards change the wave; unlockable towers; the gold mine
+    end_wave(t)
+    if st(t)["pz"]: t.click("[data-a=td-resume]")
+    ev(t, "() => { const r = __T.UI.run; r.st.towers = r.st.towers.map(() => null); r.st.towers[0] = { k:'basic', lv:1, spent:20 }; r.st.towers[1] = { k:'sniper', lv:3, spent:210 }; r.st.coins = 100; r.st.lives = 15; r.st.free = 0; r.st.mod = ''; __T.render(); }")
+    def card(k):
+        ev(t, "k => { __T.UI.run.st.card = { k, open:false }; __T.render(); }", k); t.click("[data-a=td-card]"); t.wait_for_timeout(80)
+        txt = t.inner_text(".td-card"); t.click("[data-a=td-cardok]"); t.wait_for_timeout(80); return txt
+    card("upall"); s = st(t); check(s["towers"][0]["lv"] == 2 and s["towers"][1]["lv"] == 3, "⬆ Power up: every tower up a level (level 3 stays 3)")
+    card("coins"); check(st(t)["coins"] == 160, "🪙 Treasure: +60 coins")
+    card("tax"); check(st(t)["coins"] == 120, "🕳 Lose 40 coins")
+    card("lives"); check(st(t)["lives"] == 18, "❤ +3 lives")
+    card("lives"); card("lives"); check(st(t)["lives"] == 20, "…never above 20")
+    txt = card("free"); check(st(t)["free"] == 1 and "Next tower free" in t.inner_text(".td-side"), "🎁 A free tower: shown in the side panel")
+    tap_slot(t, 2); check("Free" in t.inner_text("#tdMenu"), "the build menu says Free")
+    t.click("#tdMenu [data-a=td-build][data-k=sniper]"); t.wait_for_timeout(80)
+    s = st(t); check(s["towers"][2] == {"k":"sniper", "lv":1, "spent":0} and s["coins"] == 120 and s["free"] == 0, "the next tower costs nothing (and sells for nothing)")
+    settings(t); t.click(".setpop [data-a=undo]"); t.wait_for_timeout(100)
+    check(st(t)["towers"][2] is None and st(t)["free"] == 1, "undo gives the free tower back"); build(t, 2, "basic")
+    n0 = sum(1 for x in st(t)["towers"] if x); txt = card("lose"); s = st(t)
+    check(sum(1 for x in s["towers"] if x) == n0 - 1 and "knocked down" in txt, "💥 Oh no: one tower is knocked down (%s)" % txt.replace("\n", " "))
+    w = st(t)["wave"]
+    base = ev(t, "w => __T.tdWave(w, __T.UI.run.st.diff, '')", w)
+    for k, test, msg in (("dbl", lambda L: len(L) == 2 * len([e for e in base if e["k"] != "b"]) + len([e for e in base if e["k"] == "b"]), "👥 Double trouble: twice the enemies"),
+                         ("tough", lambda L: L[0]["hp"] > base[0]["hp"] * 1.4, "🛡 Armour up: tougher"),
+                         ("fast", lambda L: L[0]["spm"] == 1.3, "💨 Speedy: faster"), ("slow", lambda L: L[0]["spm"] == .75, "🐌 Sleepy: slower")):
+        card(k); s = st(t); L = ev(t, "() => { const s = __T.UI.run.st; return __T.tdWave(s.wave, s.diff, s.mod); }")
+        check(s["mod"] == k and test(L), msg + " next wave (and it says so: %s)" % t.inner_text("#tdNext"))
+    t.click("[data-a=td-start]"); t.wait_for_timeout(200); end_wave(t)
+    check(st(t)["mod"] == "", "…for one wave only")
+    if st(t)["pz"]: t.click("[data-a=td-resume]")
+    d1 = ev(t, "() => { const s = __T.UI.run.st, x = JSON.parse(JSON.stringify(s)); x.card = null; x.cleared = 5; x.phase = 'wave'; x.wave = 6; x.towers = x.towers.map(() => null); const m = __T.tdNewSim(x); for (let i = 0; i < 99999 && x.phase === 'wave'; i++){ x.lives = 20; __T.tdStep(x, m); } return x.card; }")
+    d2 = ev(t, "() => { const s = __T.UI.run.st, x = JSON.parse(JSON.stringify(s)); x.card = null; x.cleared = 5; x.phase = 'wave'; x.wave = 6; x.towers = x.towers.map(() => null); const m = __T.tdNewSim(x); for (let i = 0; i < 99999 && x.phase === 'wave'; i++){ x.lives = 20; __T.tdStep(x, m); } return x.card; }")
+    check(d1 and d1 == d2 and not d1["open"], "a card comes after wave 6 too, and the same game draws the same card (%s)" % d1)
+    # unlockable towers
+    ev(t, "() => { const r = __T.UI.run; r.st.cleared = 4; r.st.coins = 1000; r.st.free = 0; __T.render(); }")
+    free = st(t)["towers"].index(None); tap_slot(t, free)
+    locks = t.evaluate("[...document.querySelectorAll('#tdMenu .td-b.lock')].map(b => b.getAttribute('data-k') + ' ' + b.textContent)")
+    check(len(locks) == 3 and "lightning 🔒wave 6" in locks and t.locator("#tdMenu [data-a=td-build]").count() == 4, "after 4 waves: three towers locked, showing when they open %s" % locks)
+    check(menu_free(t) == 0, "the bigger menu still keeps clear of the path"); tap_slot(t, free)
+    ev(t, "() => { const r = __T.UI.run; return __T.TYPES.td.act(r, 'td-build', { getAttribute: k => k === 'data-s' ? String(r.st.towers.indexOf(null)) : k === 'data-k' ? 'lightning' : null }); }")
+    check(not any(x and x["k"] == "lightning" for x in st(t)["towers"]), "a locked tower can't be built")
+    ev(t, "() => { __T.UI.run.st.cleared = 12; __T.render(); }"); tap_slot(t, free)
+    check(t.locator("#tdMenu .td-b.lock").count() == 0 and t.locator("#tdMenu [data-a=td-build]").count() == 7, "after wave 12 all seven towers are open (Lightning 5, Gold mine 8, Laser 12)"); tap_slot(t, free)
+    covers2 = []
+    for m in range(3):
+        ev(t, "m => { const r = __T.UI.run; r.st.map = m; r.st.towers = __T.tdGeo(m).slots.map(() => null); __T.render(); }", m); t.wait_for_timeout(80)
+        for i in range(len(ev(t, "m => __T.tdGeo(m).slots", m))):
+            tap_slot(t, i); covers2.append((m, i, menu_free(t))); tap_slot(t, i)
+    check(all(c[2] == 0 for c in covers2), "with seven towers the menu still never covers the path, any slot, any map %s" % [c for c in covers2 if c[2]][:4])
+    ev(t, "() => { const r = __T.UI.run; r.st.map = 1; r.st.towers = __T.tdGeo(1).slots.map(() => null); r.st.coins = 1000; __T.render(); }")
+    build(t, 0, "mine"); tap_slot(t, 0); t.click("#tdMenu [data-a=td-up]"); tap_slot(t, 0); build(t, 1, "lightning"); build(t, 2, "laser"); build(t, 3, "basic")
+    c0 = st(t)["coins"]; w = st(t)["wave"]
+    t.click("[data-a=td-start]"); t.wait_for_timeout(1200)
+    t.screenshot(path=os.path.join(HERE, "shots", "td-new-towers.png"))
+    end_wave(t, keep_card=True); s = st(t)
+    check(s["mined"] == 25 and "Gold mines: +25" in t.inner_text(".td-pause"), "💰 Gold mine level 2: +25 coins after the wave, said on the break screen")
+    if s["card"]: t.click("[data-a=td-card]"); t.click("[data-a=td-cardok]")
+    if st(t)["pz"]: t.click("[data-a=td-resume]")
+    # the teacher can turn the cards off
+    settings(t); t.click(".setpop [data-a=td-cards]"); t.wait_for_timeout(100); close_settings(t)
+    ev(t, "() => { const r = __T.UI.run; r.st.cleared = 8; r.st.wave = 9; __T.render(); }")
+    t.click("[data-a=td-start]"); t.wait_for_timeout(200)
+    ev(t, "() => { const r = __T.UI.run; for (let i = 0; i < 40000 && r.st.phase === 'wave'; i++){ r.st.lives = 20; __T.tdStep(r.st, r.sim); } __T.saveRun(); __T.render(); }"); t.wait_for_timeout(150)
+    check(st(t)["cards"] is False and st(t)["cleared"] == 9 and not st(t)["card"], "⚙ Bonus cards off: wave 9 cleared, no card %s" % {k: st(t)[k] for k in ("cards", "cleared", "card", "phase", "pz", "lives")})
+    settings(t); t.click(".setpop [data-a=td-cards]"); t.wait_for_timeout(100); close_settings(t)
+    if st(t)["pz"]: t.click("[data-a=td-resume]")
     # ---- 12. ‹ leaves the game mid-wave: paused; another game; ▶ Resume restores it exactly
+    if st(t)["pz"]: t.click("[data-a=td-resume]")
+    t.click("[data-a=td-start]"); t.wait_for_timeout(500)
     t.wait_for_timeout(300); t.click("header [data-a=lesson]"); t.wait_for_timeout(250)
     snap = ev(t, "() => { const r = __T.UI.parked && Object.values(__T.UI.parked).find(x => x.type === 'td') || __T.UI.run; return JSON.stringify({ st:r.st, sim:r.sim }); }")
     check(json.loads(snap)["st"]["pz"] == "away", "‹ mid-wave: the wave pauses")

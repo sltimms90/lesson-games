@@ -66,6 +66,9 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # later mid-wave → Continue, game over, + Coins, ⚡, undo, live (status screen on Sam's phone, teacher
                                         # pause locks the student, unlock, the student's own pause, coins once, undo), fit iPad/desktop/phone.
                                         # hostile.py has its teacher → student poison cases; fit.py includes it
+                                        # (27 Nov, students' feedback) harder Easy/Normal/Hard; bonus cards every 3 waves (each card's
+                                        # effect, next-wave cards, the same game draws the same card, ⚙ off); Lightning / Gold mine / Laser
+                                        # locked until waves 5 / 8 / 12; the 7-tower menu still clear of the path
 
 Tower Defence (`td`, a single-player break game): `run.st` holds only what's true between waves (map, difficulty, towers,
 wave, lives, coins, settings), which is what's saved, kept with Finish later and sent live. The enemies on the path are
@@ -75,6 +78,8 @@ wave. `tdStep` is fixed 1/30 s steps with no randomness. Live, the student's scr
 at most every 2 s during a wave); the teacher's screen shows a status screen and keeps its own fields (`TD_TFIELDS`: the
 pause lock, Stop after each wave, the wave limit, coin grants, the challenge, undo requests), which are all the student's
 screen takes from it. Grants have ids, so coins are added once; `tdClean` checks every state before it's drawn or played.
+Bonus cards (`TD_CARDS`) are drawn in `tdStep` from `st.seed` and the waves cleared, so a game always draws the same card;
+next-wave cards set `st.mod`, which `tdWave` reads. Balance was tuned with simulated players (good / random / basics).
 
 Teacher-owned games (Typhoon, Battleships): the hidden part (Typhoon's boxes, the teacher's fleet) lives in `run.hid` on the
 teacher's device only, never in `run.st`, so it's never broadcast, linked or drawn on the student's page. The teacher's screen
