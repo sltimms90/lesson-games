@@ -149,18 +149,18 @@ with sync_playwright() as p:
     close_settings(t)
     t.click("[data-a=td-start]"); t.wait_for_timeout(200); end_wave(t, keep_card=True)
     s = st(t)
-    cd = s["card"]; faces = t.evaluate("[...document.querySelectorAll('.td-offer .td-card')].map(c => c.className + '|' + c.innerText.replace(/\\n/g, ' '))")
+    cd = s["card"]; faces = t.evaluate("[...document.querySelectorAll('.td-offer .td-c .front')].map(c => c.className + '|' + c.innerText.replace(/\\n/g, ' '))")
     check(cd and cd["step"] == "offer" and cd["g"]["good"] and not cd["b"]["good"] and len(faces) == 2 and "good" in faces[0] and "bad" in faces[1], "wave 3 cleared (Normal: cards on): two cards face up, one good, one bad %s" % faces)
     check(any(ch.isdigit() for ch in faces[0] + faces[1]) or cd["g"]["k"] in ("upall",) or cd["b"]["k"] in ("dbl",), "…with the real amounts on them %s" % faces)
     check(t.locator("[data-a=td-take]").count() == 1 and t.locator("[data-a=td-skip]").count() == 1 and t.locator("[data-a=td-start]").is_disabled() and t.locator("header [data-a=pause]").count() == 0, "Take a chance / Skip; the offer counts as paused (no ❚❚, nothing starts)")
     c0 = st(t); t.click("[data-a=td-take]"); t.wait_for_timeout(100)
-    check(st(t)["card"]["step"] == "pick" and "Shuffling" in t.inner_text(".td-pause") and t.locator("[data-a=td-pick][disabled]").count() == 2, "Take a chance: face down, shuffling, taps wait")
-    moved = t.evaluate("() => new Promise(ok => { let seen = false; const iv = setInterval(() => { if ([...document.querySelectorAll('#tdShuf .td-card')].some(c => c.style.transform)) seen = true; }, 40); setTimeout(() => { clearInterval(iv); ok(seen); }, 900); })")
+    check(st(t)["card"]["step"] == "pick" and "Shuffling" in t.inner_text(".td-pause") and t.locator("#tdShuf .td-c").count() == 2 and t.locator("[data-a=td-pick]").count() == 0, "Take a chance: the cards turn over and shuffle; taps wait")
+    moved = t.evaluate("() => new Promise(ok => { let seen = false; const iv = setInterval(() => { if ([...document.querySelectorAll('#tdShuf .td-c')].some(c => c.style.transform)) seen = true; }, 40); setTimeout(() => { clearInterval(iv); ok(seen); }, 900); })")
     t.wait_for_timeout(900)
     check(moved and "Pick a card!" in t.inner_text(".td-pause") and t.locator("[data-a=td-pick]:not([disabled])").count() == 2, "…they swap places, then wait for a tap")
     t.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(150)
     s = st(t); got = s["card"]["g"] if s["card"]["gl"] else s["card"]["b"]
-    check(s["card"]["step"] == "done" and s["card"]["took"] == "L" and len(s["cardLog"]) == 1 and s["cardLog"][0]["k"] == got["k"] and t.locator(".td-card.got").count() == 1 and t.locator(".td-card.miss").count() == 1, "tap the left one: its effect (%s), and the other card shows too" % got["k"])
+    check(s["card"]["step"] == "done" and s["card"]["took"] == "L" and len(s["cardLog"]) == 1 and s["cardLog"][0]["k"] == got["k"] and t.locator(".td-c.got").count() == 1 and t.locator(".td-c.miss").count() == 1, "tap the left one: its effect (%s), and the other card shows too" % got["k"])
     snap = json.dumps(st(t)); ev(t, "() => { const r = __T.UI.run; return __T.TYPES.td.act(r, 'td-pick', { getAttribute: () => 'R' }); }")
     check(json.dumps(st(t)) == snap, "a second tap does nothing: applied once")
     t.click("[data-a=td-cardok]"); t.wait_for_timeout(100)
@@ -226,7 +226,7 @@ with sync_playwright() as p:
     ev(t, "() => { const r = __T.UI.run; r.st.towers = r.st.towers.map(() => null); r.st.towers[0] = { k:'basic', lv:1, spent:20 }; r.st.towers[1] = { k:'sniper', lv:3, spent:210 }; r.st.coins = 100; r.st.lives = 15; r.st.gift = null; r.st.mod = ''; r.st.cleared = 12; __T.render(); }")
     def card(k):
         ev(t, """k => { const s = __T.UI.run.st, c = __T.tdMakeCard(s, k, () => 0), o = __T.tdOffer(s); if (c.good) o.g = c; else o.b = c; o.gl = c.good; o.step = 'pick'; s.card = o; __T.render(); }""", k)
-        t.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(80); txt = t.inner_text(".td-card.got"); t.click("[data-a=td-cardok]"); t.wait_for_timeout(80); return txt
+        t.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(80); txt = t.inner_text(".td-c.got .front"); t.click("[data-a=td-cardok]"); t.wait_for_timeout(80); return txt
     txt = card("upall"); s = st(t); check(s["towers"][0]["lv"] == 2 and s["towers"][1]["lv"] == 3, "⬆ Power up (Normal: up to level 2): %s" % txt.replace("\n", " "))
     txt = card("coins"); check(st(t)["coins"] > 100 and str(st(t)["coins"] - 100) in txt, "🪙 coins: %s" % txt.replace("\n", " "))
     c1 = st(t)["coins"]; txt = card("tax"); check(st(t)["coins"] < c1 and str(c1 - st(t)["coins"]) in txt, "🕳 lose coins: %s" % txt.replace("\n", " "))
@@ -446,7 +446,7 @@ with sync_playwright() as p:
     check(st(s)["towers"][2] is None and st(s)["coins"] == c2 + 35, "teacher's ⚙ Undo: the student's last build is taken back")
     # bonus cards: on the student's screen only; the teacher's status follows
     ev(s, "() => { const r = __T.UI.run; r.st.cleared = 6; r.st.card = __T.tdOffer(r.st); __T.saveRun(); __T.render(); }"); t.wait_for_timeout(800)
-    check("Bonus card: choosing…" in t.inner_text(".td-stline") and t.locator(".td-offer, .td-card").count() == 0, "student offered cards: the teacher sees “Bonus card: choosing…”, no cards")
+    check("Bonus card: choosing…" in t.inner_text(".td-stline") and t.locator(".td-offer, .td-c").count() == 0, "student offered cards: the teacher sees “Bonus card: choosing…”, no cards")
     s.click("[data-a=td-take]"); s.wait_for_timeout(1700); s.click("[data-a=td-pick][data-v=L]"); t.wait_for_timeout(800)
     sc = st(s)["card"]; got = sc["g"] if sc["gl"] else sc["b"]
     check(t.inner_text(".td-stline").startswith("Bonus card: took a chance: ") and ("✓" if got["good"] else "✗") in t.inner_text(".td-stline"), "…then the result: %s" % t.inner_text(".td-stline"))
@@ -473,7 +473,23 @@ with sync_playwright() as p:
         t.click("[data-a=td-resume]"); ev(t, "() => { const r = __T.UI.run; for (let i = 0; i < 40000 && r.st.phase === 'wave'; i++){ r.st.lives = 20; __T.tdStep(r.st, r.sim); } r.st.pz = ''; r.st.cleared = 12; r.st.towers[3] = { k:'sniper', lv:2, spent:115 }; r.st.lives = 12; r.st.card = __T.tdOffer(r.st); __T.render(); }"); t.wait_for_timeout(200)
         inside = t.evaluate("(() => { const m = document.getElementById('tdMap').getBoundingClientRect(); return [...document.querySelectorAll('.td-offer > *')].every(e => { const r = e.getBoundingClientRect(); return r.top >= m.top - 1 && r.bottom <= m.bottom + 1 && r.left >= m.left - 1 && r.right <= m.right + 1; }); })()")
         fits.append(("card offer", overflow(t) + ([] if inside else ["card screen spills out of the map"]))); t.screenshot(path=os.path.join(HERE, "shots", "td-%s-cards.png" % name))
-        t.click("[data-a=td-take]"); t.wait_for_timeout(1700); t.click("[data-a=td-pick][data-v=R]"); t.wait_for_timeout(150)
+        # every card: the same size at the offer, face down, during the shuffle and at the result; room to swap; buttons uncovered
+        SZ = """() => { const m = document.getElementById('tdMap').getBoundingClientRect(), R = e => e.getBoundingClientRect(), hit = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+          const cards = [...document.querySelectorAll('.td-c')], other = [...document.querySelectorAll('.td-offer h2, .td-offer > p, .td-offer button')];
+          return cards.map(c => { const r = R(c), f = R(c.querySelector(c.classList.contains('down') ? '.back' : '.front'));
+            return { w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10, fw: Math.round(f.width * 10) / 10, fh: Math.round(f.height * 10) / 10, down: c.classList.contains('down'),
+              inMap: r.left >= m.left - 1 && r.right <= m.right + 1 && r.top >= m.top - 1 && r.bottom <= m.bottom + 1, covers: other.filter(o => hit(r, R(o))).map(o => o.textContent.trim().slice(0, 14)) }; }); }"""
+        steps = [("offer", t.evaluate(SZ))]
+        t.click("[data-a=td-take]"); t.wait_for_timeout(650); steps.append(("face down", t.evaluate(SZ)))
+        for ms in (250, 250, 250): t.wait_for_timeout(ms); steps.append(("shuffle", t.evaluate(SZ)))
+        t.wait_for_timeout(800); steps.append(("pick", t.evaluate(SZ)))
+        t.click("[data-a=td-pick][data-v=R]"); t.wait_for_timeout(700); steps.append(("result", t.evaluate(SZ)))
+        all_c = [(st_, c) for st_, cs_ in steps for c in cs_]; w0, h0 = all_c[0][1]["w"], all_c[0][1]["h"]
+        size_ok = all(len(cs_) == 2 for _, cs_ in steps) and all(abs(c["w"] - w0) <= 1 and abs(c["h"] - h0) <= 1 and abs(c["fw"] - w0) <= 1 and abs(c["fh"] - h0) <= 1 for _, c in all_c)
+        check(size_ok, "%s: each card (and its showing face) is %sx%s px at the offer, face down, during the shuffle and at the result %s" % (name, w0, h0, [(x, [(c["w"], c["h"], c["fw"], c["fh"]) for c in cs_]) for x, cs_ in steps if any(abs(c["w"] - w0) > 1 or abs(c["h"] - h0) > 1 or abs(c["fw"] - w0) > 1 or abs(c["fh"] - h0) > 1 for c in cs_)]))
+        check(any(c["down"] for _, c in all_c if _ == "face down") and all(c["down"] for st_, cs_ in steps if st_ in ("shuffle", "pick") for c in cs_) and not any(c["down"] for st_, cs_ in steps if st_ == "result" for c in cs_), "%s: face up → face down → face up again" % name)
+        check(all(c["inMap"] and not c["covers"] for _, c in all_c), "%s: the cards stay on the map and cover no heading or button, swaps included %s" % (name, [(x, c["covers"], c["inMap"]) for x, c in all_c if c["covers"] or not c["inMap"]][:3]))
+        t.screenshot(path=os.path.join(HERE, "shots", "td-%s-cards-result.png" % name))
         inside = t.evaluate("(() => { const m = document.getElementById('tdMap').getBoundingClientRect(); return [...document.querySelectorAll('.td-offer > *')].every(e => { const r = e.getBoundingClientRect(); return r.top >= m.top - 1 && r.bottom <= m.bottom + 1; }); })()")
         fits.append(("card result", overflow(t) + ([] if inside else ["card screen spills out of the map"])))
         zoom = t.evaluate("document.querySelector('main.stage').style.zoom || '1'")

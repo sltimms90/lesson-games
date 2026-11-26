@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-GD+SD7aMdQuJl5mHBiu+fW5dQNRfnOH6ecuaH8uK7QE='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-lGL5wfsz5JnkYQIjHfzvCLcPaeGY+oFbzjgAS7ajhuE='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -1008,21 +1008,7 @@ button.bs-c:hover{box-shadow:inset 0 0 0 2px var(--c-battleships)}
 .td-menu.g2{display:grid;grid-template-columns:repeat(2,auto)}
 .td-menu.g4{display:grid;grid-template-columns:repeat(4,auto)}
 .td-b.lock small{font-size:11px}
-.td-cards{display:flex;gap:16px;justify-content:center;align-items:stretch;max-width:100%}
-.td-offer .td-card{width:min(200px,38%);margin:0}
 .td-offer h2{font-size:clamp(22px,3.4vw,40px)}
-.td-cards.shuf .td-card{transition:transform .14s ease-in-out}
-.td-card.got{outline:4px solid #FFD43B;outline-offset:3px}
-@media (max-height:520px){.td-offer{gap:4px;padding:6px}.td-offer>p{font-size:14px}.td-offer h2{font-size:20px}.td-offer .td-card{padding:6px 8px;gap:2px;border-width:3px}.td-offer .td-card .ci{font-size:22px}.td-offer .td-card b{font-size:15px}.td-offer .td-card.back{min-height:84px;font-size:30px}.td-offer .big-btn{min-width:0;min-height:44px;font-size:17px;padding:8px 14px}}
-.td-card.miss{opacity:.6;transform:scale(.92)}
-.td-card.good{border-color:#3DD16B}
-.td-card{width:min(260px,70%);border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;color:#1C2445;border:4px solid #F5C518;box-shadow:0 6px 20px rgba(0,0,0,.4)}
-.td-card.back{background:repeating-linear-gradient(45deg,#3C8D2F 0 12px,#4FA53F 12px 24px);color:#fff;border-color:#fff;cursor:pointer;min-height:clamp(110px,22vh,170px);justify-content:center;font:800 44px/1 "Baloo 2",sans-serif}
-.td-card.back:disabled{cursor:default}
-.td-card.bad{border-color:#E04848}
-.td-card .ci{font-size:clamp(28px,4vw,44px);line-height:1}
-.td-card b{font:800 clamp(17px,2.2vw,24px)/1.1 "Baloo 2",sans-serif}
-.td-card p{color:#1C2445 !important;font-size:clamp(13px,1.5vw,16px) !important;margin:0 !important}
 .td-badge{margin:0;text-align:center;font-weight:700;font-size:15px;color:var(--ok)}
 .td-menu.tw.row{flex-direction:row;align-items:center;min-width:0}
 .td-mh{font:700 15px/1.2 "Baloo 2",sans-serif;text-align:center;padding:2px 4px;white-space:nowrap}
@@ -1036,6 +1022,26 @@ button.bs-c:hover{box-shadow:inset 0 0 0 2px var(--c-battleships)}
 .td-pause h2{margin:0;font:800 clamp(26px,4vw,44px)/1.1 "Baloo 2",sans-serif;color:#fff}
 .td-pause p{margin:0;font-size:18px}
 .td-pause .btn.ghost{color:#fff;border-color:rgba(255,255,255,.7);background:rgba(255,255,255,.08)}
+/* bonus cards: one element per card, a front and a back (3D flip); its size (--cw, --ch) comes from the map, the same at every step */
+.td-cards{display:flex;gap:var(--cg,18px);justify-content:center;flex:none}
+.td-c{position:relative;flex:none;width:var(--cw,180px);height:var(--ch,230px);perspective:900px;border-radius:16px}
+.td-c[data-a]{cursor:pointer}
+.td-c:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.td-cards.shuf .td-c{transition:transform .14s ease-in-out}
+.td-in{position:absolute;inset:0;transition:transform .45s ease-in-out;transform-style:preserve-3d}
+.td-c.down .td-in{transform:rotateY(180deg)}
+.td-f{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--cw,180px) * .03);padding:calc(var(--cw,180px) * .07);background:#fff;color:#1C2445;border:4px solid #F5C518;box-shadow:0 6px 20px rgba(0,0,0,.4);text-align:center;overflow:hidden}
+.td-f.good{border-color:#3DD16B}
+.td-f.bad{border-color:#E04848}
+.td-f .ci{font-size:calc(var(--cw,180px) * .24);line-height:1}
+.td-f b{font:800 calc(var(--cw,180px) * .12)/1.1 "Baloo 2",sans-serif}
+.td-f p{color:#1C2445 !important;font-size:calc(var(--cw,180px) * .085) !important;line-height:1.25;margin:0 !important}
+.td-f.back{transform:rotateY(180deg);border:4px solid #fff;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.18) 0 30%,transparent 31%),repeating-linear-gradient(45deg,#2F7A24 0 10px,#3C8D2F 10px 20px)}
+.td-f.back::before{content:"";position:absolute;inset:calc(var(--cw,180px) * .06);border:2px solid rgba(255,255,255,.7);border-radius:10px}
+.td-f.back span{position:relative;font:800 calc(var(--cw,180px) * .5)/1 "Baloo 2",sans-serif;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+.td-c.got .td-f{outline:4px solid #FFD43B;outline-offset:3px}
+.td-c.miss .td-f.front{filter:grayscale(.55) brightness(.82)}
+.td-offer{gap:var(--og,10px)}
 .td-pause .td-news{font-weight:700;color:#FFE27A}
 .td-pause .td-pstats{font:700 20px/1.2 "Baloo 2",sans-serif}
 .td-status{max-width:720px;margin:0 auto}
@@ -5313,8 +5319,8 @@ function tdCardDo(s, side){
 var TD_TFIELDS = ["tlock", "auto", "limit", "bonus", "grants", "ch", "chLog", "uReq", "cards"];
 var TD_TEACH = ["td-coins", "td-auto", "td-limit", "td-tpause", "td-tres", "td-cards"];
 var TD_PZ = ["", "me", "wave", "limit", "away", "teacher"];
-var TD_SEL = -1, TD_FX = [], TD_LOOP = 0, TD_GEO = [], TD_WC = {}, TD_SHUF = 0;
-function tdShufMs(){ return prefersReduced() ? 500 : 1500; }   /* the face-down shuffle, on this screen only */
+var TD_SEL = -1, TD_FX = [], TD_LOOP = 0, TD_GEO = [], TD_WC = {}, TD_SHUF = 0, TD_REVEAL = 0;
+function tdShufMs(){ return prefersReduced() ? 500 : 1900; }   /* .5 s to turn over, then the swaps */   /* the face-down shuffle, on this screen only */
 function tdHas(o, k){ return typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k); }
 function tdInt(v, lo, hi, d){ v = typeof v === "number" && isFinite(v) ? Math.floor(v) : d; return Math.max(lo, Math.min(hi, v)); }
 function tdGeo(m){
@@ -5564,17 +5570,24 @@ function tdNews(s){
 function tdPauseHtml(run, s){
   if(!tdHeld(s) || s.ch) return "";
   if(s.card && !s.tlock){
-    var cd = s.card, face = function(c, cls){ var C = TD_CARDS[c.k]; return '<div class="td-card' + (c.good ? " good" : " bad") + (cls || "") + '"><span class="ci">' + C.icon + '</span><b>' + esc(C.t) + '</b><p>' + esc(tdCardTxt(c)) + '</p></div>'; };
+    /* each card: one element with a front and a back. Face down = the same element turned over, so it keeps its size and place. */
+    var cd = s.card;
+    var cardEl = function(c, opt){ opt = opt || {}; var C = c ? TD_CARDS[c.k] : null;
+      return '<div class="td-c' + (opt.down ? " down" : "") + (opt.cls || "") + '"' + (opt.side ? ' data-a="td-pick" data-v="' + opt.side + '" role="button" tabindex="0" aria-label="The ' + (opt.side === "L" ? "left" : "right") + ' card"' : ' aria-hidden="' + (opt.down ? "true" : "false") + '"') + '><div class="td-in">' +
+        '<div class="td-f front' + (c ? (c.good ? " good" : " bad") : "") + '">' + (c ? '<span class="ci">' + C.icon + '</span><b>' + esc(C.t) + '</b><p>' + esc(tdCardTxt(c)) + '</p>' : "") + '</div>' +
+        '<div class="td-f back"><span>?</span></div></div></div>'; };
     if(cd.step === "offer") return '<div class="td-pause td-offer" role="dialog" aria-label="Bonus cards"><h2>🃏 Bonus cards!</h2><p>Wave ' + s.cleared + ' cleared. Take a chance on one of these, or skip.</p>' + tdNews(s) +
-      '<div class="td-cards">' + face(cd.g) + face(cd.b) + '</div><div class="row" style="justify-content:center"><button class="btn big-btn" data-a="td-take">Take a chance</button><button class="btn ghost big-btn" data-a="td-skip">Skip</button></div></div>';
+      '<div class="td-cards" id="tdCards">' + cardEl(cd.g) + cardEl(cd.b) + '</div><div class="row td-cbtns" style="justify-content:center"><button class="btn big-btn" data-a="td-take">Take a chance</button><button class="btn ghost big-btn" data-a="td-skip">Skip</button></div></div>';
     if(cd.step === "pick"){
-      var busy = Date.now() - TD_SHUF < tdShufMs();
+      /* just taken: the offer's cards turn over where they are, then shuffle; otherwise (back after a pause) face down, ready */
+      var busy = Date.now() - TD_SHUF < tdShufMs(), fresh = busy && Date.now() - TD_SHUF < 300;
       return '<div class="td-pause td-offer" role="dialog" aria-label="Pick a card"><h2>' + (busy ? "Shuffling…" : "Pick a card!") + '</h2><p>One is good, one is bad.</p><div class="td-cards' + (busy ? " shuf" : "") + '" id="tdShuf">' +
-        ["L", "R"].map(function(sd){ return '<button class="td-card back" data-a="td-pick" data-v="' + sd + '" aria-label="The ' + (sd === "L" ? "left" : "right") + ' card"' + (busy ? " disabled" : "") + '>?</button>'; }).join("") + '</div></div>';
+        (busy ? cardEl(fresh ? cd.g : null, { down:!fresh, cls:fresh ? " flipme" : "" }) + cardEl(fresh ? cd.b : null, { down:!fresh, cls:fresh ? " flipme" : "" }) : cardEl(null, { down:true, side:"L" }) + cardEl(null, { down:true, side:"R" })) + '</div></div>';
     }
-    var lc = cd.gl ? cd.g : cd.b, rc = cd.gl ? cd.b : cd.g, got = cd.took === "L" ? lc : rc;
-    return '<div class="td-pause td-offer" role="dialog" aria-label="Your card"><h2>' + (got.good ? "Lucky!" : "Oh no!") + '</h2><div class="td-cards">' + face(lc, cd.took === "L" ? " got" : " miss") + face(rc, cd.took === "R" ? " got" : " miss") + '</div><p>' + esc(cd.took === "L" ? "← You got this one. The other card was on the right." : "You got this one. The other card was on the left. →") + '</p><button class="btn big-btn" data-a="td-cardok">OK</button></div>';
+    var lc = cd.gl ? cd.g : cd.b, rc = cd.gl ? cd.b : cd.g, got = cd.took === "L" ? lc : rc, turn = Date.now() - TD_REVEAL < 400;
+    return '<div class="td-pause td-offer" role="dialog" aria-label="Your card"><h2>' + (got.good ? "Lucky!" : "Oh no!") + '</h2><div class="td-cards" id="tdCards">' + cardEl(lc, { down:turn, cls:(cd.took === "L" ? " got" : " miss") + (turn ? " unflip" : "") }) + cardEl(rc, { down:turn, cls:(cd.took === "R" ? " got" : " miss") + (turn ? " unflip" : "") }) + '</div><p>' + esc(cd.took === "L" ? "← You got this one. The other card was on the right." : "You got this one. The other card was on the left. →") + '</p><div class="row td-cbtns" style="justify-content:center"><button class="btn big-btn" data-a="td-cardok">OK</button></div></div>';
   }
+
   var stats = '<p class="td-pstats">Wave ' + (s.phase === "over" ? s.wave : s.phase === "wave" ? s.wave : Math.max(1, s.wave)) + ' · ❤ ' + s.lives + ' · 🪙 ' + s.coins + '</p>', h, sub = "", btn = '<button class="btn big-btn" data-a="td-resume">▶ Resume</button>';
   if(s.phase === "over"){ h = s.won ? "You won! 🏰" : "Game over"; sub = s.won ? "You stopped all " + TD_WAVES + " waves." : "Reached wave " + s.wave + "."; btn = '<button class="btn big-btn" data-a="finish">Finish</button>'; stats = '<p class="td-pstats">' + s.kills + ' enemies stopped</p>'; }
   else if(s.tlock){ h = "Paused by your teacher"; sub = SMODE ? "Your teacher will unlock it." : "Unlock it from the teacher’s screen."; btn = SMODE ? "" : '<button class="btn big-btn" data-a="td-tres">▶ Unlock</button>'; }
@@ -5677,6 +5690,9 @@ function tdLayout(run){
   cv.style.width = Math.floor(cs * TD_COLS) + "px"; cv.style.height = Math.floor(cs * TD_ROWS) + "px";
   cv.width = Math.round(cs * TD_COLS * dpr); cv.height = Math.round(cs * TD_ROWS * dpr);
   run.cs = cs;
+  /* bonus cards: one size for the whole offer → shuffle → result, from the map (room left for the heading and buttons) */
+  var W = Math.floor(cs * TD_COLS), H = Math.floor(cs * TD_ROWS), cw = Math.max(80, Math.min(200, W * .22, (H - 250) / 1.3));
+  wrap.style.setProperty("--cw", Math.floor(cw) + "px"); wrap.style.setProperty("--ch", Math.floor(cw * 1.3) + "px"); wrap.style.setProperty("--cg", Math.floor(Math.max(12, cw * .12)) + "px"); wrap.style.setProperty("--og", (H < 400 ? 4 : 10) + "px");
   tdDraw(cv, run.st, run.sim, cs, TD_SEL);
   tdPlaceMenu(run, cs);
   return cs;
@@ -5773,15 +5789,17 @@ TYPES.td = {
       var i = tdCellAt(run, e); TD_SEL = i === TD_SEL ? -1 : i; render();
     });
     if(s.phase === "wave" && !tdHeld(s)) tdLoop(run);
-    if(s.card && s.card.step === "pick" && Date.now() - TD_SHUF < tdShufMs()){   /* the cards swap places a few times, then wait for a tap */
-      var box = $("tdShuf"), cs2 = box ? box.querySelectorAll(".td-card") : [], flip = false, me = TD_SHUF;
+    var cbox = $("tdShuf") || $("tdCards");
+    if(cbox){ var un = cbox.querySelectorAll(".flipme, .unflip"); if(un.length) requestAnimationFrame(function(){ requestAnimationFrame(function(){ un.forEach(function(c){ c.classList.toggle("down"); }); }); }); }
+    if(s.card && s.card.step === "pick" && Date.now() - TD_SHUF < tdShufMs()){   /* turned over, the cards swap places a few times, then wait for a tap */
+      var box = $("tdShuf"), cs2 = box ? box.querySelectorAll(".td-c") : [], flip = false, me = TD_SHUF, t0 = TD_SHUF;
       var tick = setInterval(function(){
         if(TD_SHUF !== me || !document.body.contains(box)){ clearInterval(tick); return; }
         if(Date.now() - TD_SHUF >= tdShufMs()){ clearInterval(tick); if(UI.run === run && UI.view === "play") render(); return; }
-        if(prefersReduced() || cs2.length < 2) return;
-        flip = !flip; var dx = cs2[1].getBoundingClientRect().left - cs2[0].getBoundingClientRect().left;
+        if(prefersReduced() || cs2.length < 2 || Date.now() - t0 < 500) return;   /* first the turn over */
+        flip = !flip; var dx = cs2[1].offsetLeft - cs2[0].offsetLeft;
         cs2[0].style.transform = flip ? "translateX(" + dx + "px)" : ""; cs2[1].style.transform = flip ? "translateX(" + (-dx) + "px)" : "";
-      }, 170);
+      }, 160);
     }
   },
   pause: function(run){
@@ -5814,7 +5832,7 @@ TYPES.td = {
     if(a === "td-speed"){ var sp = v === "2" ? 2 : 1; if(s.spd === sp) return false; s.spd = sp; return true; }
     if(a === "td-skip"){ if(!s.card || s.card.step !== "offer" || s.tlock || s.ch) return false; s.card = null; s.cardLog = (s.cardLog || []).concat([{ skip:true }]).slice(-30); return true; }
     if(a === "td-take"){ if(!s.card || s.card.step !== "offer" || s.tlock || s.ch) return false; s.card.step = "pick"; TD_SHUF = Date.now(); return true; }
-    if(a === "td-pick"){ if(!s.card || s.tlock || s.ch || Date.now() - TD_SHUF < tdShufMs()) return false; return tdCardDo(s, v); }
+    if(a === "td-pick"){ if(!s.card || s.tlock || s.ch || Date.now() - TD_SHUF < tdShufMs()) return false; if(!tdCardDo(s, v)) return false; TD_REVEAL = Date.now(); return true; }
     if(a === "td-cardok"){ if(!s.card || s.card.step !== "done" || s.tlock || s.ch) return false; s.card = null; return true; }
     if(a === "td-resume"){
       if(!s.pz || s.tlock || s.phase === "over" || (s.pz === "limit" && tdAtLimit(s))) return false;
