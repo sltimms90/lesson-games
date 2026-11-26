@@ -86,7 +86,7 @@ with sync_playwright() as p:
     check(t.evaluate("__T.LIVE.peers") == 1, "one peer")
     # 8. a per-game link left open for another game doesn't lock the teacher's iPad
     s.close(); t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
-    t.click("[data-a=slink][data-g=g1]"); t.wait_for_selector("#slinkUrl", timeout=5000); s2url = t.input_value("#slinkUrl"); t.click("[data-a=slink-close]")
+    menu_click(t, "[data-a=slink][data-g=g1]"); t.wait_for_selector("#slinkUrl", timeout=5000); s2url = t.input_value("#slinkUrl"); t.click("[data-a=slink-close]")
     s2 = student(ctx, s2url, errs); s2.wait_for_timeout(900)
     check("Start" in s2.inner_text("#app"), "per-game hangman link waits on its Start page")
     t.click("[data-a=play][data-g=g2]"); t.wait_for_timeout(500)

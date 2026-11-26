@@ -6,7 +6,7 @@ with sync_playwright() as p:
     T.goto("https://sltimms90.github.io/lesson-games/app/"); go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
     links = {}
     for g in ["g1","g2","g3"]:
-        T.click("[data-a=slink][data-g=%s]" % g); T.wait_for_selector("#slinkUrl"); links[g] = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
+        menu_click(T, "[data-a=slink][data-g=%s]" % g); T.wait_for_selector("#slinkUrl"); links[g] = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
     def roll_btn(pg, a): 
         l = pg.locator("[data-a=%s]" % a); return l.count() and not l.first.is_disabled()
     for g, name, act in [("g1","snakes","sn-roll"), ("g3","hilo","hl-call")]:

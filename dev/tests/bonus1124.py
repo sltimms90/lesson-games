@@ -62,7 +62,7 @@ with sync_playwright() as p:
         ctx = b.new_context(viewport={"width":1180, "height":820}, reduced_motion=motion)
         T = teacher(ctx, seed_db([pack]), errs); go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
         if motion == "no-preference":
-            T.click("[data-a=editgame][data-g=gq]"); T.wait_for_selector("#qzBonusF .hint", timeout=5000)
+            menu_click(T, "[data-a=editgame][data-g=gq]"); T.wait_for_selector("#qzBonusF .hint", timeout=5000)
             h = T.inner_text("#qzBonusF .hint"); check("Six cards" in h and "Five" not in h, "the setup hint says six cards: %s" % h[:70])
             check(T.evaluate("__T.RUN") is None, "(editor open, nothing playing)")
             T.click("[data-a=cancelgame]"); T.wait_for_selector("[data-a=play][data-g=gq]"); T.wait_for_timeout(200)
@@ -89,7 +89,7 @@ with sync_playwright() as p:
         db = seed_db([pack], students=[{"id":"mia-chen", "name":"Mia Chen", "token":TOK}])
         T = teacher(ctx, db, errs); go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
         if kind == "student link":
-            T.click("[data-a=slink][data-g=gq]"); T.wait_for_selector("#slinkUrl"); url = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
+            menu_click(T, "[data-a=slink][data-g=gq]"); T.wait_for_selector("#slinkUrl"); url = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
             S = ctx.new_page(); S.set_viewport_size({"width":390, "height":844}); S.on("pageerror", lambda e: errs.append("S: " + str(e))); route(S)
             S.goto("https://sltimms90.github.io/lesson-games/"); S.goto(url); S.reload(); S.wait_for_selector("[data-a=s-start]"); S.wait_for_timeout(400)
             S.click("[data-a=s-start]")

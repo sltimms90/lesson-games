@@ -198,7 +198,7 @@ with sync_playwright() as p:
     # ===== 3c. nothing reaches students: class link + live, student link =====
     t.click("#clsBar [data-a=clink]"); t.wait_for_selector("#slinkUrl"); clink = t.input_value("#slinkUrl"); t.click("[data-a=clink-close]")
     t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2")
-    t.click("[data-a=slink][data-g=g1]"); t.wait_for_function("document.getElementById('slinkUrl') && document.getElementById('slinkUrl').value.length > 20")
+    menu_click(t, "[data-a=slink][data-g=g1]"); t.wait_for_function("document.getElementById('slinkUrl') && document.getElementById('slinkUrl').value.length > 20")
     slink = t.input_value("#slinkUrl"); t.click("[data-a=slink-close]")
     REC = "window.__BC=[]; (function(){ const O = window.BroadcastChannel; window.BroadcastChannel = function(n){ const c = new O(n); c.addEventListener('message', e => window.__BC.push(JSON.stringify(e.data))); return c; }; })();"
     secrets = ["1PlanJustinLP28_ForTestsOnlyCCCC", "Our class has a test", "pl-game", "pl-rs", "pl-play", "sheetAt", "plRet", "HW27 fixes"]

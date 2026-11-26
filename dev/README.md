@@ -73,6 +73,37 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # result; sizes by wave and difficulty; best tower lost from wave 10; pairing rules; offer and face-down
                                         # cards kept through pause, ‹ / ▶ Resume, Finish later → Continue; status lines; results; fit
 
+    python3 sandbox.py                  # 27 Nov: the test sandbox (test students out of the day list, Students, Phase B owed, missed
+                                        # words, Keeps coming up, progress; in backups), 🧪 Test → Reset sandbox (only test students
+                                        # touched; the seed has every kind in TYPES), the 🧪 stripe teacher-side only; the class link
+                                        # follows EVERY kind onto the student's page (a new kind fails here until it's wired in and
+                                        # seeded), with no teacher-only button on the student's screen; an older student page reloads
+                                        # itself once (build id), and if it can't, the class bar and pill tell the teacher
+    python3 games1127.py                # 27 Nov: Spelling / Matching tiles with modes (old types open as themselves from the lesson
+                                        # page, a plan chip, a run sheet row, Resume, a Homework link; Hard mode; Play as; the mode
+                                        # remembered per student, a saved type winning; results name the mode), the one + Game picker
+                                        # (sections, Words from, More games setting, start screen), card ⋯ menus, the score pad
+                                        # (Typhoon tally, TD coins, Undo, read-only board), home's Kept games, Look / Advanced moves; fit
+
+Build id: `build.py` also stamps `APP_B` (a hash of the script). Presence and every live message carry it. A class-link page
+that receives a game it can't take (`liveMsgOk` fails) from a different build reloads itself (once per build, once a minute,
+`clsReload`); presence alone reloads a waiting page. The teacher's class bar says when the student's page is a different
+version, and the pill says when the student's screen hasn't opened the game after 6 s.
+
+Games page (27 Nov): `GROUPS` (Spelling: hangman / anagrams / typeit / spelling; Matching: match / match+pairs / cards) are
+tiles over the existing kinds. Saved games keep their own type, so stored data, packs, results, links and the run sheet read
+as before; `modeOf(g)` names a game's tile and mode, `rememberMode` keeps the last one per student (`students.data.modes`).
+"Play as" adds a converted copy to the lesson (the saved game is never changed). `PICK_SECS` lays out the picker; any kind
+not listed lands in More games; `tset().pickMore` is the More games setting. `QUICK` recipes build a game from the chosen
+words (`quickStart`); a kind without one opens the editor.
+
+Score pad: `SPAD` / `spadHtml` / `spadHandle`. Typing stays on the screen; + − = and ↺ 0 become the game's own act (`tp-padop`,
+`tp-add`, `td-coins` with a signed amount), so Undo and the live screens take them like any tap. Tower Defence grants may be
+negative (take away) up to ±`TD_GRANT_MAX` (9999), coins never go below 0; `tdClean` drops anything else.
+
+Test sandbox: `students.data.test === true` (`isTestName` / `isTestPack` / `realPacks`). `SBX_SEED` holds one game of every
+kind; `sbxReset` deletes only lessons, results, sheets (`STORE.deleteSheet`), Phase B rows and kept games of flagged students.
+
 Tower Defence (`td`, a single-player break game): `run.st` holds only what's true between waves (map, difficulty, towers,
 wave, lives, coins, settings), which is what's saved, kept with Finish later and sent live. The enemies on the path are
 `run.sim`, on the screen playing the game only (kept with ‹ / ▶ Resume, never sent). A wave without its sim starts again

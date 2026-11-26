@@ -34,7 +34,7 @@ with sync_playwright() as p:
     go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
     links = {}
     for g in ["g3","g4"]:
-        T.click("[data-a=slink][data-g=%s]" % g); T.wait_for_selector("#slinkUrl"); links[g] = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
+        menu_click(T, "[data-a=slink][data-g=%s]" % g); T.wait_for_selector("#slinkUrl"); links[g] = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
     # override in Higher or Lower
     S = ctx.new_page(); serr=[]; S.on("pageerror", lambda e: serr.append(str(e))); route(S, [])
     S.goto("https://sltimms90.github.io/lesson-games/"); S.goto(links["g3"]); S.reload(); S.wait_for_selector("[data-a=s-start]"); S.wait_for_timeout(400); S.click("[data-a=s-start]"); T.wait_for_timeout(1200)

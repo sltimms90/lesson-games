@@ -46,7 +46,7 @@ with sync_playwright() as p:
     ctx = b.new_context(viewport={"width":1180, "height":820})
     db = seed_db([qpack], students=[{"id":"mia-chen","name":"Mia Chen","token":TOK}])
     T = teacher(ctx, db, errs); go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
-    T.click("[data-a=slink][data-g=gq]"); T.wait_for_selector("#slinkUrl"); url = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
+    menu_click(T, "[data-a=slink][data-g=gq]"); T.wait_for_selector("#slinkUrl"); url = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
     # the student's phone: same browser (the mock passes Realtime over BroadcastChannel), phone-sized
     S = ctx.new_page(); S.set_viewport_size({"width":390, "height":844}); S.on("pageerror", lambda e: errs.append("S: " + str(e))); route(S)
     S.goto("https://sltimms90.github.io/lesson-games/"); S.goto(url); S.reload(); S.wait_for_selector("[data-a=s-start]"); S.wait_for_timeout(400)

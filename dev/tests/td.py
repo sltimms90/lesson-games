@@ -44,10 +44,10 @@ with sync_playwright() as p:
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
     t = teacher(ctx, seed_db([pack1, pack2]), errs); go_lesson(t, "Lily · LP7"); t.wait_for_timeout(300)
     # ---- 0. adding it: no words box, Quick game
-    t.click("#addSec > summary"); t.click("[data-a=addgame][data-t=td]"); t.wait_for_selector("#gTitle")
+    add_game(t, "td"); t.wait_for_selector("#gTitle")
     check(t.locator("#gBlock").is_hidden() and t.locator("input[name=tdMap]").count() == 3 and t.locator("input[name=tdDiff]").count() == 3 and t.locator("#tdAuto").is_checked(), "Add a game → Tower Defence: no words box; map, difficulty, Stop after each wave")
     t.click("[data-a=cancelgame]"); t.wait_for_timeout(200)
-    check(t.locator("[data-a=quick][data-q=td]").count() == 1, "Quick game offers Tower Defence (needs no words)")
+    picker(t); check(t.locator("[data-a=pick-tile][data-k=td]").count() == 1, "the picker offers Tower Defence (needs no words)"); t.click("[data-a=pick-close]")
     # ---- 1. setup: map and difficulty
     t.click("[data-a=play][data-g=td1]"); t.wait_for_selector(".td-setup")
     check(t.locator(".td-mapbtn").count() == 3 and t.locator(".td-setup .seg button").count() == 3, "a new game opens on the map and difficulty choice")
@@ -97,9 +97,9 @@ with sync_playwright() as p:
     s = st(t); check(s["towers"][4] == {"k":"basic", "lv":1, "spent":20} and s["coins"] == c1 - 14, "Undo a sale: the tower is back, the 14 coins go again")
     # ---- 5. + Coins (teacher, ⚙)
     settings(t); c2 = st(t)["coins"]
-    t.click(".setpop [data-a=td-coins][data-n='25']"); t.wait_for_timeout(100)
-    settings(t); t.click(".setpop [data-a=td-coins][data-n='100']"); t.wait_for_timeout(100)
-    s = st(t); check(s["coins"] == c2 + 125 and len(s["grants"]) == 2 and len(s["gotG"]) == 2, "+ Coins in ⚙: +25 and +100 (each added once)")
+    t.click(".setpop [data-a=td-coins][data-v='25']"); t.wait_for_timeout(100)
+    settings(t); t.click(".setpop [data-a=td-coins][data-v='50']"); t.wait_for_timeout(100)
+    s = st(t); check(s["coins"] == c2 + 75 and len(s["grants"]) == 2 and len(s["gotG"]) == 2, "+ Coins in ⚙: +25 and +50 (each added once)")
     close_settings(t)
     # ---- 6. ▶ Start wave; ❚❚ freezes everything
     ev(t, "() => { __T.UI.run.st.coins = 300; __T.render(); }")
@@ -421,7 +421,7 @@ with sync_playwright() as p:
     check(st(s)["pz"] == "" and "Playing wave" in t.inner_text(".td-stline"), "…and the student resumes it")
     # + Coins from the teacher: once
     c0 = st(s)["coins"]; s.click("header [data-a=pause]"); s.wait_for_timeout(300); c0 = st(s)["coins"]
-    t.click(".td-status [data-a=td-coins][data-n='50']"); s.wait_for_timeout(800)
+    t.click(".td-status [data-a=td-coins][data-v='50']"); s.wait_for_timeout(800)
     check(st(s)["coins"] == c0 + 50, "teacher + 50 coins: the student's coins go up by 50 (%d → %d)" % (c0, st(s)["coins"]))
     t.click(".td-status [data-a=td-auto]"); s.wait_for_timeout(1500)
     check(st(s)["coins"] == c0 + 50 and st(s)["auto"] is False, "…once, however many messages follow; Stop after each wave off reaches the student")

@@ -97,6 +97,10 @@ with sync_playwright() as p:
         except Exception:
             bad.append("%s (student on %s)" % (ty, ev(s, "__T.UI.run ? __T.UI.run.type : __T.UI.view")))
         if s.locator(".sbx-stripe").count(): bad.append(ty + ": stripe on the student's page")
+        # Part 6: teacher-only controls never show as buttons on the student's screen (⚙ closed)
+        tb = s.evaluate("""() => { const T = ['td-coins','td-tpause','td-tres','td-auto','td-limit','td-cards','tp-swap','tp-edbox','tp-pled','tp-view','tp-rand','tp-fill','tp-shuf','tp-clear','spad-open','tp-add','spad-neg','bs-peek','bs-let','bs-extra','bs-skip','bs-lock','undo','challenge','live-override','bg-res','sn-fix','sn-lucky','tb-who','tb-cc','tb-clue'];
+          return [...document.querySelectorAll('#app [data-a]')].filter(b => b.offsetParent && !b.disabled && !b.closest('.setpop') && T.includes(b.dataset.a)).map(b => b.dataset.a); }""")
+        if tb: bad.append("%s: teacher-only buttons on the student's screen %s" % (ty, tb))
     check(not bad and sorted(ok) == sorted(kinds), "every kind follows the one class link onto the student's page (%d): failed %s" % (len(ok), bad))
     tx = s.evaluate("document.documentElement.outerHTML")
     check("Q71" not in tx, "")

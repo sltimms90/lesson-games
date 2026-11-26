@@ -61,7 +61,7 @@ with sync_playwright() as p:
     check(agree and R.evaluate("__T.UI.view") != "play", "student and games tab agree; the lesson-page tab never jumped into the game")
     check(R.evaluate("__T.LIVE.peers") == 1 and R.locator("#clsBar.on").count() == 1, "the lesson-page tab's class bar still shows the student connected")
     check(S.evaluate("__T.LIVE.peers") == 1, "the student sees one teacher, not two (%s)" % S.evaluate("__T.LIVE.peers"))
-    R.click("[data-a=play][data-g=g2]"); R.wait_for_timeout(1500)
+    menu_click(R, "[data-a=play][data-g=g2]"); R.wait_for_timeout(1500)
     check(same(R, S) and R.evaluate("__T.UI.run.liveGen") == S.evaluate("__T.UI.run.liveGen") and "live in another tab" in pill(A), "Play in the lesson-page tab puts the game on the student's screen from there; the games tab steps aside")
     turn(R, S); check(same(R, S), "and play carries on in sync from there")
     check(not errs, "no page errors %s" % errs)
