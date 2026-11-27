@@ -25,7 +25,7 @@ with sync_playwright() as p:
     check(B.evaluate("__T.RESULTS.filter(r => r.gameId === 'g1').length") <= 1 and A.evaluate("__T.RESULTS.filter(r => r.gameId === 'g1').length") == 1, "Save on A doesn't make B save a second copy")
     B.close(); A.click("[data-a=backlesson]"); A.wait_for_timeout(300)
     # M2: a per-game Hangman link left open doesn't lock Snakes & Ladders on the teacher's screen
-    A.click("[data-a=slink][data-g=g1]"); A.wait_for_selector("#slinkUrl", timeout=5000); hurl = A.input_value("#slinkUrl"); A.click("[data-a=slink-close]")
+    menu_click(A, "[data-a=slink][data-g=g1]"); A.wait_for_selector("#slinkUrl", timeout=5000); hurl = A.input_value("#slinkUrl"); A.click("[data-a=slink-close]")
     H = student(ctx, hurl, errs); H.wait_for_timeout(900)
     A.click("[data-a=play][data-g=g2]"); A.wait_for_timeout(600)
     check(A.evaluate("__T.LIVE.peers") == 1 and A.locator("[data-a=sn-roll]:not([disabled])").count() >= 1, "stale per-game tab: Roll still works on the teacher's screen")
@@ -61,7 +61,7 @@ with sync_playwright() as p:
     # Re-check 2: two teacher devices on the lesson page, a student plays a per-game link and saves: one result, not two
     T.click("[data-a=finish-ask]"); T.click("[data-a=discard]"); T.wait_for_timeout(300); S.close()
     T2 = teacher(ctx, db, errs); open_lesson(T2)
-    T.click("[data-a=slink][data-g=g1]"); T.wait_for_selector("#slinkUrl", timeout=5000); hurl2 = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
+    menu_click(T, "[data-a=slink][data-g=g1]"); T.wait_for_selector("#slinkUrl", timeout=5000); hurl2 = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
     for pgx in (T, T2):
         if pgx.evaluate("__T.UI.view") != "pack": pgx.evaluate("__T.UI.view = 'pack'")
     H2 = student(ctx, hurl2, errs); H2.wait_for_timeout(900); H2.click("[data-a=s-start]"); T.wait_for_timeout(1200)

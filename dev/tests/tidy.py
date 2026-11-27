@@ -136,7 +136,7 @@ with sync_playwright() as p:
         errs += e2; c.close()
     # student page keeps "Lesson Games"
     c = b.new_context(viewport={"width":1024, "height":768}); t = tpage(c, errs); go_lesson(t, "Alice · LP5"); t.wait_for_selector(".rs-blk"); t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2")
-    t.click("[data-a=slink][data-g=g1]"); t.wait_for_selector("#slinkUrl"); url = t.input_value("#slinkUrl")
+    menu_click(t, "[data-a=slink][data-g=g1]"); t.wait_for_selector("#slinkUrl"); url = t.input_value("#slinkUrl")
     s = student(c, url, errs); s.wait_for_selector("[data-a=s-start]", timeout=6000)
     check(s.title() == "Lesson Games" and "Lesson Desk" not in s.inner_text("body"), "a student page's tab still says Lesson Games (%s)" % s.title())
     c.close()

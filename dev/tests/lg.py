@@ -72,3 +72,32 @@ def overflow(pg):
       });
       return out.slice(0, 6);
     }""")
+# ---- 27 Nov games page: card actions in a ⋯ menu, one "Add a game" picker (+ Game) ----
+def menu_click(pg, sel):
+    """A card action (Edit, Homework link, Print, Details, hard mode…) lives in the card's ⋯ menu: open it, then tap."""
+    pg.evaluate("s => { const e = document.querySelector(s); const d = e && e.closest('details.gmenu'); if (d) d.open = true; }", sel)
+    pg.click(sel)
+QTILE = {"hangman":("spell","hangman"), "anagrams":("spell","anagrams"), "spelling":("spell","spelling"), "typeit":("spell","typeit"),
+         "match":("matching","match"), "pairs":("matching","pairs"), "cards":("matching","cards")}
+def picker(pg, back=True):
+    if not pg.locator(".picker").count(): pg.click("[data-a=gpick]"); pg.wait_for_selector(".picker")
+    if back and pg.locator("[data-a=pick-back]").count(): pg.click("[data-a=pick-back]")
+def scope(pg, v):
+    """Words from: (Today's words / Last 3 lessons / Missed lately / Keeps coming up), in the picker."""
+    picker(pg, back=False); pg.click("[data-a=qscope][data-v=%s]" % v)
+def tile(pg, k):
+    picker(pg)
+    if not pg.locator("[data-a=pick-tile][data-k=%s]" % k).is_visible(): pg.evaluate("document.getElementById('pickMore').open = true")
+    pg.click("[data-a=pick-tile][data-k=%s]" % k)
+def quick(pg, q):
+    """What the Quick game tile did: build the game from the chosen words and start it (picker → tile → mode → Start)."""
+    t, m = QTILE.get(q, (q, None))
+    tile(pg, t)
+    if m: pg.click("[data-a=pick-mode][data-m=%s]" % m)
+    if pg.locator("[data-a=pick-go]").count(): pg.click("[data-a=pick-go]")
+def add_game(pg, t):
+    """Add other games → editor: the picker's tile for a kind that needs its own content (or Type your own)."""
+    picker(pg)
+    k, m = QTILE.get(t, (t, None))
+    tile(pg, k)
+    if pg.locator("[data-a=pick-own]").count(): pg.click("[data-a=pick-own]")

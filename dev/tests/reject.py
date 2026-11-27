@@ -5,7 +5,7 @@ with sync_playwright() as p:
     T = ctx.new_page(); terr=[]; T.on("pageerror", lambda e: terr.append(str(e))); route(T, [])
     T.add_init_script("if(!sessionStorage.mk){sessionStorage.mk=1; window.__MOCK = %s;}" % json.dumps({"db":seed, "session":{"user":{"email":"t@x"}}}))
     T.goto("https://sltimms90.github.io/lesson-games/app/"); go_lesson(T, "Mia · LP9"); T.wait_for_timeout(300)
-    T.click("[data-a=slink][data-g=g3]"); T.wait_for_selector("#slinkUrl"); url = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
+    menu_click(T, "[data-a=slink][data-g=g3]"); T.wait_for_selector("#slinkUrl"); url = T.input_value("#slinkUrl"); T.click("[data-a=slink-close]")
     S = ctx.new_page(); route(S, []); S.goto("https://sltimms90.github.io/lesson-games/"); S.goto(url); S.reload(); S.wait_for_selector("[data-a=s-start]"); S.wait_for_timeout(400); S.click("[data-a=s-start]"); S.wait_for_timeout(1000)
     # play until it is the Teacher's turn
     for i in range(80):

@@ -10,7 +10,11 @@
      so those are downloaded and turned into plain HTML here (mammoth: headings, bold, lists; no styles).
    - The app cleans the HTML again before showing it; nothing here is trusted by the page.
    index.ts serves handle(); plan_test.ts tests it with a fake Google (deno test --allow-env --allow-read).
-   Deployed with verify_jwt off because the teacher check below is stricter than a valid-JWT check. */
+   Deployed with verify_jwt off because the teacher check below is stricter than a valid-JWT check.
+   - Showcase plans (27 Nov): a docId starting "showcase-" is one of the made-up school's plans. They live in the database
+     (private.showcase_plans, loaded by dev/sql/showcase_plans.sql, which dev/build.py writes from dev/showcase/plans/), read
+     with the caller's own token through rpc showcase_plan, which answers only the teacher or a guest (an email on the guest
+     list). Drive is never asked for them. Every other docId stays teacher only, guests included. */
 import mammoth from "npm:mammoth@1.8.0";
 import { Buffer } from "node:buffer";
 
@@ -32,18 +36,19 @@ function reply(req: Request, status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...cors(req), "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }
 
-/* The caller is the teacher: the database's own check, with the caller's token. */
-export async function isTeacher(req: Request, fetchFn = fetch): Promise<boolean> {
+/* The caller is the teacher (or, for showcase plans, a guest): the database's own check, with the caller's token. */
+async function rpc(req: Request, fn: string, body: unknown, fetchFn = fetch): Promise<unknown> {
   const auth = req.headers.get("authorization") || "";
-  if (!/^Bearer\s+\S+/.test(auth)) return false;
+  if (!/^Bearer\s+\S+/.test(auth)) return null;
   const url = Deno.env.get("SUPABASE_URL"), key = req.headers.get("apikey") || Deno.env.get("SUPABASE_ANON_KEY") || "";
-  if (!url || !key) return false;
+  if (!url || !key) return null;
   try {
-    const r = await fetchFn(url + "/rest/v1/rpc/am_i_teacher", { method: "POST", headers: { apikey: key, Authorization: auth, "Content-Type": "application/json" }, body: "{}" });
-    if (!r.ok) return false;
-    return (await r.json()) === true;
-  } catch { return false; }
+    const r = await fetchFn(url + "/rest/v1/rpc/" + fn, { method: "POST", headers: { apikey: key, Authorization: auth, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
 }
+export async function isTeacher(req: Request, fetchFn = fetch): Promise<boolean> { return (await rpc(req, "am_i_teacher", {}, fetchFn)) === true; }
+export async function isGuest(req: Request, fetchFn = fetch): Promise<boolean> { return (await rpc(req, "am_i_guest", {}, fetchFn)) === true; }
 
 /* Google access token for the service account (JWT bearer grant), kept until shortly before it expires. */
 let TOKEN: { v: string; exp: number } | null = null;
@@ -105,10 +110,16 @@ export async function planHtml(docId: string, fetchFn = fetch) {
 export async function handle(req: Request, fetchFn = fetch): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
   if (req.method !== "POST") return reply(req, 405, { error: "method" });
-  if (!(await isTeacher(req, fetchFn))) return reply(req, 401, { error: "not_teacher" });
   let docId = "";
   try { docId = String((await req.json()).docId || ""); } catch { /* bad body */ }
+  const showcase = docId.startsWith("showcase-");
+  if (!(await isTeacher(req, fetchFn)) && !(showcase && await isGuest(req, fetchFn))) return reply(req, 401, { error: "not_teacher" });
   if (!/^[A-Za-z0-9_-]{20,128}$/.test(docId)) return reply(req, 400, { error: "bad_id" });
+  if (showcase) {
+    const p = await rpc(req, "showcase_plan", { p_doc: docId }, fetchFn) as { html?: unknown; name?: unknown; folderId?: unknown } | null;
+    if (!p || typeof p.html !== "string") return reply(req, 404, { error: "not_found" });
+    return reply(req, 200, { html: p.html, name: String(p.name || ""), modified: "", mime: DOCX, folderId: typeof p.folderId === "string" ? p.folderId : "" });
+  }
   try { return reply(req, 200, await planHtml(docId, fetchFn)); }
   catch (e) {
     if (e instanceof Failure) return reply(req, e.status, { error: e.code });

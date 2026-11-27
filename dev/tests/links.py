@@ -1,5 +1,6 @@
 import json, sys, base64
 from playwright.sync_api import sync_playwright
+from lg import menu_click, quick, add_game, scope, picker, tile
 ROOT = __import__("os").path.abspath(__import__("os").path.join(__import__("os").path.dirname(__file__), "../.."))
 MOCK = open("mock-supabase.js").read()
 APP = open(ROOT + "/app/index.html", encoding="utf-8").read()
@@ -48,20 +49,20 @@ with sync_playwright() as p:
     check("snakes" in pg.evaluate("__T.SLINK_TYPES") and "bingo" in pg.evaluate("__T.SLINK_TYPES"), "both types offer a student link")
     go_lesson(pg, "Mia · LP9"); pg.wait_for_timeout(400)
     check(pg.locator("[data-a=slink][data-g=g1]").count() == 1 and pg.locator("[data-a=slink][data-g=g2]").count() == 1, "Student link buttons shown on the lesson page")
-    pg.click("[data-a=slink][data-g=g1]"); pg.wait_for_selector("#slinkUrl", timeout=5000)
+    menu_click(pg, "[data-a=slink][data-g=g1]"); pg.wait_for_selector("#slinkUrl", timeout=5000)
     snurl = pg.input_value("#slinkUrl")
     ups = pg.evaluate("__MOCK.uploads")
     check(len(ups) == 2 and ups[0]["bk"] == "game-pictures" and ups[0]["type"] == "image/jpeg" and ups[1]["type"] == "image/png", "board + Mia's token uploaded: %s" % [(u["path"],u["type"]) for u in ups])
     check(len(snurl) < 3000, "snakes link stays short: %d chars" % len(snurl))
-    pg.click("[data-a=slink-close]"); pg.click("[data-a=slink][data-g=g1]"); pg.wait_for_selector("#slinkUrl")
+    pg.click("[data-a=slink-close]"); menu_click(pg, "[data-a=slink][data-g=g1]"); pg.wait_for_selector("#slinkUrl")
     check(len(pg.evaluate("__MOCK.uploads")) == 2, "second link reuses the uploaded pictures")
-    pg.click("[data-a=slink-close]"); pg.click("[data-a=slink][data-g=g2]"); pg.wait_for_selector("#slinkUrl")
+    pg.click("[data-a=slink-close]"); menu_click(pg, "[data-a=slink][data-g=g2]"); pg.wait_for_selector("#slinkUrl")
     bgurl = pg.input_value("#slinkUrl"); check(len(bgurl) < 3000, "bingo link %d chars" % len(bgurl))
     check(not errs, "teacher errors %s" % errs)
     pg.close()
     # student: snakes
     pg = ctx.new_page(); route(pg, []); pg.add_init_script("window.__MOCK = %s;" % json.dumps({"db":seed, "session":{"user":{"email":"t@x"}}})); pg.goto("https://sltimms90.github.io/lesson-games/app/"); go_lesson(pg, "Mia · LP9"); pg.wait_for_timeout(300)
-    pg.click("[data-a=slink][data-g=g3]"); pg.wait_for_selector("#slinkUrl"); hlurl = pg.input_value("#slinkUrl"); pg.close()
+    menu_click(pg, "[data-a=slink][data-g=g3]"); pg.wait_for_selector("#slinkUrl"); hlurl = pg.input_value("#slinkUrl"); pg.close()
     for name, url in [("snakes", snurl), ("bingo", bgurl), ("hilo", hlurl)]:
         pg = ctx.new_page(); e=[]; pg.on("pageerror", lambda x: e.append(str(x))); imgs=[]; reqs=[]
         pg.on("request", lambda r: reqs.append(r.url))

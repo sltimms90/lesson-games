@@ -49,13 +49,19 @@ with sync_playwright() as p:
       if (st.ch === 'EVIL') st.ch = { q: evil, w: evil };
       L.chan.send({ type:'broadcast', event:'m', payload:{ t:'st', g:run.gameId, p:run.packId, gen:run.liveGen, t0:run.liveT0, rev:(run.st._rev || 0) + 100, st:st, title:'x', from:'zzzz', r:'t' } }); return 'sent'; }"""
     ss = s.evaluate("JSON.parse(JSON.stringify(__T.UI.run.st))"); c0 = ss["coins"]
-    bad = [{"id":"a1", "n":"50"}, {"id":"a2", "n":1e9}, {"id":"a3", "n":-5}, {"id":EVIL, "n":5}, {"id":"a4", "n":2.5}, {"id":"a5", "n":None}, {"id":"a6", "n":0}, {"n":30}, "50", 7, {"id":"ok1", "n":25}]
+    bad = [{"id":"a1", "n":"50"}, {"id":"a2", "n":1e9}, {"id":"a3", "n":-1e9}, {"id":"a3b", "n":10000}, {"id":"a3c", "n":-10000}, {"id":"a3d", "n":float("inf")}, {"id":EVIL, "n":5}, {"id":"a4", "n":2.5}, {"id":"a5", "n":None}, {"id":"a6", "n":0}, {"n":30}, "50", 7, {"id":"ok1", "n":25}]
     t.evaluate(TSEND, [{"grants":bad, "coins":999999, "lives":1, "wave":19, "towers":[{"k":"sniper", "lv":3, "spent":0}] * 3, "pz":EVIL, "ch":"EVIL"}, EVIL]); s.wait_for_timeout(600)
     s2 = s.evaluate("JSON.parse(JSON.stringify(__T.UI.run.st))")
     check(s2["coins"] == c0 + 25 and s2["lives"] == ss["lives"] and s2["wave"] == ss["wave"] and s2["towers"] == ss["towers"] and s2["pz"] == ss["pz"], "td: from the teacher, only the one good grant (+25) counts; the student's coins, lives, wave, towers aren't taken (%d → %d)" % (c0, s2["coins"]))
     check(s.evaluate("window.__pwn") is None and s.locator("#app img[src='x']").count() == 0 and s.locator(".chov").count() == 1, "td: a poisoned challenge prompt shows as text, runs nothing")
-    t.evaluate(TSEND, [{"grants":[{"id":"ok1", "n":25}, {"id":"ok2", "n":200}, {"id":"ok3", "n":201}], "ch":None}, EVIL]); s.wait_for_timeout(500)
-    check(s.evaluate("__T.UI.run.st.coins") == c0 + 25 + 200, "td: a grant comes once; 200 is the cap (201 is dropped)")
+    t.evaluate(TSEND, [{"grants":[{"id":"ok1", "n":25}, {"id":"ok2", "n":200}, {"id":"ok3", "n":10001}], "ch":None}, EVIL]); s.wait_for_timeout(500)
+    check(s.evaluate("__T.UI.run.st.coins") == c0 + 25 + 200, "td: a grant comes once; 9999 is the cap (10001 is dropped)")
+    # the score pad's take-away and set-to: negative grants, never below 0 coins
+    t.evaluate(TSEND, [{"grants":[{"id":"ok1", "n":25}, {"id":"ok2", "n":200}, {"id":"neg1", "n":-25}], "ch":None}, EVIL]); s.wait_for_timeout(500)
+    check(s.evaluate("__T.UI.run.st.coins") == c0 + 200, "td: a take-away grant (−25) counts once")
+    t.evaluate(TSEND, [{"grants":[{"id":"ok1", "n":25}, {"id":"ok2", "n":200}, {"id":"neg1", "n":-25}, {"id":"neg2", "n":-9999}], "ch":None}, EVIL]); s.wait_for_timeout(500)
+    check(s.evaluate("__T.UI.run.st.coins") == 0, "td: taking away more than they have stops at 0 coins")
+    t.evaluate(TSEND, [{"grants":[{"id":"ok1", "n":25}, {"id":"ok2", "n":200}, {"id":"neg1", "n":-25}, {"id":"neg2", "n":-9999}, {"id":"back", "n":c0 + 225}], "ch":None}, EVIL]); s.wait_for_timeout(500)
     for over in ({"tlock":"yes"}, {"limit":EVILN}, {"auto":1}, {"uReq":"9"}, {"bonus":[1]}):
         t.evaluate(TSEND, [dict(over, grants=[{"id":"x" + str(abs(hash(json.dumps(over))) % 9999), "n":100}]), EVIL]); s.wait_for_timeout(350)
     s3 = s.evaluate("JSON.parse(JSON.stringify(__T.UI.run.st))")

@@ -26,7 +26,7 @@ def play_hangman(s):
         s.click("[data-a=hm-show]"); s.wait_for_timeout(150); s.click("[data-a=hm-next]"); s.wait_for_timeout(300)
     s.wait_for_selector(".results", timeout=5000); s.wait_for_timeout(400)
 def link_for(t, gid):
-    t.click("[data-a=slink][data-g=%s]" % gid); t.wait_for_selector("#slinkUrl", timeout=5000)
+    menu_click(t, "[data-a=slink][data-g=%s]" % gid); t.wait_for_selector("#slinkUrl", timeout=5000)
     u = t.input_value("#slinkUrl"); return u
 def link_data(t, u):
     return t.evaluate("u => __T.unpackData(u.split('#s=')[1])", u)

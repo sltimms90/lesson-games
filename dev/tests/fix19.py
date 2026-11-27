@@ -15,15 +15,15 @@ with sync_playwright() as p:
     if t.evaluate("__T.UI.view") == "sheet": t.click("[data-a=nav-games]"); t.wait_for_timeout(300)
     check(t.locator(".rs-card #rsSpecIn").count() == 0, "run sheet card has no paste box")
     t.click("#advSec > summary"); t.click("#lookSec > summary"); t.wait_for_timeout(100)
-    r1, r2 = [t.evaluate("(() => { const r = document.getElementById('%s').getBoundingClientRect(); return [r.left, r.right]; })()" % i) for i in ("lkStu", "lkPack")]
-    check(r1[1] <= r2[0], "Look selects side by side without overlapping %s %s" % (r1, r2))
+    r2 = t.evaluate("(() => { const r = document.getElementById('lkPack').getBoundingClientRect(), s = document.getElementById('lookSec').getBoundingClientRect(); return [r.left, r.right, s.right]; })()")
+    check(t.locator("#lkStu").count() == 0 and r2[1] <= r2[2] + 1, "Look: this lesson's select fits (27 Nov: the usual look is on the student's page) %s" % r2)
     check(t.locator("#rsPasteSec").count() == 1 and "Replace the run sheet" in t.inner_text("#rsPasteSec summary"), "Replace the run sheet is under Advanced")
     t.click("#rsPasteSec > summary"); t.wait_for_timeout(100)
     ta, sec = [t.evaluate("document.querySelector('%s').getBoundingClientRect().right" % s) for s in ("#rsSpecIn", "#rsPasteSec")]
     check(ta <= sec + 1, "its box stays inside (%d <= %d)" % (ta, sec))
-    q = t.inner_text("#quickSec")
+    picker(t); q = t.inner_text(".picker")
     check("Words from:" in q and "Today · 6 words: castle" in q, "Quick game says where its words come from: %s" % q[:160])
-    t.click("[data-a=qscope][data-v=recent]"); t.wait_for_timeout(200); q = t.inner_text("#quickSec")
+    scope(t, "recent"); t.wait_for_timeout(200); q = t.inner_text(".picker")
     check("This lesson and the one before · 9 words" in q and "forest" in q, "Last 2 lessons lists the words it adds: %s" % q[:200])
     ctx.close()
     # phone: a keyboard shrinking the window doesn't shrink the spelling game, and the box is never under 16px on screen

@@ -73,6 +73,37 @@ tabs in one browser can play a live game together). Nothing here talks to the re
                                         # result; sizes by wave and difficulty; best tower lost from wave 10; pairing rules; offer and face-down
                                         # cards kept through pause, ‹ / ▶ Resume, Finish later → Continue; status lines; results; fit
 
+    python3 sandbox.py                  # 27 Nov: the test sandbox (test students out of the day list, Students, Phase B owed, missed
+                                        # words, Keeps coming up, progress; in backups), 🧪 Test → Reset sandbox (only test students
+                                        # touched; the seed has every kind in TYPES), the 🧪 stripe teacher-side only; the class link
+                                        # follows EVERY kind onto the student's page (a new kind fails here until it's wired in and
+                                        # seeded), with no teacher-only button on the student's screen; an older student page reloads
+                                        # itself once (build id), and if it can't, the class bar and pill tell the teacher
+    python3 games1127.py                # 27 Nov: Spelling / Matching tiles with modes (old types open as themselves from the lesson
+                                        # page, a plan chip, a run sheet row, Resume, a Homework link; Hard mode; Play as; the mode
+                                        # remembered per student, a saved type winning; results name the mode), the one + Game picker
+                                        # (sections, Words from, More games setting, start screen), card ⋯ menus, the score pad
+                                        # (Typhoon tally, TD coins, Undo, read-only board), home's Kept games, Look / Advanced moves; fit
+
+Build id: `build.py` also stamps `APP_B` (a hash of the script). Presence and every live message carry it. A class-link page
+that receives a game it can't take (`liveMsgOk` fails) from a different build reloads itself (once per build, once a minute,
+`clsReload`); presence alone reloads a waiting page. The teacher's class bar says when the student's page is a different
+version, and the pill says when the student's screen hasn't opened the game after 6 s.
+
+Games page (27 Nov): `GROUPS` (Spelling: hangman / anagrams / typeit / spelling; Matching: match / match+pairs / cards) are
+tiles over the existing kinds. Saved games keep their own type, so stored data, packs, results, links and the run sheet read
+as before; `modeOf(g)` names a game's tile and mode, `rememberMode` keeps the last one per student (`students.data.modes`).
+"Play as" adds a converted copy to the lesson (the saved game is never changed). `PICK_SECS` lays out the picker; any kind
+not listed lands in More games; `tset().pickMore` is the More games setting. `QUICK` recipes build a game from the chosen
+words (`quickStart`); a kind without one opens the editor.
+
+Score pad: `SPAD` / `spadHtml` / `spadHandle`. Typing stays on the screen; + − = and ↺ 0 become the game's own act (`tp-padop`,
+`tp-add`, `td-coins` with a signed amount), so Undo and the live screens take them like any tap. Tower Defence grants may be
+negative (take away) up to ±`TD_GRANT_MAX` (9999), coins never go below 0; `tdClean` drops anything else.
+
+Test sandbox: `students.data.test === true` (`isTestName` / `isTestPack` / `realPacks`). `SBX_SEED` holds one game of every
+kind; `sbxReset` deletes only lessons, results, sheets (`STORE.deleteSheet`), Phase B rows and kept games of flagged students.
+
 Tower Defence (`td`, a single-player break game): `run.st` holds only what's true between waves (map, difficulty, towers,
 wave, lives, coins, settings), which is what's saved, kept with Finish later and sent live. The enemies on the path are
 `run.sim`, on the screen playing the game only (kept with ‹ / ▶ Resume, never sent). A wave without its sim starts again
@@ -116,3 +147,37 @@ teacher-only RLS, in the Realtime publication, and copied by the weekly snapshot
 
 `sql/submit_homework.sql` is the database function student pages call to save a homework result (applied to the project as
 migrations `submit_homework` and `submit_homework_anon_only`). `mock-supabase.js` has a copy of its checks for the tests.
+
+**Guest accounts and the showcase school (27 Nov).** A guest is an email on `private.guests`; signed in, they get the normal
+teacher app scoped to a made-up school: four students with `showcase: true` in their `students` row (never `test`), whose
+lessons' ids start `~sc-` (no `slug()` makes `~`). The database enforces it, not the page:
+
+- `sql/guests.sql` (migrations `guest_showcase`, `guest_showcase_student_upsert`, `showcase_plans`): `private.guests`,
+  `private.is_guest()` (built like `is_teacher()`), `public.am_i_guest()`, a guest policy on every table (reads and writes
+  only showcase rows, `WITH CHECK` on every write, no new or deleted students, no flag changes, a trigger stops a guest
+  changing any row's id; boards read-only), the teacher-only `guest_list / guest_add / guest_remove`, and
+  `private.showcase_plans` + `public.showcase_plan()` (teacher or guest only). A real lesson naming a showcase student
+  switches that student off for guests at once. Sam's "teacher full access" policies are unchanged. `game-pictures` is a
+  public bucket; uploads stay teacher-only (the showcase board's picture is already its public address, so a guest never uploads).
+- `sql/guests_test.sql`: the real-database test. Run it whole in the SQL editor (or MCP `execute_sql`); it adds throwaway
+  fixtures, acts as a guest, a signed-in stranger, anon and Sam through JWT claims, tries every read and write, and always
+  rolls itself back by ending with `ALL PASS (n checks)` (or the first `FAIL: …`) raised as an error.
+- Plans: `showcase/plans/<docId>.html` are the showcase plans (LP layout, fixed labels). `build.py` writes `showcase/plans.json`
+  (what the tests serve) and `sql/showcase_plans.sql` (run it in the SQL editor after changing a plan; its last query lists
+  md5s to compare with `plans.json`). `plan-doc` serves `showcase-…` docIds from the database to Sam or a guest, never Drive.
+- `functions/guest-account/`: makes the sign-in for an email Sam adds (sign-ups are closed). Teacher only, only for an email
+  already on the list, never changes an existing account. `deno test --allow-env dev/functions/guest-account/guest_test.ts`.
+- App: `SC_SEED` (one constant, all made up) and `scReset()` (🧪 Test → Reset showcase, and the guest's Reset demo: wipes and
+  re-seeds the showcase only). `scopeApply()` turns what the store has (`RAW`) into what the app uses: everything for Sam
+  (showcase boards aside), only the showcase for a guest or Sam's Preview as guest. `isAsidePack / isAsideName / isAsideRow`
+  keep test and showcase students out of Sam's real work. Material, plan and folder ids starting `showcase-` open
+  `showcase.html` (a placeholder page at the site root), never Drive. A guest's teacher settings stay on their device.
+  A sign-in after a sign-out in the same page reloads the app, so nothing from the last account stays in memory.
+
+    python3 showcase.py                 # resets (showcase / sandbox never touch each other or real rows), Sam's side, Preview as
+                                        # guest, a guest session (only showcase rows; refused writes via mock-supabase.js's copy of
+                                        # the rules; New lesson; class link; Reset demo), a signed-in stranger, fit of the stripe/list
+    python3 showcase_plans.py           # every link in every seeded plan, as a guest: fixed labels, run sheet ↔ plan both ways,
+                                        # game chips in their modes, HW Key (one, menu, last lesson's file), keys and traps fold,
+                                        # outline, 📂 Files / Open all / run sheet chips → placeholder; fails on an unknown link type
+    python3 fit.py guest                # the guest stripe (home, run sheet, a game screen, Reset demo's question) and the Guests list

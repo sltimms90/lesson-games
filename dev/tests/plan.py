@@ -80,11 +80,13 @@ with sync_playwright() as p:
     check(len(calls) == 1, "reopening uses the copy on the device (no new fetch)")
     t.click("[data-a=rs-open]"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(200)
     check(abs(t.evaluate("scrollY") - 260) <= 2, "back on the run sheet at the same place (%s)" % t.evaluate("scrollY"))
+    t.set_viewport_size({"width":1180, "height":420})   # 27 Nov: the games page is short now; a short window so it scrolls
     t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2"); t.evaluate("window.scrollTo(0, 120)"); t.wait_for_timeout(600)
     t.click("[data-a=rs-open]"); t.wait_for_selector(".rs-blk"); t.wait_for_timeout(200)
     check(abs(t.evaluate("scrollY") - 260) <= 2, "run sheet → games → run sheet keeps the run sheet's place (%s)" % t.evaluate("scrollY"))
     t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2"); t.wait_for_timeout(200)
     check(abs(t.evaluate("scrollY") - 120) <= 2, "the games page keeps its place too (%s)" % t.evaluate("scrollY"))
+    t.set_viewport_size({"width":1180, "height":820})
     t.click("header.nav [data-a=pl-open]"); t.wait_for_selector(".pl-doc"); t.wait_for_timeout(200)
     check(abs(t.evaluate("scrollY") - py) <= 2, "📖 on the games page opens the same place in the plan")
     t.click("[data-a=nav-games]"); t.wait_for_selector(".head h2"); check(t.evaluate("__T.UI.view") == "pack", "🎲 from the plan goes to the games page")
@@ -174,7 +176,7 @@ with sync_playwright() as p:
     t3.click("#plFiles button[data-a=pl-files-x]"); t3.wait_for_timeout(100)
     t3.click(".rs-tx.pl-j:has-text('0A Warm-up')"); t3.wait_for_selector(".pl-doc")
     t3.click("[data-a=nav-games]"); t3.wait_for_selector(".head h2")
-    t3.click("[data-a=slink][data-g=g1]"); t3.wait_for_function("document.getElementById('slinkUrl') && document.getElementById('slinkUrl').value.length > 20")
+    menu_click(t3, "[data-a=slink][data-g=g1]"); t3.wait_for_function("document.getElementById('slinkUrl') && document.getElementById('slinkUrl').value.length > 20")
     slink = t3.input_value("#slinkUrl"); t3.click("[data-a=slink-close]")
     t3.click("#clsBar [data-a=clink]"); t3.wait_for_selector("#slinkUrl"); clink = t3.input_value("#slinkUrl"); t3.click("[data-a=clink-close]")
     REC = "window.__BC=[]; (function(){ const O = window.BroadcastChannel; window.BroadcastChannel = function(n){ const c = new O(n); c.addEventListener('message', e => window.__BC.push(JSON.stringify(e.data))); return c; }; })();"

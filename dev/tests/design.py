@@ -1,4 +1,4 @@
-"""Design changes from the review: lesson page layout (Quick game on top, folded sections), Hard mode name, Undo toast."""
+"""Design changes from the review: lesson page layout (27 Nov: games, + Game picker, folded Advanced), Hard mode name, Undo toast."""
 from lg import *
 G = lambda i, ty, title, opts=None, block="castle | a king lives here\nbridge | you cross a river on it\ngarden | flowers grow here": {"id":"g%d" % i, "type":ty, "title":title, "block":block, "options":opts or {}}
 P15 = [("kitchen","the room where you cook dinner every evening"),("bedroom","the room where you sleep at night"),("bathroom","you have a shower or a bath here"),("garden","flowers and vegetables grow here"),("garage","you keep the car in here"),("library","you borrow books from this place"),("museum","you look at old and famous things here"),("station","you wait here for a train"),("airport","planes take off and land here"),("market","you buy fresh fruit and fish here"),("castle","a king and queen used to live here"),("bridge","you cross a river on it"),("island","land with water all around it"),("forest","a big place with lots of trees"),("village","a very small town in the country")]
@@ -15,29 +15,29 @@ with sync_playwright() as p:
     ctx = b.new_context(viewport={"width":1180, "height":820}); errs = []
     t = teacher(ctx, seed_db(packs, results=results), errs); go_lesson(t, "Mia · LP9"); t.wait_for_timeout(300)
     # --- 1. lesson page layout
-    order = [top(t, x) for x in ("#clsBar", ".game", "#quickSec", "#addSec", "#advSec")]
-    check(0 < order[0] < order[1] < order[2] < order[3] < order[4], "lesson page order: class link, games, quick game, add other games, advanced %s" % order)
+    order = [top(t, x) for x in ("#clsBar", ".game", "[data-a=gpick]", "#advSec")]
+    check(0 < order[0] < order[1] < order[2] < order[3], "lesson page order: class link, games, + Game, advanced %s (27 Nov: Quick game and Add other games are one picker)" % order)
     check(t.locator(".rs-card").count() == 0, "no run sheet card on the lesson page (it's the 📋 icon in the header now)")
-    check(t.locator("#quickSec [data-a=qscope][data-v=missed]").is_visible(), "Missed lately button is visible")
-    check(not t.evaluate("document.getElementById('addSec').open") and not t.evaluate("document.getElementById('advSec').open"), "Add other games and Advanced start folded")
-    check(t.locator("[data-a=addgame]").first.is_hidden() and t.locator("#lkPack").is_hidden() and t.locator("[data-a=sres-open]").is_hidden() and t.locator("[data-a=editpack]").is_hidden(), "their controls are hidden until opened")
-    check(t.locator("details.help[open]").count() == 0 and t.locator("details.help").count() >= 2, "help text is folded behind ⓘ (%d tips)" % t.locator("details.help").count())
+    picker(t); check(t.locator(".picker [data-a=qscope][data-v=missed]").is_visible(), "Missed lately button is visible (in the picker)"); t.click("[data-a=pick-close]")
+    check(not t.evaluate("document.getElementById('advSec').open"), "Advanced starts folded")
+    check(t.locator("#lkPack").is_hidden() and t.locator("[data-a=sres-open]").is_hidden() and t.locator("[data-a=editpack]").is_hidden(), "its controls are hidden until opened")
+    check(t.locator("details.help[open]").count() == 0 and t.locator("details.help").count() >= 1, "help text is folded behind ⓘ (%d tips)" % t.locator("details.help").count())
     h = t.evaluate("document.documentElement.scrollHeight"); print("lesson page height %d px = %.1f iPad screens" % (h, h / 820.0))
     t.screenshot(path=HERE + "/shots/lesson_ipad.png"); t.screenshot(path=HERE + "/shots/lesson_ipad_full.png", full_page=True)
     t.click("#advSec > summary"); t.wait_for_timeout(100)
     check("Bright" in t.inner_text("#lookSec summary"), "Look (inside Advanced) names the current look: %s" % t.inner_text("#lookSec summary"))
-    t.click("#addSec > summary"); t.click("#lookSec > summary"); t.wait_for_timeout(100)
+    t.click("#lookSec > summary"); t.wait_for_timeout(100)
     t.select_option("#lkPack", "bats"); t.wait_for_timeout(300)
-    check(t.evaluate("document.getElementById('addSec').open && document.getElementById('lookSec').open && document.getElementById('advSec').open"), "opened sections stay open after a re-render")
+    check(t.evaluate("document.getElementById('lookSec').open && document.getElementById('advSec').open"), "opened sections stay open after a re-render")
     check("Midnight bats (this lesson only)" in t.inner_text("#lookSec summary"), "summary shows a one-off look")
-    t.click("#lookSec > summary"); t.click("#advSec > summary"); t.click("[data-a=qscope][data-v=today]"); t.wait_for_timeout(200)
-    check(not t.evaluate("document.getElementById('advSec').open") and t.evaluate("document.getElementById('addSec').open"), "a folded section stays folded after a re-render")
+    t.click("#lookSec > summary"); t.click("#advSec > summary"); scope(t, "today"); t.click("[data-a=pick-close]"); t.wait_for_timeout(200)
+    check(not t.evaluate("document.getElementById('advSec').open"), "a folded section stays folded after a re-render")
     # --- edited / new games go to the top of Games
-    t.click("[data-a=editgame][data-g=g3]"); t.wait_for_timeout(200); t.click("[data-a=savegame]"); t.wait_for_timeout(300)
+    menu_click(t, "[data-a=editgame][data-g=g3]"); t.wait_for_timeout(200); t.click("[data-a=savegame]"); t.wait_for_timeout(300)
     gs = t.eval_on_selector_all(".game [data-a=editgame]", "els=>els.map(e=>e.dataset.g)")
     check(gs[:2] == ["g3", "g1"], "an edited game moves to the top of Games: %s" % gs)
     check([g["id"] for g in t.evaluate("__T.PACKS.find(p=>p.id==='mia-lp9').games")][:3] == ["g1", "g2", "g3"], "the lesson's stored game order is unchanged (run sheet matching)")
-    t.click("[data-a=quick][data-q=hangman]"); t.wait_for_timeout(400); t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
+    quick(t, "hangman"); t.wait_for_timeout(400); t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
     gs = t.eval_on_selector_all(".game [data-a=editgame]", "els=>els.map(e=>e.dataset.g)")
     check(gs[:2] == ["q1", "g3"], "a quick game goes on top, the edited one next: %s" % gs)
     # --- A. Bingo cards fill the landscape screen
@@ -90,9 +90,9 @@ with sync_playwright() as p:
     t.click("[data-a=lesson]"); t.wait_for_timeout(300)
     check(t.locator("[data-a=play-resume][data-k='mia-lp9|g9']").count() == 1, "left part-way: the card offers Resume")
     # saving without changes (options filled in by the form) keeps the half-played copy
-    t.click("[data-a=editgame][data-g=g9]"); t.wait_for_timeout(300); t.click("[data-a=savegame]"); t.wait_for_timeout(400)
+    menu_click(t, "[data-a=editgame][data-g=g9]"); t.wait_for_timeout(300); t.click("[data-a=savegame]"); t.wait_for_timeout(400)
     check(t.locator("[data-a=play-resume][data-k='mia-lp9|g9']").count() == 1 and "starts fresh" not in t.inner_text("body"), "saving without changes keeps Resume (no toast)")
-    t.click("[data-a=editgame][data-g=g9]"); t.wait_for_timeout(300)
+    menu_click(t, "[data-a=editgame][data-g=g9]"); t.wait_for_timeout(300)
     t.fill("#gBlock", "Hannah\nKaylee"); t.click("[data-a=savegame]"); t.wait_for_timeout(400)
     check(t.locator("[data-a=play-resume][data-k='mia-lp9|g9']").count() == 0 and "Saved. The game you’d left part-way starts fresh next time." in t.inner_text("body"), "after changing the names the half-played game is cleared (and says so)")
     check("mia-lp9|g9" not in t.evaluate("JSON.stringify(Object.keys(__T.UI.parked || {}))"), "…it's gone from the parked games")
@@ -101,8 +101,7 @@ with sync_playwright() as p:
     check(t.evaluate("__T.UI.run.st.exact") is True, "…and still Land exactly (the saved choice)")
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(300)
     # a new Snakes & Ladders game defaults to Reach it or go past; exact is still there to pick
-    t.click("#addSec > summary") if not t.evaluate("document.getElementById('addSec').open") else None
-    t.click("[data-a=addgame][data-t=snakes]"); t.wait_for_timeout(300)
+    add_game(t, "snakes"); t.wait_for_timeout(300)
     check(t.evaluate("document.querySelector('input[name=snExact]:checked').value") == "0" and "Reach it or go past" in t.inner_text("label:has(input[name=snExact]:checked)"), "new Snakes & Ladders: Reach it or go past is the default")
     check("Land exactly on the last square" in t.inner_text("label:has(input[name=snExact][value='1'])"), "…Land exactly still offered")
     # token list: typing a name then leaving at once used to throw when the list redrew (snPlayers gone)
@@ -110,9 +109,9 @@ with sync_playwright() as p:
     check(not [e for e in errs if "snPlayers" in e or "innerHTML" in e], "leaving the edit screen while the token list redraws: no error %s" % errs[-2:])
     # --- 2. Hard mode (was "Challenge", now kept for the ⚡ speaking prompt only)
     hb = t.locator(".game [data-a=play-ch]")
-    check(hb.count() == 3 and all(x == "Hard mode" for x in hb.all_inner_texts()), "Hangman (plan + quick) and Anagrams offer Hard mode: %s" % hb.all_inner_texts())
+    check(hb.count() == 3 and all(x.startswith("Play in hard mode") for x in hb.all_text_contents()), "Hangman (plan + quick) and Anagrams offer Hard mode (card ⋯ menu): %s" % hb.all_text_contents())
     check("Challenge" not in t.inner_text("#app"), "no 'Challenge' left on the lesson page")
-    hb.first.click(); t.wait_for_timeout(400)
+    menu_click(t, ".game [data-a=play-ch]"); t.wait_for_timeout(400)
     check(t.evaluate("__T.UI.run.title").endswith("(hard mode)") and "Hard mode · Word 1" in t.inner_text("#app"), "Hard mode run: %s" % t.evaluate("__T.UI.run.title"))
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(200)
     # --- 3. Undo toast after a judging tap
@@ -137,7 +136,7 @@ with sync_playwright() as p:
     t.click("[data-a=finish-ask]"); t.click("[data-a=discard]"); t.wait_for_timeout(200)
     np = [{"id":"new-lp1", "student":"Ned", "lp":1, "title":"Ned · LP1", "date":"2026-11-17", "updatedAt":"x", "games":[]}]
     ctx2 = b.new_context(viewport={"width":1180, "height":820}); t2 = teacher(ctx2, seed_db(np), errs); go_lesson(t2, "Ned · LP1"); t2.wait_for_timeout(300)
-    check(t2.evaluate("document.getElementById('addSec').open"), "a lesson with no games opens Add a game")
+    check(t2.locator("[data-a=gpick]").is_visible() and "No games in this lesson yet" in t2.inner_text("#app"), "a lesson with no games shows + Game right under the note")
     ctx2.close()
     # --- 3b. Undo toast in a live game: the student's screen follows the undo
     lp = dict(packs[1]); lp["liveRoom"] = "0123456789abcdef0123456789abcdef"
