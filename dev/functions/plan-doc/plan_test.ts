@@ -19,6 +19,15 @@ function fake(w: World) {
       const a = new Headers(init?.headers).get("authorization");
       return new Response(JSON.stringify(a === "Bearer TEACHER" && w.teacher), { status: 200 });
     }
+    if (u.endsWith("/rest/v1/rpc/am_i_guest")) {
+      const a = new Headers(init?.headers).get("authorization");
+      return new Response(JSON.stringify(a === "Bearer GUEST"), { status: 200 });
+    }
+    if (u.endsWith("/rest/v1/rpc/showcase_plan")) {   /* like public.showcase_plan: the teacher or a guest, else null */
+      const a = new Headers(init?.headers).get("authorization"), d = JSON.parse(String(init?.body)).p_doc;
+      const row = Object.prototype.hasOwnProperty.call(PLANS, d) ? PLANS[d] : null;
+      return new Response(JSON.stringify((a === "Bearer GUEST" || (a === "Bearer TEACHER" && w.teacher)) && row ? { html: row.html, name: row.name, folderId: row.folderId } : null));
+    }
     if (u === "https://oauth2.googleapis.com/token") {
       const body = new URLSearchParams(String(init?.body)), jwt = body.get("assertion") || "";
       const [h, c, s] = jwt.split("."), dec = (x: string) => Uint8Array.from(atob(x.replace(/-/g, "+").replace(/_/g, "/") + "==".slice(0, (4 - x.length % 4) % 4)), (ch) => ch.charCodeAt(0));
@@ -89,4 +98,31 @@ Deno.test("bad ids, other files, unshared files, no key", async () => {
   assert((await handle(req({ docId: ID }, "Bearer TEACHER"), fake(w2))).status === 415, "pdf 415");
   assert((await handle(req({}, "Bearer TEACHER", "GET"), fake(w))).status === 405, "GET 405");
   assert((await handle(new Request("https://x/", { method: "OPTIONS", headers: { origin: "https://evil.example" } }), fake(w))).headers.get("access-control-allow-origin") === "https://sltimms90.github.io", "CORS only names the app");
+});
+
+/* 27 Nov: showcase plans for guests (dev/showcase/plans.json holds the same text dev/sql/showcase_plans.sql loads). */
+const PLANS: Record<string, { html: string; name: string; folderId: string }> = JSON.parse(await Deno.readTextFile(new URL("../../showcase/plans.json", import.meta.url)));
+const SCID = "showcase-leo-lp23-plan";
+Deno.test("a guest gets a showcase plan from the bundle, and Drive is never asked", async () => {
+  Deno.env.set("GOOGLE_SA_KEY", SA);
+  for (const auth of ["Bearer GUEST", "Bearer TEACHER"]) {
+    const w: World = { teacher: true, mime: DOCX, calls: [] };
+    const r = await handle(req({ docId: SCID }, auth), fake(w));
+    assert(r.status === 200, "200 for " + auth + ", got " + r.status);
+    const j = await r.json();
+    assert(/<h2>SEGMENT 0 — ARRIVAL/.test(j.html) && /Key — HW22/.test(j.html), "the bundled plan");
+    assert(/^showcase-/.test(j.folderId), "a showcase folder id (the placeholder page, not Drive)");
+    assert(!w.calls.some((u) => /google/.test(u)), "no Google call for a showcase plan");
+  }
+});
+Deno.test("a guest gets nothing else: real plans, unknown showcase ids, no sign-in", async () => {
+  Deno.env.set("GOOGLE_SA_KEY", SA);
+  const w: World = { teacher: true, mime: DOCX, calls: [] };
+  const r = await handle(req({ docId: ID }, "Bearer GUEST"), fake(w));
+  assert(r.status === 401 && !(await r.text()).includes("SEGMENT"), "a real plan: 401 for a guest");
+  assert(!w.calls.some((u) => /google/.test(u)), "no Google call for a guest");
+  assert((await handle(req({ docId: "showcase-nobody-lp1-plan" }, "Bearer GUEST"), fake(w))).status === 404, "unknown showcase id: 404");
+  assert((await handle(req({ docId: "showcase-x" }, "Bearer GUEST"), fake(w))).status === 400, "short showcase id: 400");
+  for (const auth of [undefined, "Bearer STUDENT"]) assert((await handle(req({ docId: SCID }, auth), fake(w))).status === 401, "showcase plan, not signed in as teacher or guest: 401");
+  assert((await handle(req({ docId: "showcase-__proto__-lp1-plan" }, "Bearer GUEST"), fake(w))).status === 404, "no prototype keys");
 });

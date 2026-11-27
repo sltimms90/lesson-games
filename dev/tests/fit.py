@@ -1,6 +1,7 @@
 """Screen-fit sweep: every game type with long content at landscape iPad, desktop and phone.
 Nothing may scroll or spill off screen. Screenshots go to dev/tests/shots/ (not committed).
-Also the class-link bar (#clsBar) on the lesson page and run sheet, from phone to wide desktop:  python3 fit.py clsbar"""
+Also the class-link bar (#clsBar) on the lesson page and run sheet, from phone to wide desktop:  python3 fit.py clsbar
+The guest stripe and the Guests list (27 Nov), at the same sizes:  python3 fit.py guest"""
 import os, sys
 from lg import *
 LONG = "internationalisation"
@@ -104,5 +105,37 @@ with sync_playwright() as p:
                     if w in (390, 720): pg.screenshot(path=os.path.join(HERE, "shots", "clsbar-%s-%s-%d.png" % (cp["id"], where.split()[0], w)))
                 pg.click("header.nav [data-a=student]") if pg.locator("header.nav [data-a=student]").count() else None
             check(not errs, "class-link bar sweep %dpx: no page errors %s" % (w, errs[:2]))
+            ctx.close()
+    # 27 Nov: the guest stripe (home, run sheet, a game screen; Reset demo's inline question) and Sam's Guests list (long
+    # emails, the inline Remove). Seen through Preview as guest, which draws exactly what a guest gets.  python3 fit.py guest
+    if not only or "guest" in only:
+        SPILL = "() => { const W = innerWidth, out = []; if (document.documentElement.scrollWidth > W + 1) out.push('page wide'); document.querySelectorAll('#app *').forEach(e => { const r = e.getBoundingClientRect(); if (r.width && (r.right > W + 2 || r.left < -2) && !e.closest('.overlay')) out.push((e.className || e.tagName) + ' ' + Math.round(r.left) + '-' + Math.round(r.right)); }); return out.slice(0, 4); }"
+        EMAILS = ["friend@example.com", "a.very.long.name.for.a.guest.account@some-long-school-domain.example.org", "x@y.io"]
+        for name, w, h in VIEWS:
+            ctx = b.new_context(viewport={"width":w, "height":h}, has_touch=name.startswith("phone")); errs = []
+            pg = teacher(ctx, seed_db([pack]), errs)
+            pg.route("**/functions/v1/guest-account", lambda r: r.fulfill(body='{"ok":true,"created":true}', content_type="application/json"))
+            pg.wait_for_selector("#stuSec", timeout=8000); pg.click("[data-a=tst-open-page]"); pg.wait_for_selector("[data-a=tst-sc-reset]", timeout=4000)
+            pg.click("[data-a=tst-sc-reset]"); pg.click("[data-a=tst-sc-go]")
+            pg.wait_for_function("Object.keys(__MOCK.db.packs).filter(k => k.startsWith('~sc-')).length === 16", timeout=8000)
+            for e in EMAILS:
+                pg.fill("#gstEmail", e); pg.click("[data-a=tst-g-add]"); pg.wait_for_function("e => (__MOCK.guests || []).includes(e)", arg=e, timeout=3000); pg.wait_for_timeout(150)
+            o = pg.evaluate(SPILL); pg.locator(".sc-sec").screenshot(path=os.path.join(HERE, "shots", "%s-guests.png" % name))
+            check(not o and pg.locator(".gl-row").count() == 3, "%s Guests list (3, one very long email) fits: %s" % (name, o))
+            pg.click(".gl-row:nth-child(2) [data-a=tst-g-ask]"); pg.wait_for_timeout(120)
+            o = pg.evaluate(SPILL); check(not o, "%s Guests list's inline Remove fits: %s" % (name, o)); pg.click("[data-a=tst-g-no]"); pg.wait_for_timeout(100)
+            pg.click("[data-a=tst-preview]"); pg.wait_for_selector(".gst-stripe", timeout=3000); pg.wait_for_timeout(200)
+            sh = pg.evaluate("document.querySelector('.gst-stripe').getBoundingClientRect().height")
+            o = pg.evaluate(SPILL); pg.screenshot(path=os.path.join(HERE, "shots", "%s-guest-home.png" % name))
+            check(not o and sh <= (60 if name == "phone" else 34), "%s guest stripe on home fits, %dpx tall: %s" % (name, sh, o))
+            pg.click("[data-a=gst-reset]"); pg.wait_for_timeout(120); o = pg.evaluate(SPILL)
+            check(not o and pg.locator(".gst-ask").count() == 1, "%s Reset demo's inline question fits: %s" % (name, o)); pg.click("[data-a=gst-reset-no]"); pg.wait_for_timeout(100)
+            pg.click("text=Leo · LP23"); pg.wait_for_selector(".rs-blk", timeout=4000); pg.wait_for_timeout(150)
+            o = pg.evaluate(SPILL); pg.screenshot(path=os.path.join(HERE, "shots", "%s-guest-sheet.png" % name))
+            check(not o and pg.locator(".gst-stripe").count() == 1, "%s guest stripe on the run sheet fits: %s" % (name, o))
+            pg.click("[data-a=nav-games]"); pg.wait_for_timeout(250); pg.click("[data-a=play][data-g=g2]"); pg.wait_for_timeout(450)
+            o = overflow(pg); pg.screenshot(path=os.path.join(HERE, "shots", "%s-guest-play.png" % name))
+            fit_check(name, pg.locator(".gst-stripe").count() == 1 and not o, "%s a game screen with the guest stripe fits %s" % (name, o))
+            check(not errs, "%s guest fit: no page errors %s" % (name, errs[:2]))
             ctx.close()
 done()

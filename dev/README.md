@@ -147,3 +147,37 @@ teacher-only RLS, in the Realtime publication, and copied by the weekly snapshot
 
 `sql/submit_homework.sql` is the database function student pages call to save a homework result (applied to the project as
 migrations `submit_homework` and `submit_homework_anon_only`). `mock-supabase.js` has a copy of its checks for the tests.
+
+**Guest accounts and the showcase school (27 Nov).** A guest is an email on `private.guests`; signed in, they get the normal
+teacher app scoped to a made-up school: four students with `showcase: true` in their `students` row (never `test`), whose
+lessons' ids start `~sc-` (no `slug()` makes `~`). The database enforces it, not the page:
+
+- `sql/guests.sql` (migrations `guest_showcase`, `guest_showcase_student_upsert`, `showcase_plans`): `private.guests`,
+  `private.is_guest()` (built like `is_teacher()`), `public.am_i_guest()`, a guest policy on every table (reads and writes
+  only showcase rows, `WITH CHECK` on every write, no new or deleted students, no flag changes, a trigger stops a guest
+  changing any row's id; boards read-only), the teacher-only `guest_list / guest_add / guest_remove`, and
+  `private.showcase_plans` + `public.showcase_plan()` (teacher or guest only). A real lesson naming a showcase student
+  switches that student off for guests at once. Sam's "teacher full access" policies are unchanged. `game-pictures` is a
+  public bucket; uploads stay teacher-only (the showcase board's picture is already its public address, so a guest never uploads).
+- `sql/guests_test.sql`: the real-database test. Run it whole in the SQL editor (or MCP `execute_sql`); it adds throwaway
+  fixtures, acts as a guest, a signed-in stranger, anon and Sam through JWT claims, tries every read and write, and always
+  rolls itself back by ending with `ALL PASS (n checks)` (or the first `FAIL: …`) raised as an error.
+- Plans: `showcase/plans/<docId>.html` are the showcase plans (LP layout, fixed labels). `build.py` writes `showcase/plans.json`
+  (what the tests serve) and `sql/showcase_plans.sql` (run it in the SQL editor after changing a plan; its last query lists
+  md5s to compare with `plans.json`). `plan-doc` serves `showcase-…` docIds from the database to Sam or a guest, never Drive.
+- `functions/guest-account/`: makes the sign-in for an email Sam adds (sign-ups are closed). Teacher only, only for an email
+  already on the list, never changes an existing account. `deno test --allow-env dev/functions/guest-account/guest_test.ts`.
+- App: `SC_SEED` (one constant, all made up) and `scReset()` (🧪 Test → Reset showcase, and the guest's Reset demo: wipes and
+  re-seeds the showcase only). `scopeApply()` turns what the store has (`RAW`) into what the app uses: everything for Sam
+  (showcase boards aside), only the showcase for a guest or Sam's Preview as guest. `isAsidePack / isAsideName / isAsideRow`
+  keep test and showcase students out of Sam's real work. Material, plan and folder ids starting `showcase-` open
+  `showcase.html` (a placeholder page at the site root), never Drive. A guest's teacher settings stay on their device.
+  A sign-in after a sign-out in the same page reloads the app, so nothing from the last account stays in memory.
+
+    python3 showcase.py                 # resets (showcase / sandbox never touch each other or real rows), Sam's side, Preview as
+                                        # guest, a guest session (only showcase rows; refused writes via mock-supabase.js's copy of
+                                        # the rules; New lesson; class link; Reset demo), a signed-in stranger, fit of the stripe/list
+    python3 showcase_plans.py           # every link in every seeded plan, as a guest: fixed labels, run sheet ↔ plan both ways,
+                                        # game chips in their modes, HW Key (one, menu, last lesson's file), keys and traps fold,
+                                        # outline, 📂 Files / Open all / run sheet chips → placeholder; fails on an unknown link type
+    python3 fit.py guest                # the guest stripe (home, run sheet, a game screen, Reset demo's question) and the Guests list

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-L169bgCFwb5BLeXS+uoX3/ZfCUfJUUYXk+l5S6WWZwY='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-9vbAwC727IiX/r4Z293F2w3gzuna5GK3NuJlvEKnvHg='; object-src 'none'; base-uri 'none'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lesson Desk</title>
@@ -951,6 +951,18 @@ li > .pl-fold{margin:0;display:inline-block;vertical-align:top}
 .sbx-entry{justify-content:flex-end;margin-top:6px}
 .sbx-stu .list li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;padding-bottom:6px}.sbx-stu .list li .item{flex:1 1 260px;min-width:0}
 .sbx-ask{background:var(--surface);border:2px solid var(--no);border-radius:12px;padding:8px 12px;align-items:center}
+/* guest preview (27 Nov): one thin line under the header, its Reset demo asking inline */
+.gst-stripe{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 10px;background:#2E6BE6;color:#fff;font-size:13px;font-weight:700;padding:2px 8px;line-height:18px}
+.gst-stripe .row{gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.gst-stripe .btn.sm{min-height:26px;padding:1px 10px;font-size:13px}
+.gst-stripe .btn.ghost{color:#fff;border-color:rgba(255,255,255,.75);background:transparent}
+.gst-stripe .btn.danger{border-color:#fff}
+.sc-ask{background:var(--surface);border:2px solid var(--no);border-radius:12px;padding:8px 12px;align-items:center}
+.gl-list{list-style:none;margin:0 0 8px;padding:0}
+.gl-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.gl-e{flex:1 1 200px;min-width:0;overflow-wrap:anywhere;font-weight:700}
+.gl-ask{gap:6px;align-items:center}
+.gl-add{align-items:center;gap:8px}.gl-add input{flex:1 1 220px;min-width:0}
 .clsbar .clsold{display:inline-block;margin-top:4px;color:var(--ink);border-left:4px solid var(--amber);padding-left:8px;font-weight:600}
 .livepill{display:flex;align-items:center;gap:8px}.livepill .lo{font:inherit;font-size:18px;line-height:1;border:none;background:none;cursor:pointer;padding:0 2px}.livepill.ov{border-color:#C2397A;color:#C2397A}
 .clsbar.slim{padding:6px 10px;gap:6px 10px;font-size:15px}
@@ -1169,7 +1181,7 @@ var SB_URL = "https://prglfopvovvxhzrejhzc.supabase.co", SB_KEY = "sb_publishabl
 var AUTH = { need:false, sending:false, sent:"", err:"", notTeacher:false, email:"" }, SB = null;
 var LKEY = STUDENT_PAGE ? "lessonGames.student.v1" : "lessonGames.ui.v2";
 var APP_V = 20261113, SMODE = null;
-var APP_B = "a464a61e6d";   /* build id, stamped by dev/build.py */
+var APP_B = "4ba1a3caef";   /* build id, stamped by dev/build.py */
 var SLINK_TYPES = ["hangman", "anagrams", "cards", "typeit", "match", "whack", "cross", "quiz", "spelling", "build", "spot", "odd", "phon", "bingo", "hilo"];
 SLINK_TYPES.push("td");
 if(SB_MODE) SLINK_TYPES.push("snakes", "taboo", "typhoon", "battleships");   /* these two need the live link: nothing to play alone */
@@ -1459,7 +1471,9 @@ async function connectSupabase(){
   try{ if(!window.supabase) await loadScript("supabase.js"); }catch(e){ STATUS = "error"; refresh(); return; }
   SB = window.supabase.createClient(SB_URL, SB_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:"lessonGames.auth" } });
   SB.auth.onAuthStateChange(function(ev, session){
-    if(ev === "SIGNED_OUT"){ AUTH.need = true; AUTH.sent = ""; render(); }
+    /* Signed out: drop what this page holds, and the next sign-in (another account, maybe a guest on Sam's iPad) starts the
+       app afresh, so nothing the last account loaded is still in memory. */
+    if(ev === "SIGNED_OUT"){ AUTH.need = true; AUTH.sent = ""; AUTH.out = true; GUEST = false; RAW = { packs:[], results:[], students:[], boards:[], sheets:[], phaseb:[] }; scopeApply(); render(); }
     else if(session && AUTH.need) setTimeout(function(){ afterSignIn(session); }, 0);
   });
   var r = await SB.auth.getSession();
@@ -1469,9 +1483,14 @@ async function connectSupabase(){
 }
 async function afterSignIn(session){
   if(STORE && STORE.kind === "supabase" && !AUTH.need) return;
+  if(STORE && AUTH.out){ location.reload(); return; }
   AUTH.email = (session.user && session.user.email) || "";
-  var t = await SB.rpc("am_i_teacher");
-  if(t.error || t.data !== true){ AUTH.need = true; AUTH.notTeacher = !t.error; AUTH.err = t.error ? "Couldn’t check the account. Check the connection and reload." : ""; render(); return; }
+  var t = await SB.rpc("am_i_teacher"), g = null;
+  /* not the teacher: maybe a guest (an email on the guest list), who gets the showcase only */
+  if(!t.error && t.data !== true) g = await SB.rpc("am_i_guest");
+  if(t.error || (t.data !== true && !(g && !g.error && g.data === true))){ AUTH.need = true; AUTH.notTeacher = !t.error && !(g && g.error); AUTH.err = t.error || (g && g.error) ? "Couldn’t check the account. Check the connection and reload." : ""; render(); return; }
+  GUEST = t.data !== true;
+  if(GUEST){ UI.gpv = false; UI.view = UI.view === "test" ? "home" : UI.view; scopeApply(); }
   AUTH.need = false; AUTH.notTeacher = false; AUTH.err = "";
   if(STORE && STORE.kind === "supabase"){ render(); return; }
   startStore(supabaseStore(SB), "account");
@@ -1481,13 +1500,33 @@ function startStore(store, status){
   STATUS = status;
   var timer = setTimeout(function(){ SLOW = true; refresh(); }, 10000);
   function done(cache){ if(!cache){ clearTimeout(timer); SLOW = false; } }
-  STORE.watchPacks(function(list, cache){ PACKS = list; LOADED.packs = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
-  STORE.watchResults(function(list, cache){ RESULTS = list; LOADED.results = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
-  STORE.watchStudents(function(list){ STUDENTS = {}; list.forEach(function(o){ STUDENTS[o.id] = o; }); refresh(); }, function(){});
-  STORE.watchBoards(function(list){ BOARDS = {}; list.forEach(function(o){ BOARDS[o.id] = o; }); refresh(); }, function(){});
-  STORE.watchSheets(function(list){ SHEETS = {}; list.forEach(function(o){ SHEETS[o.id] = o; }); LOADED.sheets = true; refresh(); }, function(){});
-  if(STORE.watchPhaseb) STORE.watchPhaseb(function(list){ PHASEB = {}; list.forEach(function(o){ PHASEB[o.pack_id] = o; }); LOADED.phaseb = true; refresh(); }, function(){});
+  STORE.watchPacks(function(list, cache){ RAW.packs = list; scopeApply(); LOADED.packs = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
+  STORE.watchResults(function(list, cache){ RAW.results = list; scopeApply(); LOADED.results = true; done(cache); refresh(); }, function(e){ STATUS = "error"; clearTimeout(timer); refresh(); });
+  STORE.watchStudents(function(list){ RAW.students = list; scopeApply(); refresh(); }, function(){});
+  STORE.watchBoards(function(list){ RAW.boards = list; scopeApply(); refresh(); }, function(){});
+  STORE.watchSheets(function(list){ RAW.sheets = list; scopeApply(); LOADED.sheets = true; refresh(); }, function(){});
+  if(STORE.watchPhaseb) STORE.watchPhaseb(function(list){ RAW.phaseb = list; scopeApply(); LOADED.phaseb = true; refresh(); }, function(){});
   refresh();
+}
+/* What the store has (RAW) → what the app works with. Sam: everything, except showcase boards. A guest, or Sam's
+   Preview as guest: only the showcase (its students, their "~sc-" lessons and what hangs off them, the showcase board)
+   and the guest's own teacher settings on this device. For a real guest the database already sends nothing else; the
+   preview filters the same way, so it shows exactly what a guest would see. SC_CLASH: showcase students a real lesson
+   names (the database switches those off for guests; the 🧪 Test page says so). */
+var RAW = { packs:[], results:[], students:[], boards:[], sheets:[], phaseb:[] }, GTSET_KEY = "lessonGames.guestTset";
+function scopeApply(){
+  var gv = guestView(), st = {};
+  SC_CLASH = {};
+  RAW.packs.forEach(function(p){ if(p && typeof p.id === "string" && p.id.indexOf(SC_PRE) !== 0 && p.student) SC_CLASH[slug(p.student)] = 1; });
+  RAW.students.forEach(function(o){ if(!gv || scStudentRow(o)) st[o.id] = o; });
+  if(gv){ var gt = loadLocal(GTSET_KEY); if(gt && typeof gt === "object") st[TSET_ID] = Object.assign(gt, { id:TSET_ID }); }
+  STUDENTS = st;
+  PACKS = gv ? RAW.packs.filter(isShowcasePack) : RAW.packs;
+  var ids = {}; PACKS.forEach(function(p){ ids[p.id] = 1; });
+  RESULTS = gv ? RAW.results.filter(function(r){ return ids[r.packId]; }) : RAW.results;
+  BOARDS = {}; RAW.boards.forEach(function(o){ if(gv ? o.showcase === true : o.showcase !== true) BOARDS[o.id] = o; });
+  SHEETS = {}; RAW.sheets.forEach(function(o){ if(!gv || ids[o.id]) SHEETS[o.id] = o; });
+  PHASEB = {}; RAW.phaseb.forEach(function(o){ if(!gv || ids[o.pack_id]) PHASEB[o.pack_id] = o; });
 }
 var LIVE_VIEWS = ["home", "pack", "student", "done", "sheet", "phaseb"];
 function refresh(){
@@ -1506,7 +1545,7 @@ function statusPill(){
 function getPack(id){ return PACKS.filter(function(p){ return p.id === id; })[0] || null; }
 function resultsFor(packId, gameId){ return RESULTS.filter(function(r){ return r.packId === packId && (!gameId || r.gameId === gameId); }); }
 function packTitle(p){ return p.title || ((p.student || "Lesson") + (p.lp ? " · LP" + p.lp : "")); }
-function students(){ var s = {}; PACKS.forEach(function(p){ if(p.student && !isTestPack(p)) s[p.student] = 1; }); return Object.keys(s).sort(function(a,b){ return a.localeCompare(b); }); }
+function students(){ var s = {}; PACKS.forEach(function(p){ if(p.student && !isAsidePack(p)) s[p.student] = 1; }); return Object.keys(s).sort(function(a,b){ return a.localeCompare(b); }); }
 function touchPack(p){ p.updatedAt = nowIso(); return STORE.savePack(p).catch(saveErr); }
 function go(view, extra){ if(UI.view === "sheet" && UI.packId) rsFlush(UI.packId); if(view !== "pack") UI.pick = null; if(view !== "play") SPAD = null; UI.view = view; if(extra) Object.keys(extra).forEach(function(k){ UI[k] = extra[k]; }); saveUI(); SCROLL_PEND = true; render(); if(SCROLL_PEND){ SCROLL_PEND = false; window.scrollTo(0,0); } }
 
@@ -4709,7 +4748,7 @@ TYPES.taboo.items = function(run){ return run.st.log.map(function(x){ return { i
    ===================================================================== */
 var TSET_ID = "~teacher";   /* the teacher's own settings (Typhoon bonus list, presets): a students row no slug can make */
 function tset(){ return STUDENTS[TSET_ID] || {}; }
-function tsetSave(patch){ var o = Object.assign({ id:TSET_ID, name:"" }, tset(), patch, { updatedAt:nowIso() }); STUDENTS[TSET_ID] = o; return STORE.saveStudent(o).catch(saveErr); }
+function tsetSave(patch){ var o = Object.assign({ id:TSET_ID, name:"" }, tset(), patch, { updatedAt:nowIso() }); STUDENTS[TSET_ID] = o; if(guestView()){ saveLocal(GTSET_KEY, o); return Promise.resolve(); } return STORE.saveStudent(o).catch(saveErr); }
 function ownedType(t){ return !!(TYPES[t] && TYPES[t].owned); }
 /* Players from the game's list, else the lesson's student(s): "Cathy & Lily" → Cathy, Lily. */
 function tyPlayers(block, pack){
@@ -6111,7 +6150,7 @@ function render(){
   if(v === "sheet") return viewSheet();
   if(v === "plan" && !STUDENT_PAGE) return viewPlan();
   if(v === "phaseb" && !STUDENT_PAGE) return viewPhaseb();
-  if(v === "test" && !STUDENT_PAGE) return viewTest();
+  if(v === "test" && !STUDENT_PAGE && !guestView()) return viewTest();
   if(v === "bgmine") return viewBgMine();
   if(v === "pack") return viewPack();
   if(v === "student") return viewStudent();
@@ -6145,6 +6184,8 @@ function restoreFile(file){
   rd.readAsText(file);
 }
 function dataSection(){
+  /* a guest: no backups, restore or email; just a way out */
+  if(guestView()) return GUEST ? '<section class="section"><div class="row"><button class="btn ghost sm" data-a="sb-signout">Sign out</button></div></section>' : "";
   return '<section class="section"><h3>Your data</h3><div class="row">' +
     '<button class="btn ghost sm" data-a="backup">Download a backup</button>' +
     (STORE && STORE.restore ? '<button class="btn ghost sm" data-a="restore">Restore from a backup file</button><input type="file" id="restoreFile" accept=".json,application/json" hidden>' : "") +
@@ -6174,14 +6215,15 @@ function viewHome(){
     var g = groups[k], last = g[0];
     return '<li><button class="item" data-a="student" data-s="' + esc(k) + '"><span><b>' + esc(k || "No student") + '</b><small>' + g.length + (g.length === 1 ? " lesson" : " lessons") + (last ? " · latest " + esc(last.lp ? "LP" + last.lp + ", " : "") + esc(fmtDate(last.date)) : "") + '</small></span><span class="muted" aria-hidden="true">›</span></button></li>';
   }).join("") + '</ul></details>' : "";
-  $("app").innerHTML = '<div class="wrap"><div class="spread head"><h1>' + esc(APP_NAME) + '</h1><div class="row home-r">' + pbEntryHtml() + statusPill() + '</div></div>' + resume + dayBar + dayList + stuList + dataSection() + '<div class="row sbx-entry"><button class="btn ghost sm" data-a="tst-open-page" title="Test students and the sandbox">🧪 Test</button></div></div>';
+  $("app").innerHTML = gstStripe() + '<div class="wrap"><div class="spread head"><h1>' + esc(APP_NAME) + '</h1><div class="row home-r">' + pbEntryHtml() + statusPill() + '</div></div>' + resume + dayBar + dayList + stuList + dataSection() +
+    (guestView() ? "" : '<div class="row sbx-entry"><button class="btn ghost sm" data-a="tst-open-page" title="Test students and the sandbox">🧪 Test</button></div>') + '</div>';
   foldRestore();
   var rf = $("restoreFile"); if(rf) rf.addEventListener("change", function(){ restoreFile(rf.files && rf.files[0]); rf.value = ""; });
 }
 
 /* ---------- progress: patterns across a student's games and lessons (all from results.items) ---------- */
 function progressData(name){
-  if(isTestName(name)) return { lessons:[], stuck:[], better:[], once:[] };
+  if(isAsideName(name)) return { lessons:[], stuck:[], better:[], once:[] };
   var packs = packsByDate(PACKS.filter(function(p){ return (p.student || "") === name; })), byPack = {};
   packs.forEach(function(p){ byPack[p.id] = p; });
   var rs = RESULTS.filter(function(r){ return byPack[r.packId]; });
@@ -6323,11 +6365,11 @@ function itemWords(r){
   return out;
 }
 function missedPacks(p){
-  if(!p || !p.student || isTestPack(p)) return [];
+  if(!p || !p.student || isAsidePack(p)) return [];
   return packsByDate(PACKS.filter(function(x){ return x.student === p.student && x.id !== p.id && (String(x.date || "") < String(p.date || "") || (x.date === p.date && (+x.lp || 0) < (+p.lp || 0))); })).slice(0, 3);
 }
 function missedWords(p){
-  if(isTestPack(p)) return [];
+  if(isAsidePack(p)) return [];
   var packs = missedPacks(p), ids = {}, bank = {}, out = [], seen = {};
   [p].concat(packs).forEach(function(x){ ids[x.id] = x !== p; parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!bank[k]) bank[k] = b; }); });
   RESULTS.filter(function(r){ return ids[r.packId]; }).sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); }).forEach(function(r){
@@ -6345,7 +6387,7 @@ function bankWords(p, scope){ if(scope === "missed") return missedWords(p); if(s
    clue from the word bank where there is one, otherwise the clue or question it was missed on, unless that gives it away. */
 function stuckWords0(d){ return d.stuck.filter(function(o){ return o.word || o.q; }); }
 function stuckWords(p){
-  if(!p || !p.student || isTestPack(p)) return [];
+  if(!p || !p.student || isAsidePack(p)) return [];
   var bank = {}; [p].concat(missedPacks(p)).forEach(function(x){ parseBank(x.bank).forEach(function(b){ var k = b.w.toLowerCase(); if(!bank[k]) bank[k] = b; }); });
   return stuckWords0(progressData(p.student)).slice(0, 15).map(function(o){
     var b = bank[o.w.toLowerCase()], c = b && bankPrompt(b) ? (b.c || "") : o.c;
@@ -6663,7 +6705,7 @@ function viewPlay(){
     (paused || SMODE || CH_TYPES.indexOf(run.type) === -1 ? "" : '<button class="btn ghost sm ic" data-a="challenge" aria-label="Challenge" title="Challenge: a quick language task before play carries on"' + (run.st.ch || run.st.phase === "over" || run.st.winner ? " disabled" : "") + '>⚡</button>') +
     (paused || (t.noPause && t.noPause(run)) ? "" : '<button class="btn ghost sm ic" data-a="pause" aria-label="Pause" title="Pause"' + (run.st.spinning ? " disabled" : "") + '>❚❚</button>') +
     (paused ? "" : '<button class="btn ghost sm ic" data-a="settings" aria-label="Settings" title="Settings">⚙</button>') +
-    (SMODE && SMODE.cls ? "" : '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button>') + '</header>' + (!SMODE && isTestPack(getPack(run.packId)) ? sbxStripe() : "") +
+    (SMODE && SMODE.cls ? "" : '<button class="btn ghost sm ic" data-a="finish-ask" aria-label="Finish or quit" title="Finish or quit">✕</button>') + '</header>' + (!SMODE && isTestPack(getPack(run.packId)) ? sbxStripe() : "") + (!SMODE ? gstStripe() : "") +
     '<main class="stage">' + (run.prev && !paused ? '<p class="lasttime">Last time: ' + esc(run.prev) + '</p>' : "") + (paused ? '<div class="pausebox"><h1>Paused</h1><p class="muted">The game and its timer are stopped, and paused time isn’t counted.</p><button class="btn big-btn" data-a="resume-run">Resume</button></div>' : (function(){ try{ return t.view(run); }catch(e){ run.broken = true; return '<p class="notice">Something went wrong drawing this game. Tap ✕ to save or quit it.</p>'; } })()) + '</main>';
   if(CLOCKT){ clearInterval(CLOCKT); CLOCKT = null; }
   if(SPAD && run.type === "typhoon" && tyRole(run) !== "master") SPAD = null;
@@ -7803,6 +7845,7 @@ function navBar(cur, p, opts){
   }
   html += '</div>' + (opts.title ? '<div class="t">' + opts.title + '</div>' : '<span class="nav-sp"></span>') + (opts.right ? '<div class="nav-r">' + opts.right + '</div>' : "") + '</header>';
   if(cur === "test" || (p ? isTestPack(p) : isTestName(stu))) html += sbxStripe();
+  html += gstStripe();
   return html;
 }
 /* The lesson page's 📋 run sheet button (beside 📖), with its state as a dot: hollow = not started, amber = started,
@@ -7939,7 +7982,8 @@ function plMaterials(p){
   return out;
 }
 function plMatLabel(m){ return m.t + (m.p ? " · " + m.p : ""); }
-function plFileUrl(id){ return "https://drive.google.com/file/d/" + encodeURIComponent(id) + "/view"; }
+function plFileUrl(id){ return String(id).indexOf(SC_FILE) === 0 ? scFileUrl(id) : "https://drive.google.com/file/d/" + encodeURIComponent(id) + "/view"; }
+function plFolderUrl(id){ return String(id).indexOf(SC_FILE) === 0 ? scFileUrl(id) : "https://drive.google.com/drive/folders/" + encodeURIComponent(id); }
 /* The student's notes doc (students/<slug>.notes_doc): one shared Google Doc for in-class notes, the same every lesson.
    Stored as the Doc id only; read back through the same check, since the record is still untrusted. Teacher only. */
 var ND_RE = /^[A-Za-z0-9_-]{10,200}$/;
@@ -7967,7 +8011,7 @@ function plFilesItems(p){
   if(STUDENT_PAGE || SMODE || !p) return [];
   var id = plDocId(p), f = plFolder(p), out = [];
   if(id) out.push({ ic:"📖", t:"Open plan", url:plFileUrl(id), hint:"the plan in Drive" });
-  if(f) out.push({ ic:"📁", t:"Folder", url:"https://drive.google.com/drive/folders/" + encodeURIComponent(f), hint:"worksheets, print pack, HW" });
+  if(f) out.push({ ic:"📁", t:"Folder", url:plFolderUrl(f), hint:"worksheets, print pack, HW" });
   plMaterials(p).forEach(function(m, i){ out.push({ ic:"📄", t:m.t, p:m.p, url:plFileUrl(m.id), sep: i === 0, mat:true }); });
   var nd = notesDocOf(p.student);
   if(nd) out.push({ ic:"🗒️", t:"Notes doc", url:notesDocUrl(nd), hint:p.student + "’s, every lesson", nd:true });
@@ -8108,7 +8152,7 @@ function plGameChips(doc, p){
   var tw = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT), nodes = [], n;
   while((n = tw.nextNode())) if(/lesson\s+games/i.test(n.nodeValue)) nodes.push(n);
   nodes.forEach(function(tn){
-    var s = tn.nodeValue, LG = /lesson\s+games(?:\s+pack\s+[\w.\-]{1,60})?\s*:?\s*/gi, m, hits = [];
+    var s = tn.nodeValue, LG = /lesson\s+games(?:\s+pack\s+[\w.~\-]{1,60})?\s*:?\s*/gi, m, hits = [];
     while((m = LG.exec(s))){
       var i = LG.lastIndex, q;
       while((q = /^[“"]([^”"\n]{1,100})[”"]/.exec(s.slice(i)))){
@@ -8463,7 +8507,7 @@ function pbAll(){
   out.owed.sort(old); out.look.sort(old);
   var since = Date.now() - 14 * PB_DAYMS;
   Object.keys(PHASEB).forEach(function(id){
-    var r = PHASEB[id], t = Date.parse(r.at); if(!(t >= since)) return;
+    var r = PHASEB[id], t = Date.parse(r.at); if(!(t >= since) || isAsidePack(getPack(id))) return;
     if(r.note === "launch") out.launch.push(r); else out.done.push({ row:r, p:getPack(id) });
   });
   out.done.sort(function(a, b){ return String(b.row.at).localeCompare(String(a.row.at)); });
@@ -8559,10 +8603,10 @@ function pbHandle(a, el){
    game of every kind: SBX_SEED, which a test checks against TYPES) and Open student screen (the lesson's class link).
    Reset only ever touches lessons, results, sheets and kept games of students with the test flag.
    ===================================================================== */
-function sbxStripe(){ return STUDENT_PAGE || SMODE ? "" : '<div class="sbx-stripe" role="note">🧪 Test · sandbox, not a real lesson</div>'; }
+function sbxStripe(){ return STUDENT_PAGE || SMODE || guestView() ? "" : '<div class="sbx-stripe" role="note">🧪 Test · sandbox, not a real lesson</div>'; }
 function isTestName(n){ var o = n ? STUDENTS[slug(n)] : null; return !!(o && o.test === true); }
 function isTestPack(p){ return !!(p && p.student && isTestName(p.student)); }
-function realPacks(){ return PACKS.filter(function(p){ return !isTestPack(p); }); }
+function realPacks(){ return PACKS.filter(function(p){ return !isAsidePack(p); }); }   /* test and (for Sam) showcase lessons left out */
 var SBX_STUDENTS = [{ id:"demo", name:"Demo", players:[] }, { id:"demo-pair", name:"Demo Pair", players:["Pip", "Pat"] }];
 var SBX_BANK = "kitchen | you cook dinner in this room | Mom is cooking in the kitchen.\nbedroom | you sleep in this room | My bedroom is upstairs.\nbathroom | you take a shower in this room | The bathroom is next to my bedroom.\ngarden | plants and flowers grow here | Grandpa grows tomatoes in the garden.\ngarage | you park the car here | Dad's bike is in the garage.\nbalcony | a small place outside an upstairs window | We eat ice cream on the balcony.\nhallway | you walk through it to get to other rooms | My shoes are in the hallway.\nsofa | a long soft seat for two or three people | The cat is sleeping on the sofa.\nfridge | it keeps your food cold | The milk is in the fridge.\ncurtains | you close them over the window at night | I close the curtains at night.";
 /* One saved game of every kind. ps = the players' names (Demo Pair: Pip, Pat; Demo: the student alone). */
@@ -8657,6 +8701,7 @@ function viewTest(){
   $("app").innerHTML = navBar("test", null, { noStu:true, right: statusPill() }) + '<div class="wrap"><div class="head"><h2>🧪 Test sandbox</h2><p class="muted">Test students’ lessons, results and kept games stay out of the day list, Phase B, missed words and progress. Backups still include them.</p></div>' + list +
     '<section class="section"><h3>Reset sandbox</h3><p class="muted" style="margin-top:4px">Deletes the test students’ lessons, results, run sheet marks and kept games, then makes one “Every game” lesson each: a saved game of every kind, a word bank, a run sheet and a materials entry. Real students are never touched.</p>' +
     (UI.sbxAsk ? '<div class="row sbx-ask" role="alert"><b>Wipe the sandbox and start again?</b><button class="btn danger sm" data-a="tst-reset-go">Yes, reset</button><button class="btn ghost sm" data-a="tst-reset-no">Cancel</button></div>' : '<div class="row"><button class="btn sm" data-a="tst-reset">Reset sandbox</button></div>') + '</section>' +
+    scSectionHtml() +
     '<section class="section"><h3>From a planning chat</h3><p class="muted" style="margin-top:4px">A planning chat can save a lesson to “Demo” in the usual way. It lands here, not on the day list, so you can try the planning → app → Phase B route end to end. (Phase B for a test lesson isn’t counted as owed.)</p></section></div>';
 }
 function tstHandle(a, el){
@@ -8665,7 +8710,425 @@ function tstHandle(a, el){
   if(a === "tst-reset-no"){ UI.sbxAsk = false; render(); return true; }
   if(a === "tst-reset-go"){ UI.sbxAsk = false; render(); sbxReset().then(function(){ toast("Sandbox reset."); if(UI.view === "test") render(); }, function(e){ toast("Reset stopped: " + ((e && e.message) || "error")); refresh(); }); return true; }
   if(a === "tst-open"){ var p = getPack(el.getAttribute("data-id")); if(p && isTestPack(p)) sbxOpenStudent(p); return true; }
+  if(a === "tst-preview"){ UI.gpv = true; UI.gstAsk = false; HOMEDAY = ""; saveUI(); scopeApply(); go("home"); return true; }
+  if(a === "tst-sc-reset"){ UI.scAsk = true; render(); return true; }
+  if(a === "tst-sc-no"){ UI.scAsk = false; render(); return true; }
+  if(a === "tst-sc-go"){ UI.scAsk = false; render(); scResetRun(); return true; }
+  if(a === "tst-g-add"){ gstAdd(); return true; }
+  if(a === "tst-g-ask"){ GL.ask = el.getAttribute("data-e"); render(); return true; }
+  if(a === "tst-g-no"){ GL.ask = ""; render(); return true; }
+  if(a === "tst-g-del"){ gstRemove(el.getAttribute("data-e")); return true; }
   return false;
+}
+
+/* =====================================================================
+   SHOWCASE (27 Nov). A made-up school for guests: four students with showcase:true in their students row (and never
+   test), about three past lessons and one today each, dated from the day of the reset so "today" is always today.
+   Their lessons' ids start "~sc-" (slug() can't make "~", so no planning chat or app lesson gets one by accident), and
+   the database lets a guest (an email on the guest list, private.guests) read and write only those rows
+   (dev/sql/guests.sql); a real lesson that names a showcase student switches that student off for guests.
+   Sam's side keeps them out of real work exactly like test students. A guest's app, and Sam's Preview as guest, shows
+   only them, as ordinary students (scopeApply). Plans come through plan-doc like any other plan: their docIds start
+   "showcase-" and the function serves them from dev/showcase/plans/ (bundled by build.py) instead of Drive. Material,
+   plan and folder links starting "showcase-" open the placeholder page showcase.html, never Drive.
+   SC_SEED is written from scratch: nothing in it comes from a real student's lessons, results, notes or Phase B.
+   ===================================================================== */
+var SC_PRE = "~sc-", SC_FILE = "showcase-", SC_BOARD = "~sc-board", GUEST = false, SC_CLASH = {};
+var SC_STUDENTS = [{ id:"leo", name:"Leo", look:"bright" }, { id:"mina", name:"Mina", look:"clouds" }, { id:"ken-ivy", name:"Ken & Ivy", players:["Ken", "Ivy"], look:"bright" }, { id:"grace", name:"Grace", look:"chalk" }];
+function guestView(){ return GUEST || !!(UI.gpv && !STUDENT_PAGE && !SMODE); }
+function scStudentRow(o){ return !!(o && o.showcase === true && o.test !== true && !SC_CLASH[o.id]); }
+function isShowcaseName(n){ return !!n && scStudentRow(STUDENTS[slug(n)]); }
+function isShowcasePack(p){ return !!(p && typeof p.id === "string" && p.id.indexOf(SC_PRE) === 0 && isShowcaseName(p.student)); }
+/* kept out of Sam's real work: test students, and showcase students outside a guest's view */
+function isAsideName(n){ return !guestView() && (isTestName(n) || isShowcaseName(n)); }
+function isAsidePack(p){ return !guestView() && (isTestPack(p) || isShowcasePack(p)); }
+function isAsideRow(o){ return !guestView() && !!o && (o.test === true || scStudentRow(o)); }
+function scFileUrl(id){ return SLINK_BASE + "showcase.html#" + encodeURIComponent(id); }
+
+/* ---- the seed: helpers, then one entry per lesson ---- */
+function scG(id, type, title, block, options){ return { id:id, type:type, title:title, block:block, options:options || {} }; }
+function scCue(l){ return { type:"cue", label:l }; }
+function scApp(l, g){ return { type:"app", label:l, game:g }; }
+function scTrap(s){ return { type:"trap", spring:s }; }
+function scMat(t, id, seg, p){ var o = { t:t, id:SC_FILE + id, seg:seg }; if(p) o.p = p; return o; }
+/* results: [gameId, minutes after the start, [[item, ok, note, ans]...], summary extra] */
+var SC_SEED = [
+  /* ---------------- Leo: 9, phonics and an early reader, in person ---------------- */
+  { id:"leo-lp20", student:"Leo", lp:20, day:-21, start:"16:30", length:50, format:"in person",
+    bank:"rain | water from the clouds | The rain is cold.\ntrain | it runs on a track | We go to Taipei by train.\nsnail | it is slow and has a shell | The snail is on the wall.\npaint | you use it to colour a picture | I paint a red boat.\ntail | a dog wags it | My dog has a long tail.\nwait | stay here until something happens | Wait for me!",
+    games:[scG("g1", "hangman", "LP20 Rain Hangman", "rain | water from the clouds\ntrain | it runs on a track\nsnail | it is slow and has a shell\npaint | you use it to colour a picture\ntail | a dog wags it"),
+           scG("g2", "spelling", "LP20 Spelling", "rain\ntrain\npaint\nplay\nday\nsnail\ntail\nwait")],
+    blocks:[{ label:"0 Arrival", mins:10, lines:[scCue("0A Hello and the long a sound")] },
+            { label:"1 New sound: ai / ay", mins:15, lines:[scCue("1A Present ai and ay"), scApp("1B LP20 Rain Hangman", "g1")] },
+            { label:"2 Reader: The Big Rain", mins:12, lines:[scCue("2A Read p.1–4"), { type:"words", words:["rain", "train", "snail", "paint"] }] },
+            { label:"3 Spelling and close", mins:13, lines:[scApp("3A LP20 Spelling", "g2"), { type:"score", n:8, label:"3A Spelling score" }, scCue("3B Homework HW20")] }],
+    materials:[scMat("WS20 ai / ay words", "ws20-leo", ["1"], "p.1"), scMat("The Big Rain (reader)", "reader-big-rain", ["2"], "p.1–4"), scMat("Leo_HW20", "hw20-leo", ["3"])],
+    results:[["g1", 18, [["rain", true], ["train", false, "guessed: t, r, e, n"], ["snail", false, "guessed: s, n, e, l"], ["paint", true], ["tail", true]]],
+             ["g2", 40, [["rain", true], ["train", false, "typed: trane"], ["paint", true], ["play", true], ["day", true], ["snail", false, "typed: snale"], ["tail", true], ["wait", false, "typed: wate"]]]],
+    fb:{ score:{ "3A":[["5"], "trane, snale, wate: a_e for ai every time"] }, words:["snail"], chg:"Reader took longer: he wanted to read p.5 as well.", parent:"Mum says he reads the reader to his little sister.", other:"says /ai/ in “said”", spine:"4", energy:["5"] },
+    pb:"chat" },
+  { id:"leo-lp21", student:"Leo", lp:21, day:-14, start:"16:30", length:50, format:"in person",
+    bank:"sheep | a farm animal with wool | The sheep is white.\ngreen | the colour of grass | My bag is green.\ndream | pictures in your head when you sleep | I had a funny dream.\nread | look at words and understand them | I read every night.\nsea | lots of salty water | We swim in the sea.",
+    games:[scG("g1", "spelling", "LP21 Spelling", "sheep\ngreen\ntree\nsea\nread\ndream\ntrain\nsnail"),
+           scG("g2", "phon", "LP21 Phonics Sort", "ee (sheep): sheep, green, tree, see\nea (sea): sea, read, dream, team"),
+           scG("g3", "snakes", "Snakes & Ladders", "Leo\nTeacher", { boardId:SC_BOARD, auto:true })],
+    blocks:[{ label:"0 Arrival", mins:10, lines:[scCue("0A HW20 check"), scApp("0B LP21 Spelling", "g1")] },
+            { label:"1 New sound: ee / ea", mins:15, lines:[scCue("1A Present ee and ea"), scTrap("Spell dream, like when you sleep."), scApp("1B LP21 Phonics Sort", "g2")] },
+            { label:"2 Reader: Sleepy Sheep", mins:15, lines:[scCue("2A Read p.1–6")] },
+            { label:"3 Game and close", mins:10, lines:[scApp("3A Snakes & Ladders", "g3"), scCue("3B Homework HW21")] }],
+    materials:[scMat("WS21 ee / ea words", "ws21-leo", ["1"], "p.1–2"), scMat("Sleepy Sheep (reader)", "reader-sleepy-sheep", ["2"]), scMat("Leo_HW21", "hw21-leo", ["3"])],
+    results:[["g1", 8, [["sheep", true], ["green", true], ["tree", true], ["sea", true], ["read", false, "typed: reed"], ["dream", false, "typed: dreem"], ["train", false, "typed: trane"], ["snail", true]]],
+             ["g2", 24, [["sheep", true], ["green", true], ["tree", true], ["see", true], ["sea", true], ["read", false, "put in ee"], ["dream", false, "put in ee"], ["team", true]]],
+             ["g3", 42, [], "Snakes & Ladders — Leo won (reached 100 first)"]],
+    fb:{ trap:{ "1A":["w"] }, chg:"Cut the reader to p.1–4: Snakes & Ladders ran over.", parent:"", other:"dream / read: writes ee for every long e", spine:"4", energy:["4"] },
+    pb:"chat" },
+  { id:"leo-lp22", student:"Leo", lp:22, day:-7, start:"16:30", length:50, format:"in person", plan:"showcase-leo-lp22-plan",
+    bank:"night | when you sleep and the moon is up | I sleep at night.\nlight | a lamp gives you this | Turn on the light.\nkite | it flies in the wind on a string | My kite is red.\nbright | full of light | The sun is bright.\ntime | what a clock shows | What time is it?",
+    games:[scG("g1", "hangman", "LP22 Hangman", "night | when you sleep and the moon is up\nlight | a lamp gives you this\nkite | it flies in the wind on a string\nbright | the sun is very ___\ndream | pictures in your head when you sleep\ntrain | it runs on a track"),
+           scG("g2", "spelling", "LP22 Spelling", "night\nlight\nright\nkite\nbike\ntime\ndream\ntrain")],
+    blocks:[{ label:"0 Arrival", mins:8, lines:[scCue("0A Hello and last week’s words")] },
+            { label:"1 New sound: long i", mins:15, lines:[scCue("1A Present igh and i_e"), scTrap("Spell light, like a lamp."), scCue("1B Sort on WS22")] },
+            { label:"2 Reader: Night Kite", mins:12, lines:[scCue("2A Read p.1–5"), { type:"words", words:["night", "bright", "flew", "high"] }] },
+            { label:"3 Games and homework", mins:13, lines:[scApp("3A LP22 Hangman", "g1"), scApp("3B LP22 Spelling", "g2"), { type:"score", n:8, label:"3B Spelling score" }, scCue("3C Homework HW22")] },
+            { label:"Buffer", mins:2, lines:[scCue("Overrun only")] }],
+    materials:[scMat("WS22 igh / i_e sort", "ws22-leo", ["1"], "p.1"), scMat("Night Kite (reader)", "reader-night-kite", ["2"], "p.1–5"), scMat("Leo_HW22", "hw22-leo", ["3"], "key on the last page")],
+    results:[["g1", 36, [["night", false, "guessed: n, i, t, e"], ["light", true], ["kite", true], ["bright", true], ["dream", false, "guessed: d, r, e, m"], ["train", true]]],
+             ["g2", 42, [["night", false, "typed: nite"], ["light", false, "typed: lite"], ["right", true], ["kite", true], ["bike", true], ["time", true], ["dream", false, "typed: dreem"], ["train", true]]]],
+    fb:{ trap:{ "1A":["w"] }, score:{ "3B":[["5"], "nite, lite, dreem"] }, words:["bright", "flew"], chg:"", parent:"Dad asked for more reading at home: sent the reader home.", other:"“I goed to the park” in the chat at the start", spine:"3", energy:["4"] },
+    pb:"chat" },
+  { id:"leo-lp23", student:"Leo", lp:23, day:0, start:"16:30", length:50, format:"in person", plan:"showcase-leo-lp23-plan",
+    bank:"boat | it floats on water | The goat is on the boat.\ncoat | you wear it when it is cold | My coat is yellow.\nsnow | white and cold, it falls in winter | The snow is deep.\nslow | not fast | The boat is slow.\ngoat | a farm animal with horns | The goat eats grass.\nroad | cars drive on it | The road is white with snow.",
+    games:[scG("g1", "spelling", "LP23 Spelling", "night\nlight\ndream\nboat\ncoat\nsnow\nslow\ngoat", { feedback:"each" }),
+           scG("g2", "phon", "LP23 Phonics Sort", "oa (boat): boat, coat, goat, road\now (snow): snow, slow, grow, show\nigh (night): night, light, high"),
+           scG("g3", "match", "LP23 Rhyme Pairs", "boat = coat\nnight = light\nsnow = grow\ndream = team\nroad = toad", { mode:"pairs" }),
+           scG("g4", "snakes", "Snakes & Ladders", "Leo\nTeacher", { boardId:SC_BOARD, auto:true })],
+    blocks:[{ label:"0 Arrival", mins:10, lines:[scCue("0A HW22 check"), scApp("0B LP23 Spelling", "g1"), { type:"score", n:8, label:"0B Spelling score" }] },
+            { label:"1 New sound: oa / ow", mins:15, lines:[scCue("1A Present oa and ow"), scTrap("How do you spell bow, like a ribbon?"), scApp("1B LP23 Phonics Sort", "g2")] },
+            { label:"2 Reader: Goat Boat", mins:12, lines:[scCue("2A Read p.6–9"), { type:"words", words:["floated", "tomorrow", "coast", "road"] }, scCue("2B Reading questions")] },
+            { label:"3 Games and close", mins:11, lines:[scApp("3A LP23 Rhyme Pairs", "g3"), scApp("3B Snakes & Ladders", "g4"), scCue("3C Homework HW23")] },
+            { label:"Buffer", mins:2, lines:[scCue("Overrun only")] }],
+    materials:[scMat("WS23 oa / ow words", "ws23-leo", ["1", "2"], "p.1–2"), scMat("Goat Boat (reader)", "reader-goat-boat", ["2"], "p.6–9"), scMat("Leo_HW23", "hw23-leo", ["3"])] },
+
+  /* ---------------- Mina: junior high, textbook, online ---------------- */
+  { id:"mina-lp12", student:"Mina", lp:12, day:-22, start:"19:00", length:60, format:"online",
+    bank:"museum | a place with old and famous things to look at | We visited the museum.\nlibrary | a place where you borrow books | I borrowed two books from the library.\nbakery | a shop that sells bread and cakes | The bakery opens at seven.\nhospital | a place where doctors work | My aunt works at the hospital.",
+    games:[scG("g1", "cards", "U4 Flash Cards", "a place with old and famous things to look at = museum\na place where you borrow books = library\na shop that sells bread and cakes = bakery\na place where doctors work = hospital\nyou send letters here = post office\nyou catch a train here = train station"),
+           scG("g2", "quiz", "U4 Quiz", "I ___ the museum with my class yesterday.\n*visited\nvisit\nvisiting\n\nShe ___ two books from the library.\n*borrowed\nborrow\nborrows\n\nThey ___ TV last night.\n*watched\nwatch\nwatching")],
+    blocks:[{ label:"0 Warm-up", mins:10, lines:[scCue("0A Weekend chat")] },
+            { label:"1 Unit 4 words", mins:20, lines:[scCue("1A Textbook p.44–45"), scApp("1B U4 Flash Cards", "g1")] },
+            { label:"2 Past simple: -ed", mins:20, lines:[scCue("2A Textbook p.48 grammar box"), scApp("2B U4 Quiz", "g2")] },
+            { label:"3 Close", mins:10, lines:[scCue("3A Homework HW12")] }],
+    materials:[scMat("Unit 4 p.44–48 (textbook)", "textbook-u4-mina", ["1", "2"]), scMat("Mina_HW12 (workbook p.26–27)", "hw12-mina", ["3"])],
+    results:[["g1", 24, [["a place with old and famous things to look at", true, "answer: museum"], ["a place where you borrow books", false, "answer: library"], ["a shop that sells bread and cakes", true, "answer: bakery"], ["a place where doctors work", false, "answer: hospital"], ["you send letters here", true, "answer: post office"], ["you catch a train here", true, "answer: train station"]]],
+             ["g2", 46, [["I ___ the museum with my class yesterday.", true, "answer “visited”", "visited"], ["She ___ two books from the library.", true, "answer “borrowed”", "borrowed"], ["They ___ TV last night.", false, "answer “watched”", "watched"]]]],
+    fb:{ chg:"", parent:"", other:"“I go to the museum yesterday” twice in the weekend chat", spine:"4", energy:["3"] },
+    pb:"chat" },
+  { id:"mina-lp13", student:"Mina", lp:13, day:-15, start:"19:00", length:60, format:"online",
+    games:[scG("g1", "typeit", "Irregular Verbs Type It", "the past of go = went\nthe past of buy = bought\nthe past of take = took\nthe past of eat = ate\nthe past of see = saw\nthe past of catch = caught"),
+           scG("g2", "spelling", "U4 Spelling", "library\nhospital\nmuseum\nbakery\ndangerous")],
+    blocks:[{ label:"0 Warm-up", mins:10, lines:[scCue("0A What did you eat yesterday?"), scTrap("What did you buy last weekend?")] },
+            { label:"1 Irregular verbs", mins:25, lines:[scCue("1A Textbook p.50 verb list"), scApp("1B Irregular Verbs Type It", "g1")] },
+            { label:"2 Unit 4 spelling", mins:15, lines:[scApp("2A U4 Spelling", "g2"), { type:"score", n:5, label:"2A Spelling score" }] },
+            { label:"3 Close", mins:10, lines:[scCue("3A Homework HW13")] }],
+    materials:[scMat("Irregular verbs list", "verbs-list-mina", ["1"]), scMat("Mina_HW13 (workbook p.28–29)", "hw13-mina", ["3"])],
+    results:[["g1", 26, [["the past of go", true, "answer: went"], ["the past of buy", false, "answer: bought · typed: buyed"], ["the past of take", true, "answer: took"], ["the past of eat", true, "answer: ate"], ["the past of see", true, "answer: saw"], ["the past of catch", false, "answer: caught · typed: catched"]]],
+             ["g2", 44, [["library", false, "typed: libary"], ["hospital", true], ["museum", true], ["bakery", true], ["dangerous", false, "typed: dangerus"]]]],
+    fb:{ trap:{ "0A":["w"] }, score:{ "2A":[["3"], "libary, dangerus"] }, chg:"Spent longer on the verb list: she asked for a song to remember them.", parent:"", other:"", spine:"4", energy:["4"] },
+    pb:"chat" },
+  { id:"mina-lp14", student:"Mina", lp:14, day:-8, start:"19:00", length:60, format:"online",
+    games:[scG("g1", "match", "U5 Words Match Up", "library = you borrow books here\ndangerous = not safe\nmuseum = old things to look at\ncrowded = full of people\nquiet = not noisy", { mode:"match" }),
+           scG("g2", "quiz", "Did You…? Quiz", "Yesterday she ___ a new bag.\n*bought\nbuyed\nbuy\n\n___ you go to Tainan last summer?\n*Did\nDo\nWere\n\nThey ___ the last bus home.\n*caught\ncatched\ncatch", { mode:"winlose" })],
+    blocks:[{ label:"0 Warm-up", mins:10, lines:[scCue("0A HW13 check")] },
+            { label:"1 Reading: A Day in Tainan", mins:25, lines:[scCue("1A Read p.54–55"), scCue("1B Did-questions about the text"), scApp("1C U5 Words Match Up", "g1")] },
+            { label:"2 Quiz", mins:15, lines:[scApp("2A Did You…? Quiz", "g2")] },
+            { label:"3 Close", mins:10, lines:[scCue("3A Homework HW14")] }],
+    materials:[scMat("WS14 A Day in Tainan", "ws14-mina", ["1"], "p.1–2"), scMat("Mina_HW14 (workbook p.32–33)", "hw14-mina", ["3"], "key on the last page")],
+    results:[["g1", 30, [["library", false, "pair: you borrow books here"], ["dangerous", true, "pair: not safe"], ["museum", true, "pair: old things to look at"], ["crowded", true, "pair: full of people"], ["quiet", true, "pair: not noisy"]]],
+             ["g2", 42, [["Yesterday she ___ a new bag.", false, "answer “bought”", "bought"], ["___ you go to Tainan last summer?", true, "answer “Did”", "Did"], ["They ___ the last bus home.", false, "answer “caught”", "caught"]]]],
+    fb:{ no:["1B"], chg:"Skipped the did-questions on the text: the match-up and quiz ran long.", parent:"Mum asked about the Unit 5 test date (next month).", other:"“Yes, I went” for “Yes, I did” (three times)", spine:"3", energy:["4"] } },
+  { id:"mina-lp15", student:"Mina", lp:15, day:0, start:"19:00", length:60, format:"online", plan:"showcase-mina-lp15-plan",
+    games:[scG("g1", "cards", "Town Words Flash Cards", "a place with old and famous things to look at = museum\na place where you borrow books = library\na shop that sells bread and cakes = bakery\na place where doctors work = hospital\nyou send letters here = post office\nyou catch a train here = train station\nyou go here when someone steals your bike = police station\na big shop with clothes, toys and food on different floors = department store"),
+           scG("g2", "typeit", "Past Verbs Type It", "the past of go = went\nthe past of buy = bought\nthe past of catch = caught\nthe past of see = saw\nthe past of take = took\nthe past of eat = ate\nthe past of get = got\nthe past of teach = taught"),
+           scG("g3", "quiz", "U5 Quiz Show", "Last Sunday I ___ to school. It was a holiday.\n*didn’t go\ndon’t go\ndidn’t went\n\n___ you see the new museum?\n*Did\nDo\nWere\n\nMy dad ___ a cake at the bakery.\n*bought\nbuyed\nbuy\n\nWe ___ the last bus home.\n*caught\ncatched\ncatch\n\nDid she visit the library? Yes, ___.\n*she did\nshe visited\nshe does\n\nYou borrow books at the ___.\n*library\nbakery\nhospital", { mode:"gameshow" }),
+           scG("g4", "bingo", "Places Bingo", "museum = a place with old and famous things to look at\nlibrary = a place where you borrow books\nbakery = a shop that sells bread and cakes\nhospital = a place where doctors work\npost office = you send letters here\ntrain station = you catch a train here\npolice station = you go here when someone steals your bike\ndepartment store = a big shop with clothes, toys and food\npark = trees, grass and a playground\nnight market = food stalls that open in the evening", { size:3, call:"definition", cards:"Mina" }),
+           scG("g5", "typhoon", "Typhoon", "Mina\nTeacher", { size:5, grid:[], mix:"10×10, 6×20, 3×50, 2×T, 2×x2, 2×SWAP", codes:"" })],
+    blocks:[{ label:"0 Arrival", mins:10, lines:[scCue("0A Weekend chat"), scTrap("Did you go out on Sunday?"), scApp("0B Town Words Flash Cards", "g1")] },
+            { label:"1 Grammar: did / didn’t", mins:18, lines:[scCue("1A The grammar box"), scTrap("Make it a question: She bought a new bag."), scCue("1B Textbook p.59 exercise B"), { type:"score", n:5, label:"1B Exercise B" }, scApp("1C Past Verbs Type It", "g2")] },
+            { label:"2 Quiz", mins:12, lines:[scApp("2A U5 Quiz Show", "g3")] },
+            { label:"3 Bingo and close", mins:18, lines:[scApp("3A Places Bingo", "g4"), scApp("3B Typhoon", "g5"), scCue("3C Homework")] },
+            { label:"Buffer", mins:2, lines:[scCue("Overrun only")] }],
+    materials:[scMat("Unit 5 p.56–59 (textbook)", "textbook-u5-mina", ["1"]), scMat("Mina_HW15 (workbook p.34–35)", "hw15-mina", ["3"])] },
+
+  /* ---------------- Ken & Ivy: a pair, in person ---------------- */
+  { id:"ken-ivy-lp6", student:"Ken & Ivy", lp:6, day:-17, start:"15:00", length:50, format:"in person", group:["Ken", "Ivy"],
+    bank:"giraffe | a very tall animal with a long neck | The giraffe is eating leaves.\nelephant | a big grey animal with a trunk | The elephant is drinking.\ndolphin | a clever animal that swims in the sea | The dolphin is jumping.\nkangaroo | it jumps and carries its baby in a pocket | The kangaroo is jumping.",
+    games:[scG("g1", "hangman", "Animal Hangman", "giraffe | a very tall animal with a long neck\nelephant | a big grey animal with a trunk\ndolphin | a clever animal that swims in the sea\nzebra | a horse with black and white stripes\nmonkey | it climbs trees and eats bananas"),
+           scG("g2", "match", "Animal Match Up", "giraffe = long neck\nelephant = trunk\nzebra = stripes\npenguin = can’t fly\nkangaroo = jumps", { mode:"match" })],
+    blocks:[{ label:"0 Arrival", mins:10, lines:[scCue("0A Favourite animals")] },
+            { label:"1 Animal words", mins:20, lines:[scCue("1A Picture cards"), scApp("1B Animal Hangman", "g1")] },
+            { label:"2 Match and talk", mins:15, lines:[scApp("2A Animal Match Up", "g2"), scCue("2B What can it do?")] },
+            { label:"3 Close", mins:5, lines:[scCue("3A Homework HW6")] }],
+    materials:[scMat("Animal picture cards", "cards-animals", ["1"]), scMat("Ken_Ivy_HW6", "hw6-ken-ivy", ["3"])],
+    results:[["g1", 22, [["giraffe", false, "guessed: g, i, r, a, f"], ["elephant", true], ["dolphin", false, "guessed: d, o, l, f"], ["zebra", true], ["monkey", true]]],
+             ["g2", 34, [["giraffe", true, "pair: long neck"], ["elephant", true, "pair: trunk"], ["zebra", true, "pair: stripes"], ["penguin", true, "pair: can’t fly"], ["kangaroo", false, "pair: jumps"]]]],
+    fb:{ chg:"", parent:"Ken’s mum: he talks about the zoo game at dinner.", other:"Ivy: “It can flying”", spine:"4", energy:["5", "4"] },
+    pb:"chat" },
+  { id:"ken-ivy-lp7", student:"Ken & Ivy", lp:7, day:-10, start:"15:00", length:50, format:"in person", group:["Ken", "Ivy"],
+    games:[scG("g1", "spelling", "Animal Spelling", "giraffe\ndolphin\nkangaroo\npenguin\nelephant\ntiger"),
+           scG("g2", "quiz", "Can It…? Quiz", "A penguin ___ fly.\n*can’t\ncan\ndoesn’t\n\nA kangaroo can ___ very high.\n*jump\njumping\njumps\n\n___ a dolphin swim?\n*Can\nDoes\nIs")],
+    blocks:[{ label:"0 Arrival", mins:10, lines:[scCue("0A HW6 check")] },
+            { label:"1 Can / can’t", mins:20, lines:[scCue("1A Present can and can’t"), scTrap("Ken, can a penguin fly?"), scApp("1B Can It…? Quiz", "g2")] },
+            { label:"2 Spelling", mins:15, lines:[scApp("2A Animal Spelling", "g1"), { type:"score", n:6, label:"2A Spelling score" }] },
+            { label:"3 Close", mins:5, lines:[scCue("3A Homework HW7")] }],
+    materials:[scMat("WS7 can / can’t", "ws7-ken-ivy", ["1"]), scMat("Ken_Ivy_HW7", "hw7-ken-ivy", ["3"])],
+    results:[["g2", 24, [["A penguin ___ fly.", true, "answer “can’t”", "can’t"], ["A kangaroo can ___ very high.", false, "answer “jump”", "jump"], ["___ a dolphin swim?", true, "answer “Can”", "Can"]]],
+             ["g1", 38, [["giraffe", false, "typed: girafe"], ["dolphin", false, "typed: dolfin"], ["kangaroo", false, "typed: kangeroo"], ["penguin", true], ["elephant", true], ["tiger", true]]]],
+    fb:{ trap:{ "1A":["r", "w"] }, score:{ "2A":[["3", "4"], "Ken: girafe, dolfin, kangeroo · Ivy: girafe, kangeroo"] }, chg:"", parent:"", other:"Ken: “A kangaroo can jumping”", spine:"4", energy:["4", "4"] },
+    pb:"chat" },
+  { id:"ken-ivy-lp8", student:"Ken & Ivy", lp:8, day:-3, start:"15:00", length:50, format:"in person", group:["Ken", "Ivy"],
+    games:[scG("g1", "build", "Zoo Sentence Builder", "The monkey is climbing the tree.\nThe penguins are swimming.\nThe giraffe is eating leaves."),
+           scG("g2", "bingo", "Animal Bingo", "giraffe\nelephant\ndolphin\nkangaroo\npenguin\ntiger\nzebra\nmonkey\nlion\nbear", { size:3, call:"word", cards:"Ken, Ivy" }),
+           scG("g3", "hangman", "Animal Hangman", "giraffe | a very tall animal with a long neck\ndolphin | a clever animal that swims in the sea\nkangaroo | it jumps and carries its baby in a pocket\ntiger | a big orange cat with stripes\npenguin | a black and white bird that can’t fly")],
+    blocks:[{ label:"0 Arrival", mins:8, lines:[scApp("0A Animal Hangman", "g3")] },
+            { label:"1 Present continuous", mins:20, lines:[scCue("1A The monkey is climbing"), scTrap("Ivy, what is the monkey doing?"), scApp("1B Zoo Sentence Builder", "g1")] },
+            { label:"2 Bingo", mins:15, lines:[scApp("2A Animal Bingo", "g2")] },
+            { label:"3 Close", mins:7, lines:[scCue("3A Homework HW8")] }],
+    materials:[scMat("WS8 zoo picture", "ws8-ken-ivy", ["1"]), scMat("Ken_Ivy_HW8", "hw8-ken-ivy", ["3"])],
+    results:[["g3", 7, [["giraffe", false, "guessed: g, e, r, a"], ["dolphin", true], ["kangaroo", false, "guessed: k, a, n, g, e"], ["tiger", true], ["penguin", true]]],
+             ["g1", 26, [["The monkey is climbing the tree.", true], ["The penguins are swimming.", false, "built: The penguins swimming."], ["The giraffe is eating leaves.", true]]],
+             ["g2", 40, [], "Bingo — Ivy got a line first; Ken one away"]],
+    fb:{ trap:{ "1A":["w", "r"] }, chg:"Bingo went on longer: they asked for a second card.", parent:"", other:"Ken drops “is”: “The monkey climbing”", spine:"3", energy:["4", "5"] } },
+  { id:"ken-ivy-lp9", student:"Ken & Ivy", lp:9, day:0, start:"15:00", length:50, format:"in person", group:["Ken", "Ivy"], plan:"showcase-ken-ivy-lp9-plan",
+    games:[scG("g1", "hangman", "Animal Hangman", "giraffe | a very tall animal with a long neck\ndolphin | a clever animal that swims in the sea\nkangaroo | it jumps and carries its baby in a pocket\nelephant | a big grey animal with a trunk\npenguin | a black and white bird that can’t fly\ntiger | a big orange cat with stripes"),
+           scG("g2", "match", "Animal Match Up", "kangaroo = is jumping\ndolphin = is swimming\ngiraffe = is eating leaves\nmonkey = is sleeping in the tree\npenguins = are walking", { mode:"match" }),
+           scG("g3", "spot", "Zoo Spot the Error", "The giraffe eating. = The giraffe is eating.\nThe penguins is swimming. = The penguins are swimming.\nThe elephants are drinking water. = ok\nThe tiger are sleeping. = The tiger is sleeping."),
+           scG("g4", "bingo", "Zoo Bingo", "giraffe = a very tall animal with a long neck\nelephant = a big grey animal with a trunk\ndolphin = a clever animal that swims in the sea\nkangaroo = it jumps and carries its baby in a pocket\npenguin = a black and white bird that can’t fly\ntiger = a big orange cat with stripes\nzebra = a horse with black and white stripes\nmonkey = it climbs trees and eats bananas\nlion = the king of the animals\nbear = a big brown animal that sleeps all winter", { size:3, call:"definition", cards:"Ken, Ivy" }),
+           scG("g5", "typhoon", "Typhoon", "Ken\nIvy", { size:5, grid:[], mix:"10×10, 6×20, 3×50, 2×T, 2×x2, 2×SWAP", codes:"" })],
+    blocks:[{ label:"0 Arrival", mins:8, lines:[scApp("0A Animal Hangman", "g1")] },
+            { label:"1 Grammar: what is it doing?", mins:14, lines:[scCue("1A Questions and answers"), scTrap("Ken, what is the dolphin doing?"), scTrap("Ivy, what are the penguins doing?"), scApp("1B Animal Match Up", "g2")] },
+            { label:"2 Reading: at the zoo", mins:12, lines:[scCue("2A Read p.12"), { type:"score", n:3, label:"2A Reading questions" }, scApp("2B Zoo Spot the Error", "g3")] },
+            { label:"3 Games and close", mins:14, lines:[scApp("3A Zoo Bingo", "g4"), scApp("3B Typhoon", "g5"), scCue("3C Homework HW9")] },
+            { label:"Buffer", mins:2, lines:[scCue("Overrun only")] }],
+    materials:[scMat("WS9 zoo picture", "ws9-ken-ivy", ["1"]), scMat("At the Zoo (reader)", "reader-at-the-zoo", ["2"], "p.12"), scMat("Ken_Ivy_HW9", "hw9-ken-ivy", ["3"])] },
+
+  /* ---------------- Grace: older, grammar and writing, online ---------------- */
+  { id:"grace-lp4", student:"Grace", lp:4, day:-19, start:"20:00", length:60, format:"online",
+    games:[scG("g1", "match", "Linkers Match Up", "although = + a clause: Although it rained, …\ndespite = + a noun or -ing: Despite the rain, …\nhowever = starts a new sentence, then a comma\nwhereas = compares two facts in one sentence", { mode:"match" }),
+           scG("g2", "spot", "Contrast Spot the Error", "Despite of the rain, we played. = Despite the rain, we played.\nAlthough it was late, she kept working. = ok\nShe was tired, however she kept working. = She was tired. However, she kept working.")],
+    blocks:[{ label:"0 Warm-up", mins:10, lines:[scCue("0A News of the week")] },
+            { label:"1 Contrast linkers", mins:25, lines:[scCue("1A Present the four linkers"), scApp("1B Linkers Match Up", "g1")] },
+            { label:"2 Editing", mins:20, lines:[scApp("2A Contrast Spot the Error", "g2"), scCue("2B Fix two sentences from her last essay")] },
+            { label:"3 Close", mins:5, lines:[scCue("3A Homework HW4")] }],
+    materials:[scMat("Linkers handout", "linkers-handout-grace", ["1"]), scMat("Grace_HW4", "hw4-grace", ["3"])],
+    results:[["g1", 28, [["although", true, "pair: + a clause: Although it rained, …"], ["despite", false, "pair: + a noun or -ing: Despite the rain, …"], ["however", true, "pair: starts a new sentence, then a comma"], ["whereas", false, "pair: compares two facts in one sentence"]]],
+             ["g2", 42, [["Despite of the rain, we played.", false, "said: Although of the rain"], ["Although it was late, she kept working.", true], ["She was tired, however she kept working.", true]]]],
+    fb:{ chg:"", parent:"", other:"“despite of” in her own writing too", spine:"4", energy:["4"] },
+    pb:"chat" },
+  { id:"grace-lp5", student:"Grace", lp:5, day:-12, start:"20:00", length:60, format:"online",
+    games:[scG("g1", "quiz", "Relative Clause Quiz", "That’s the girl ___ bag was stolen.\n*whose\nwho\nwhich\n\nThe museum ___ we visited was huge.\n*which\nwho\nwhose\n\nThe man ___ lives next door is a pilot.\n*who\nwhich\nwhere"),
+           scG("g2", "typeit", "Linker Type It", "___ the rain, we played. (one word) = Despite\n___ it rained, we played. = Although / Even though\nIt rained. ___, we played. = However")],
+    blocks:[{ label:"0 Warm-up", mins:10, lines:[scApp("0A Linker Type It", "g2")] },
+            { label:"1 Relative clauses", mins:25, lines:[scCue("1A Who, which, whose, where"), scTrap("That’s the girl ___ bag was stolen."), scApp("1B Relative Clause Quiz", "g1")] },
+            { label:"2 Writing", mins:20, lines:[scCue("2A Describe a place you love, with three relative clauses")] },
+            { label:"3 Close", mins:5, lines:[scCue("3A Homework HW5")] }],
+    materials:[scMat("Relative clauses handout", "relatives-grace", ["1"]), scMat("Grace_HW5", "hw5-grace", ["3"])],
+    results:[["g2", 8, [["___ the rain, we played. (one word)", false, "answer: Despite · typed: Although"], ["___ it rained, we played.", true, "answer: Although / Even though"], ["It rained. ___, we played.", true, "answer: However"]]],
+             ["g1", 30, [["That’s the girl ___ bag was stolen.", false, "answer “whose”", "whose"], ["The museum ___ we visited was huge.", true, "answer “which”", "which"], ["The man ___ lives next door is a pilot.", true, "answer “who”", "who"]]]],
+    fb:{ trap:{ "1A":["w"] }, chg:"", parent:"", other:"“the place where I grew up there”", spine:"4", energy:["3"] },
+    pb:"chat" },
+  { id:"grace-lp6", student:"Grace", lp:6, day:-5, start:"20:00", length:60, format:"online", plan:"showcase-grace-lp6-plan",
+    games:[scG("g1", "auction", "Second Conditional Auction", "1. If I had more time, I would read more. [CORRECT]\n2. If schools would ban phones, students would talk more. [WRONG — If schools banned phones, students would talk more.]\n3. If I were you, I would apologise. [CORRECT]\n4. If she studies harder, she would pass. [WRONG — If she studied harder, she would pass.]"),
+           scG("g2", "build", "If I Were Builder", "If I were rich, I would travel the world.\nIf we had a car, we would drive to the beach.\nShe would help you if she had time. / If she had time, she would help you. | second conditional"),
+           scG("g3", "cards", "Linkers Flash Cards", "+ a noun or -ing, at the start of a contrast = despite\n+ a clause, at the start of a contrast = although\nstarts a new sentence that contrasts = however\nthe same as despite, three words = in spite of")],
+    blocks:[{ label:"0 Warm-up", mins:8, lines:[scCue("0A Who / which / whose")] },
+            { label:"1 Grammar: second conditional", mins:20, lines:[scCue("1A Present"), scTrap("Finish it: If schools banned phones…"), scApp("1B Second Conditional Auction", "g1"), scApp("1C If I Were Builder", "g2")] },
+            { label:"2 Essay plan", mins:26, lines:[scApp("2A Linkers Flash Cards", "g3"), scCue("2B Plan the essay")] },
+            { label:"3 Close", mins:4, lines:[scCue("3A Homework HW6")] },
+            { label:"Buffer", mins:2, lines:[scCue("Overrun only")] }],
+    materials:[scMat("Grace_HW6 grammar sheet (linkers)", "hw6-grace-grammar", ["3"], "key on the last page"), scMat("HW6 essay task", "hw6-grace-essay", ["2", "3"])],
+    results:[["g1", 20, [["If I had more time, I would read more.", true], ["If schools would ban phones, students would talk more.", false, "bet it was right"], ["If I were you, I would apologise.", true], ["If she studies harder, she would pass.", true]]],
+             ["g2", 26, [["If I were rich, I would travel the world.", true], ["If we had a car, we would drive to the beach.", true], ["She would help you if she had time.", false, "built: She would help you if she has time."]]],
+             ["g3", 33, [["+ a noun or -ing, at the start of a contrast", false, "answer: despite"], ["+ a clause, at the start of a contrast", true, "answer: although"], ["starts a new sentence that contrasts", true, "answer: however"], ["the same as despite, three words", true, "answer: in spite of"]]]],
+    fb:{ trap:{ "1A":["w"] }, chg:"Essay plan took the full 20 minutes: no time for a second reason, left for homework.", parent:"", other:"“If I would have time”", spine:"5", energy:["4"] },
+    pb:"manual" },
+  { id:"grace-lp7", student:"Grace", lp:7, day:0, start:"20:00", length:60, format:"online", plan:"showcase-grace-lp7-plan",
+    games:[scG("g1", "match", "Linkers Match Up", "although = + a clause: Although it rained, …\ndespite = + a noun or -ing: Despite the rain, …\nhowever = starts a new sentence, then a comma\nwhereas = compares two facts in one sentence\nin spite of = the same as despite", { mode:"match" }),
+           scG("g2", "quiz", "Despite or Although Quiz", "___ it was raining, we went out.\n*Although\nDespite\nIn spite of\n\n___ the rain, we went out.\n*Despite\nAlthough\nEven though\n\nShe passed the test ___ being ill.\n*despite\nalthough\nhowever\n\n___ phones are useful, they distract students.\n*Although\nDespite\nIn spite of\n\n___ the noise, he fell asleep.\n*In spite of\nAlthough\nEven though", { mode:"winlose" }),
+           scG("g3", "auction", "Error Auction", "1. Although phones are useful, but they distract students. [WRONG — Although phones are useful, they distract students.]\n2. Despite the rules, many students bring phones. [CORRECT]\n3. If schools would ban phones, students would talk more. [WRONG — If schools banned phones, students would talk more.]\n4. Despite of being expensive, phones are everywhere. [WRONG — Despite being expensive, phones are everywhere.]\n5. Students would focus more if they didn’t have phones. [CORRECT]"),
+           scG("g4", "build", "Conditionals Builder", "If schools banned phones, students would talk more.\nIf I had more time, I would read more.\nShe would pass if she studied harder. / If she studied harder, she would pass. | second conditional"),
+           scG("g5", "td", "Tower Defence", "", { map:0, diff:"easy" })],
+    blocks:[{ label:"0 Homework back", mins:14, lines:[scCue("0A HW6 grammar sheet"), { type:"score", n:9, label:"0A HW6 grammar" }, scCue("0B HW6 essay")] },
+            { label:"1 Grammar: despite / although", mins:16, lines:[scCue("1A Present the difference"), scTrap("Join them with despite: It was raining. We went out."), scApp("1B Linkers Match Up", "g1"), scApp("1C Despite or Although Quiz", "g2")] },
+            { label:"2 Writing", mins:18, lines:[scApp("2A Error Auction", "g3"), scCue("2B Rewrite one paragraph")] },
+            { label:"3 Break and close", mins:10, lines:[scApp("3A Conditionals Builder", "g4"), scApp("3B Tower Defence", "g5"), scCue("3C Homework HW7")] },
+            { label:"Buffer", mins:2, lines:[scCue("Overrun only")] }],
+    materials:[scMat("Opinion essay checklist", "essay-checklist-grace", ["0", "2"]), scMat("Grace_HW7 (despite / although)", "hw7-grace", ["3"])] }
+];
+/* one result row in the shape the app saves */
+function scResult(p, g, spec, i){
+  var items = (spec[2] || []).map(function(x){ var o = { item:x[0], ok:x[1], note:x[2] || "" }; if(x[3]) o.ans = x[3]; return o; });
+  var right = items.filter(function(x){ return x.ok; }).length, miss = items.filter(function(x){ return !x.ok; }).map(function(x){ return x.ans || noteVal(x.note, "answer") || x.item; });
+  var L = TYPES[g.type] ? TYPES[g.type].label : g.type, st = rsHm(p.runsheet.start) + spec[1], d = p.date.split("-");
+  var at = new Date(+d[0], +d[1] - 1, +d[2], Math.floor(st / 60), st % 60).toISOString();
+  var sum = spec[3] || (L + " (" + g.title + ") — " + right + "/" + items.length + " right" + (miss.length ? "\nMissed: " + miss.join(", ") : ""));
+  return { id: p.id + "_" + g.id + "_s" + (i + 1), packId:p.id, student:p.student, lp:p.lp, gameId:g.id, type:g.type, title:g.title, at:at, summary:sum,
+    score: items.length ? { text: right + "/" + items.length } : null, items:items, activeSecs: 240 + 30 * items.length, points: items.length ? right * 15 + 10 : 60 };
+}
+/* the run sheet a past lesson ends with: every line marked, the typed lines filled from fb */
+function scSheet(p, fb){
+  var spec = rsSpec(p), G = rsGroup(spec), m = {}, cur = "";
+  rsLayout(spec).forEach(function(b){
+    cur = "";
+    b.lines.forEach(function(x){
+      var ln = x.ln, k = x.key, t = ln.type; cur = plCode(ln.label) || plCode(ln._code) || cur;
+      if(t === "cue" && !ln.nobox) m[k] = (fb.no || []).indexOf(cur) !== -1 ? "n" : "y";
+      else if(t === "app" || t === "box") m[k] = "y";
+      else if(t === "score"){ var sc = (fb.score || {})[cur]; G.forEach(function(s, i){ m[rsPer(k, s)] = sc ? sc[0][i] || sc[0][0] : String(ln.n); }); if(sc && sc[1]) m[k + ".m"] = sc[1]; }
+      else if(t === "trap"){ var tr = (fb.trap || {})[cur] || []; G.forEach(function(s, i){ m[rsPer(k, s)] = tr[i] || "r"; }); }
+      else if(t === "words") m[k] = (fb.words || []).filter(function(w){ return (ln.words || []).indexOf(w) !== -1; });
+    });
+  });
+  var end = rsEnd(spec);
+  m["end.fin"] = rsFmt(end); m["end.spine"] = fb.spine || "4"; m["end.plan"] = ["no"];
+  G.forEach(function(s, i){ m[rsPer("end.energy", s)] = (fb.energy || [])[i] || "4"; });
+  ["chg", "parent", "other"].forEach(function(f){ if(fb[f]) m["end." + f] = fb[f]; });
+  var d = p.date.split("-"), fin = new Date(+d[0], +d[1] - 1, +d[2], Math.floor(end / 60), end % 60).toISOString();
+  var doc = rsBuildDoc(p, { marks:m, finished:true, finishedAt:fin }); delete doc._gapKeys; doc.updatedAt = fin;
+  return doc;
+}
+/* Everything the reset writes, dated from today. RESULTS/PACKS are lent the new rows while the run sheets are built
+   (their app lines read the lesson's results), then the caller saves the lot. */
+function scBuild(){
+  var td = today(), ts = nowIso(), packs = [], results = [], sheets = [], pb = [];
+  SC_SEED.forEach(function(L){
+    var date = dayShift(td, L.day), id = SC_PRE + L.id;
+    var spec = { student:L.student, lp:L.lp, date:date, start:L.start, length:L.length, format:L.format, blocks:clone(L.blocks) };
+    if(L.group) spec.group = L.group.slice();
+    var p = { id:id, student:L.student, lp:L.lp, title:L.student + " · LP" + L.lp, date:date, source:"plan", createdAt:ts, updatedAt:ts, games:clone(L.games), runsheet:spec, materials:clone(L.materials || []) };
+    if(L.bank) p.bank = L.bank;
+    if(L.plan) p.plan = { docId:L.plan };
+    packs.push(p);
+    (L.results || []).forEach(function(r, i){ var g = p.games.filter(function(x){ return x.id === r[0]; })[0]; if(g) results.push(scResult(p, g, r, i)); });
+    if(L.pb){ var e = rsEnd(spec) + 30, d = date.split("-"); pb.push({ pack_id:id, status:"done", at:new Date(+d[0], +d[1] - 1, +d[2], Math.floor(e / 60), e % 60).toISOString(), by:L.pb, note:null }); }
+  });
+  var keepP = PACKS, keepR = RESULTS;
+  PACKS = PACKS.concat(packs); RESULTS = RESULTS.concat(results);
+  try{ SC_SEED.forEach(function(L, i){ if(L.fb) sheets.push(scSheet(packs[i], L.fb)); }); }
+  finally{ PACKS = keepP; RESULTS = keepR; }
+  return { packs:packs, results:results, sheets:sheets, phaseb:pb };
+}
+/* The showcase board (Snakes & Ladders): a copy of one of Sam's boards with its picture as its public address, so a
+   guest's class link never needs to upload anything. Teacher only (guests can't write boards). */
+function scBoard(){
+  if(guestView() || RAW.boards.some(function(b){ return b.id === SC_BOARD; })) return Promise.resolve();
+  var src = RAW.boards.filter(function(b){ return b.id !== SC_BOARD && b.showcase !== true && b.img; })[0];
+  if(!src || !STORE.saveBoard) return Promise.resolve();
+  return picUrl(src.img).then(function(u){ var b = clone(src); b.id = SC_BOARD; b.name = "Demo board"; b.img = u; b.showcase = true; b.updatedAt = nowIso(); return STORE.saveBoard(b); });
+}
+/* Reset: wipes and re-seeds the showcase only. Results, run sheets and Phase B rows go before their lessons (a guest may
+   only touch rows whose lesson is still there), and the new lessons are saved before anything that hangs off them.
+   Never touches a real or test student: a showcase id that already belongs to another student stops the reset. */
+function scReset(){
+  var guest = guestView(), raw = {}; RAW.students.forEach(function(o){ raw[o.id] = o; });
+  var bad = SC_STUDENTS.filter(function(s){ var o = raw[s.id]; return (o && o.showcase !== true) || SC_CLASH[s.id]; });
+  if(bad.length) return Promise.reject(new Error(bad.map(function(s){ return s.name; }).join(", ") + (bad.length === 1 ? " is" : " are") + " also a real student’s name: rename the demo student first"));
+  var missing = SC_STUDENTS.filter(function(s){ return !raw[s.id]; });
+  if(guest && missing.length) return Promise.reject(new Error("the demo isn’t set up yet"));
+  var old = RAW.packs.filter(function(p){ return typeof p.id === "string" && p.id.indexOf(SC_PRE) === 0 && isShowcaseName(p.student); }), ids = {};
+  old.forEach(function(p){ ids[p.id] = 1; });
+  var jobs = [];
+  RAW.results.forEach(function(r){ if(ids[r.packId] && STORE.deleteResult) jobs.push(STORE.deleteResult(r.id)); });
+  RAW.sheets.forEach(function(s){ if(ids[s.id] && STORE.deleteSheet) jobs.push(STORE.deleteSheet(s.id)); });
+  var pbIds = RAW.phaseb.filter(function(r){ return ids[r.pack_id]; }).map(function(r){ return r.pack_id; });
+  if(pbIds.length && STORE.deletePhaseb) jobs.push(STORE.deletePhaseb(pbIds));
+  old.forEach(function(p){ delete RS_LOCAL[p.id]; delete RS_DIRTY[p.id]; if(UI.parked) Object.keys(UI.parked).forEach(function(k){ if(k.indexOf(p.id + "|") === 0) delete UI.parked[k]; }); if(UI.run && UI.run.packId === p.id){ UI.run = null; UNDO = []; } });
+  saveUI();
+  return Promise.all(jobs).then(function(){
+    return Promise.all(old.map(function(p){ return STORE.deletePack(p.id); }));
+  }).then(function(){
+    return Promise.all(SC_STUDENTS.map(function(s){
+      var o = { id:s.id, name:s.name, showcase:true, look:s.look, updatedAt:nowIso() }; if(s.players) o.players = s.players.slice();
+      return STORE.saveStudent(o);
+    }));
+  }).then(scBoard).then(function(){
+    var B = scBuild();
+    return Promise.all(B.packs.map(function(p){ return STORE.savePack(p); })).then(function(){
+      return Promise.all(B.results.map(function(r){ return STORE.saveResult(r); }).concat(B.sheets.map(function(s){ return STORE.saveSheet(s); }))
+        .concat(B.phaseb.length && STORE.savePhaseb ? [STORE.savePhaseb(B.phaseb)] : []));
+    });
+  });
+}
+function scResetRun(){
+  toast("Resetting the demo…");
+  scReset().then(function(){ toast(guestView() ? "Demo reset." : "Showcase reset."); HOMEDAY = ""; render(); }, function(e){ toast("Reset stopped: " + ((e && e.message) || "error")); refresh(); });
+}
+
+/* ---- what a guest sees: the stripe, and the guest list on Sam's 🧪 Test page ---- */
+function gstStripe(){
+  if(!guestView() || STUDENT_PAGE || SMODE) return "";
+  return '<div class="gst-stripe" role="note"><span class="gst-t">' + (GUEST ? "Guest preview · a made-up school" : "Preview as guest · what a guest sees") + '</span>' +
+    (UI.gstAsk ? '<span class="row gst-ask" role="alert"><b>Wipe the demo and start again?</b><button class="btn danger sm" data-a="gst-reset-go">Yes, reset</button><button class="btn ghost sm" data-a="gst-reset-no">Cancel</button></span>'
+      : '<span class="row gst-b"><button class="btn ghost sm" data-a="gst-reset">Reset demo</button>' + (GUEST ? "" : '<button class="btn ghost sm" data-a="gst-exit">Exit preview</button>') + '</span>') + '</div>';
+}
+function gstHandle(a){
+  if(!guestView()) return false;
+  if(a === "gst-reset"){ UI.gstAsk = true; render(); return true; }
+  if(a === "gst-reset-no"){ UI.gstAsk = false; render(); return true; }
+  if(a === "gst-reset-go"){ UI.gstAsk = false; render(); scResetRun(); return true; }
+  if(a === "gst-exit" && !GUEST){ UI.gpv = false; UI.gstAsk = false; HOMEDAY = ""; saveUI(); scopeApply(); go("test"); return true; }
+  return false;
+}
+/* Guests: private.guests through teacher-only database functions; guest-account makes the sign-in for a new email
+   (sign-ups are closed, so a guest can't make one). */
+var GL = { list:null, busy:false, err:"", ask:"", draft:"" };
+function gstLoad(){
+  if(!SB || GL.busy) return;
+  GL.busy = true;
+  SB.rpc("guest_list").then(function(r){ GL.busy = false; if(r.error){ GL.err = "Couldn’t load the guest list."; GL.list = GL.list || []; } else { GL.err = ""; GL.list = (r.data || []).map(function(x){ return { email:String(x.email || ""), at:String(x.added_at || "") }; }); } if(UI.view === "test") render(); });
+}
+function gstAccount(email){
+  return SB.auth.getSession().then(function(r){
+    var s = r && r.data && r.data.session; if(!s) throw new Error("signin");
+    return fetch(SB_URL + "/functions/v1/guest-account", { method:"POST", headers:{ "Content-Type":"application/json", apikey:SB_KEY, Authorization:"Bearer " + (s.access_token || "") }, body: JSON.stringify({ email:email }) });
+  }).then(function(res){ return res.json().catch(function(){ return {}; }).then(function(j){ if(!res.ok || !j || !j.ok) throw new Error((j && j.error) || "http " + res.status); return j; }); });
+}
+function gstAdd(){
+  var i = $("gstEmail"), em = String(i ? i.value : "").trim().toLowerCase();
+  GL.draft = em;
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ GL.err = "Type a full email address."; render(); return; }
+  if(!SB){ GL.err = "Guests work in the online app only."; render(); return; }
+  GL.err = ""; GL.busy = true; render();
+  SB.rpc("guest_add", { p_email:em }).then(function(r){
+    if(r.error){ GL.busy = false; GL.err = "Couldn’t add that email."; render(); return; }
+    return gstAccount(em).then(function(j){ GL.draft = ""; toast(j.created ? "Guest added: they can sign in now." : "Guest added (they already had a sign-in)."); },
+      function(){ GL.draft = ""; toast("Added to the list, but their sign-in wasn’t made. Add the user in Supabase → Authentication."); })
+      .then(function(){ GL.busy = false; gstLoad(); });
+  });
+}
+function gstRemove(em){
+  if(!SB || !em) return;
+  GL.ask = ""; GL.busy = true; render();
+  SB.rpc("guest_remove", { p_email:em }).then(function(r){ GL.busy = false; if(r.error) toast("Couldn’t remove that guest."); else toast("Guest removed: they see nothing now."); gstLoad(); });
+}
+function gstListHtml(){
+  if(!SB_MODE || !SB) return '<p class="muted">Guests work in the online app only.</p>';
+  if(GL.list === null){ gstLoad(); return '<p class="muted">Loading…</p>'; }
+  var rows = GL.list.map(function(g){
+    return '<li class="gl-row"><span class="gl-e">' + esc(g.email) + '</span>' + (GL.ask === g.email ? '<span class="row gl-ask" role="alert"><span>Remove?</span><button class="btn danger sm" data-a="tst-g-del" data-e="' + esc(g.email) + '">Remove</button><button class="btn ghost sm" data-a="tst-g-no">Keep</button></span>'
+      : '<button class="btn ghost sm ic" data-a="tst-g-ask" data-e="' + esc(g.email) + '" aria-label="Remove ' + esc(g.email) + '" title="Remove">✕</button>') + '</li>';
+  }).join("");
+  return (rows ? '<ul class="gl-list">' + rows + '</ul>' : '<p class="muted">No guests yet.</p>') +
+    '<div class="row gl-add"><input type="text" inputmode="email" id="gstEmail" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="friend@example.com" aria-label="Guest’s email" value="' + esc(GL.draft) + '"><button class="btn sm" data-a="tst-g-add"' + (GL.busy ? " disabled" : "") + '>Add guest</button></div>' +
+    (GL.err ? '<p class="err" role="alert">' + esc(GL.err) + '</p>' : "");
+}
+function scSectionHtml(){
+  var n = RAW.packs.filter(function(p){ return typeof p.id === "string" && p.id.indexOf(SC_PRE) === 0 && isShowcaseName(p.student); }).length;
+  var clash = SC_STUDENTS.filter(function(s){ return SC_CLASH[s.id]; });
+  return '<section class="section sc-sec"><h3>Showcase for guests</h3><p class="muted" style="margin-top:4px">A made-up school (' + esc(SC_STUDENTS.map(function(s){ return s.name; }).join(", ")) + '): ' + n + (n === 1 ? " lesson" : " lessons") + '. Guests see only these, as if they were real students, and the database lets them reach nothing else. They stay out of your day list, Phase B and progress; backups include them.</p>' +
+    (clash.length ? '<p class="notice" role="alert">A real lesson uses the name ' + esc(clash.map(function(s){ return s.name; }).join(", ")) + ': that demo student is switched off for guests. Rename one of them.</p>' : "") +
+    '<div class="row"><button class="btn sm" data-a="tst-preview">Preview as guest</button>' +
+    (UI.scAsk ? '<span class="row sc-ask" role="alert"><b>Wipe the showcase and seed it again?</b><button class="btn danger sm" data-a="tst-sc-go">Yes, reset</button><button class="btn ghost sm" data-a="tst-sc-no">Cancel</button></span>' : '<button class="btn ghost sm" data-a="tst-sc-reset">Reset showcase</button>') + '</div>' +
+    '<h4 style="margin:14px 0 4px">Guests</h4><p class="muted" style="margin:0 0 8px;font-size:15px">An email here can sign in and use the showcase. Adding one also makes their sign-in (sign-ups are closed).</p>' + gstListHtml() + '</section>';
 }
 
 /* ---------- score pad (27 Nov): manual points and coins ----------
@@ -8723,9 +9186,9 @@ function spadHandle(a, el){
    the date and a ✕ that asks inline before discarding. Test students' games never show here (🧪 Test page). */
 function keptList(){
   var out = [];
-  inProgress().forEach(function(r){ var p = getPack(r.packId); if(!p || isTestPack(p)) return; out.push({ kind:"run", key:rkey(r), r:r, p:p, title:r.title, day:String(p.date || "").slice(0, 10), when:String(r.startedAt || "").slice(0, 10) }); });
+  inProgress().forEach(function(r){ var p = getPack(r.packId); if(!p || isAsidePack(p)) return; out.push({ kind:"run", key:rkey(r), r:r, p:p, title:r.title, day:String(p.date || "").slice(0, 10), when:String(r.startedAt || "").slice(0, 10) }); });
   Object.keys(STUDENTS).forEach(function(id){
-    var o = STUDENTS[id]; if(!o || o.test === true || !o.paused || typeof o.paused !== "object" || id === TSET_ID) return;
+    var o = STUDENTS[id]; if(!o || isAsideRow(o) || !o.paused || typeof o.paused !== "object" || id === TSET_ID) return;
     Object.keys(o.paused).forEach(function(ty){ var x = o.paused[ty]; if(!x || !x.st || !TYPES[ty]) return; out.push({ kind:"later", key:"fl|" + id + "|" + ty, sid:id, ty:ty, name:o.name || id, title:x.title || TYPES[ty].label, x:x, p:getPack(x.fromPack), when:String(x.at || x.started || "").slice(0, 10) }); });
   });
   return out;
@@ -8771,6 +9234,8 @@ function handle(a, el){
   if(a.indexOf("spad-") === 0 && spadHandle(a, el)) return;
   if(a.indexOf("kg-") === 0 && !SMODE && keptHandle(a, el)) return;
   if(a === "live-override"){ if(UI.run){ UI.run.liveOverride = !UI.run.liveOverride; saveUI(); render(); } return; }
+  if(a.indexOf("gst-") === 0 && !STUDENT_PAGE && !SMODE && gstHandle(a)) return;
+  if(guestView() && (a === "backup" || a === "restore" || a.indexOf("tst-") === 0)) return;
   if(a === "backup"){ backupDownload(); return; }
   if(a === "restore"){ var fi = $("restoreFile"); if(fi) fi.click(); return; }
   if(a.indexOf("rs-") === 0){ rsHandle(a, el); return; }
@@ -8792,10 +9257,12 @@ function handle(a, el){
   if(a === "savepack"){
     var stu = $("pStudent").value.trim(), lp = $("pLp").value.trim(), date = $("pDate").value || today();
     if(!stu){ $("err").textContent = "Type the student’s name."; return; }
+    /* a guest's lessons belong to the showcase students (the database refuses anything else) */
+    if(guestView() && !isShowcaseName(stu)){ $("err").textContent = "In the demo, lessons go to " + SC_STUDENTS.map(function(x){ return x.name; }).join(", ") + "."; return; }
     var d = UI.draftPack, p;
     if(d.id){ p = clone(getPack(d.id)); }
     else {
-      var id = slug(stu) + (lp ? "-lp" + lp : "-" + date.replace(/-/g, ""));
+      var id = (guestView() ? SC_PRE : "") + slug(stu) + (lp ? "-lp" + lp : "-" + date.replace(/-/g, ""));
       if(getPack(id)){ $("err").textContent = "That lesson already exists. Open it from the list instead."; return; }
       p = { id:id, games:[], source:"app", createdAt:nowIso() };
     }
